@@ -5,21 +5,21 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-#include "../vke/buffer.hpp"
-#include "../vke/commandbuffer.hpp"
-#include "../vke/core.hpp"
-#include "../vke/descriptor_pool.hpp"
-#include "../vke/descriptor_set_builder.hpp"
-#include "../vke/descriptor_set_layout_builder.hpp"
-#include "../vke/engine.hpp"
-#include "../vke/fwd.hpp"
-#include "../vke/image.hpp"
-#include "../vke/pipeline.hpp"
-#include "../vke/pipeline_builder.hpp"
-#include "../vke/renderpass.hpp"
-#include "../vke/util.hpp"
-#include "../vke/vertex_input_builder.hpp"
-#include "../vke/window_sdl.hpp"
+#include <vke/buffer.hpp>
+#include <vke/commandbuffer.hpp>
+#include <vke/core.hpp>
+#include <vke/descriptor_pool.hpp>
+#include <vke/descriptor_set_builder.hpp>
+#include <vke/descriptor_set_layout_builder.hpp>
+#include <vke/engine.hpp>
+#include <vke/fwd.hpp>
+#include <vke/image.hpp>
+#include <vke/pipeline.hpp>
+#include <vke/pipeline_builder.hpp>
+#include <vke/renderpass.hpp>
+#include <vke/util.hpp>
+#include <vke/vertex_input_builder.hpp>
+#include <vke/window_sdl.hpp>
 
 struct Vertex {
     f32 pos[2];
