@@ -32,8 +32,8 @@ public:
 
     VkDescriptorSetLayout build(Core* core);
 
-private:
     void add_binding(VkDescriptorType type, VkShaderStageFlags stage, uint32_t count);
+private:
 
     std::vector<VkDescriptorSetLayoutBinding> m_bindings;
 };

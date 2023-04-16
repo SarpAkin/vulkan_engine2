@@ -26,6 +26,16 @@ public:
         return *this;
     }
 
+    PipelineLayoutBuilder& add_push_constant(VkShaderStageFlags stage, u32 size) {
+        m_push_constants.push_back(VkPushConstantRange{
+            .stageFlags = stage,
+            .offset     = 0,
+            .size       = size,
+        });
+
+        return *this;
+    }
+
     inline PipelineLayoutBuilder& add_set_layout(VkDescriptorSetLayout layout) {
         m_set_layouts.push_back(layout);
 
@@ -44,11 +54,19 @@ public:
     PipelineBuilderBase(Core* core) : Resource(core) {}
     ~PipelineBuilderBase();
 
-    void add_shader_stage(VkShaderStageFlagBits stage, u32* spirv_code, usize spirv_len);
-    inline void add_shader_stage(VkShaderStageFlagBits stage, std::span<u32> span) { add_shader_stage(stage, span.data(), span.size()); };
+    // 0 is for auto
+    void add_shader_stage(u32* spirv_code, usize spirv_len, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0);
+    inline void add_shader_stage(std::span<u32> span, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0) { add_shader_stage(span.data(), span.size(), stage); };
     void set_layout_builder(PipelineLayoutBuilder* builder) { m_layout_builder = builder; }
 
 protected:
+    struct LayoutBuild {
+        VkPipelineLayout layout;
+        std::vector<VkDescriptorSetLayout> dset_layouts;
+    };
+
+    LayoutBuild build_layout_and_shaders();
+
     struct ShaderDetails {
         u32* spirv_code;
         u32 spirv_len;
@@ -58,6 +76,7 @@ protected:
 
     std::vector<ShaderDetails> m_shader_details;
     PipelineLayoutBuilder* m_layout_builder;
+    std::unique_ptr<PipelineLayoutBuilder> m_owned_builder;
 };
 
 class VertexInputDescriptionBuilder;

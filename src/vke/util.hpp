@@ -36,6 +36,9 @@ auto map_vec(auto&& vector, auto&& f) -> std::vector<decltype(f(*vector.begin())
 
 
 
+#define ALLOCA_ARR(T,N)  std::span(reinterpret_cast<T*>(alloca(sizeof(T) * N)),static_cast<usize>(N)) 
+
+
 #define MAP_VEC_ALLOCA(vector, f...) ({                            \
     using T    = decltype(f(*vector.begin()));                            \
     T* results = reinterpret_cast<T*>(alloca(sizeof(T) * vector.size())); \
@@ -49,3 +52,4 @@ auto map_vec(auto&& vector, auto&& f) -> std::vector<decltype(f(*vector.begin())
 std::vector<u8> read_file_binary(const char* name);
 
 std::span<u32> cast_u8_to_span_u32(std::span<u8> span);
+

@@ -26,10 +26,6 @@ struct Vertex {
     f32 color[3];
 };
 
-struct Push{
-    f32 color[4];
-};
-
 class App : public vke::RenderEngine {
 public:
     App() {
@@ -38,38 +34,43 @@ public:
         init_descriptor_sets();
         init_pipeline();
         init_vertex_data();
+
     }
 
     void on_frame(vke::CommandBuffer& cmd) override {
-        if (m_image == nullptr) {
+        if(m_image == nullptr){
             load_image(cmd);
         }
         m_renderpass->begin(cmd);
+
 
         cmd.bind_pipeline(m_pipeline.get());
         cmd.bind_descriptor_set(0, m_dset);
         cmd.bind_vertex_buffer({m_vertex_buffer.get()});
         cmd.draw(3, 1, 0, 0);
 
-
         m_renderpass->end(cmd);
     }
 
     void init_pipeline() {
+        vke::PipelineLayoutBuilder layout_builder;
+        layout_builder.add_set_layout(m_dset_layout);
+
         vke::VertexInputDescriptionBuilder vertex_builder;
         vertex_builder.push_binding<Vertex>();
         vertex_builder.push_attribute<f32>(2);
         vertex_builder.push_attribute<f32>(3);
 
         vke::GPipelineBuilder pipeline_builder(core());
+        pipeline_builder.set_layout_builder(&layout_builder);
         pipeline_builder.set_renderpass(m_renderpass.get(), 0);
         pipeline_builder.set_vertex_input(&vertex_builder);
 
         auto frag_code = read_file_binary("res/spv/1.frag.spv");
         auto vert_code = read_file_binary("res/spv/1.vert.spv");
 
-        pipeline_builder.add_shader_stage(cast_u8_to_span_u32(frag_code));
-        pipeline_builder.add_shader_stage(cast_u8_to_span_u32(vert_code));
+        pipeline_builder.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, cast_u8_to_span_u32(frag_code));
+        pipeline_builder.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, cast_u8_to_span_u32(vert_code));
 
         m_pipeline = pipeline_builder.build();
     }
@@ -107,7 +108,7 @@ private:
     std::unique_ptr<vke::DescriptorPool> m_dpool;
     std::unique_ptr<vke::Image> m_image;
     VkDescriptorSetLayout m_dset_layout = nullptr;
-    VkDescriptorSet m_dset              = nullptr;
+    VkDescriptorSet m_dset = nullptr;
 };
 
 int main() {

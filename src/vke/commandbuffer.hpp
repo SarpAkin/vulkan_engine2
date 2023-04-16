@@ -35,8 +35,11 @@ public:
     void bind_pipeline(Pipeline* pipeline);
     void bind_vertex_buffer(const std::initializer_list<Buffer*>& buffer);
     void bind_descriptor_set(u32 index, VkDescriptorSet set);
+    void push_constant(u32 size, const void* pValues);
+    template <typename T>
+    void push_constant(const T* push) { push_constant(sizeof(T), push); }
 
-    void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+    void draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance);
 
 private:
     VkCommandBuffer m_cmd;
@@ -45,7 +48,7 @@ private:
     std::vector<std::unique_ptr<Resource>> m_dependent_resources;
 
     VkPipelineBindPoint m_current_pipeline_state = VK_PIPELINE_BIND_POINT_COMPUTE;
-    Pipeline* m_current_pipeline                = nullptr;
+    Pipeline* m_current_pipeline                 = nullptr;
 };
 
 } // namespace vke

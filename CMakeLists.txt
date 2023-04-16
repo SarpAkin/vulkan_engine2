@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 
 project(vke3)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
@@ -9,7 +11,7 @@ find_package(SDL2 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(fmt REQUIRED)
 
-file(GLOB LIB_CPPS "libs/*.cpp")
+file(GLOB LIB_CPPS "libs/*.c*")
 
 file(GLOB VKE_SRC_FILES "${CMAKE_SOURCE_DIR}/src/vke/*.cpp")
 set(VKE_INCLUDE  "${CMAKE_SOURCE_DIR}/src")
@@ -26,5 +28,5 @@ target_link_libraries(vke PUBLIC ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES})
 
 target_include_directories(vke INTERFACE $<BUILD_INTERFACE:${VKE_INCLUDE}> $<INSTALL_INTERFACE:include>)
 
-# #demos
+# demos
 add_subdirectory(demos/1)
