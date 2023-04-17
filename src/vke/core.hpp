@@ -7,10 +7,10 @@
 
 #include "sampler_manager.hpp"
 
-// #include <vulkan/vulkan.h>
 #include <span>
 #include <vector>
 #include <vulkan/vulkan_core.h>
+#include <functional>
 
 typedef struct VmaAllocator_T* VmaAllocator;
 typedef struct VmaAllocation_T* VmaAllocation;
@@ -34,6 +34,9 @@ public: // util
     usize pad_buffer(usize bsize) const;
 
     SamplerManager* get_sampler_manager() const { return m_sampler_manager; }
+
+    void immediate_submit(std::function<void(CommandBuffer& cmd)> function);
+
 
 public: // resource creation
     // these are located individually at the resources cpp file. ex: buffer.cpp

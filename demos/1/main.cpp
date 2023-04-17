@@ -21,12 +21,17 @@
 #include <vke/vertex_input_builder.hpp>
 #include <vke/window_sdl.hpp>
 
+#include <vke/imgui/imgui_manager.hpp>
+
+#include <imgui.h>
+
+
 struct Vertex {
     f32 pos[2];
     f32 color[3];
 };
 
-struct Push{
+struct Push {
     f32 color[4];
 };
 
@@ -38,6 +43,8 @@ public:
         init_descriptor_sets();
         init_pipeline();
         init_vertex_data();
+
+        m_imgui_manager = std::make_unique<vke::ImguiManager>(core(), window(), m_renderpass.get(), 0);
     }
 
     void on_frame(vke::CommandBuffer& cmd) override {
@@ -50,12 +57,15 @@ public:
         cmd.bind_descriptor_set(0, m_dset);
         cmd.bind_vertex_buffer({m_vertex_buffer.get()});
         Push push{
-            .color = {1.0,0.2,0.4},
+            .color = {1.0, 0.2, 0.4},
         };
-        
+
         cmd.push_constant(&push);
         cmd.draw(3, 1, 0, 0);
 
+        ImGui::ShowDemoWindow();
+
+        m_imgui_manager->flush_frame(cmd);
 
         m_renderpass->end(cmd);
     }
@@ -111,6 +121,7 @@ private:
     std::unique_ptr<vke::Buffer> m_vertex_buffer;
     std::unique_ptr<vke::DescriptorPool> m_dpool;
     std::unique_ptr<vke::Image> m_image;
+    std::unique_ptr<vke::ImguiManager> m_imgui_manager;
     VkDescriptorSetLayout m_dset_layout = nullptr;
     VkDescriptorSet m_dset              = nullptr;
 };

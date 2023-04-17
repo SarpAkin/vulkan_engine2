@@ -21,4 +21,4 @@ target_link_libraries(out PUBLIC vke fmt::fmt)
 
 # set the output directory of the executable
 # set_target_properties(out PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-target_include_directories(out PUBLIC VKE_INCLUDE)
+target_include_directories(out PUBLIC VKE_INCLUDE "../../submodules/imgui")

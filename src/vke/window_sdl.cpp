@@ -10,6 +10,8 @@
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
+#include "imgui/imgui_manager.hpp"
+
 namespace vke {
 
 static bool sld_initialized = false;
@@ -36,7 +38,9 @@ void Window_SDL::init_surface(Core* core) {
 void Window_SDL::poll_events() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
-        
+        if (m_imgui_manager) {
+            m_imgui_manager->process_sdl_event(e);
+        }
 
         switch (e.type) {
             // case SDL_WINDOWEVENT_CLOSE:
@@ -73,9 +77,12 @@ void Window_SDL::poll_events() {
             //     m_mouse_x = e.motion.x;
             //     m_mouse_y = e.motion.y;
             //     break;
-            
-            }
         }
     }
+
+    if (m_imgui_manager) {
+        m_imgui_manager->new_frame();
+    }
+}
 
 } // namespace vke

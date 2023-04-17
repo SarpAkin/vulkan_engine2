@@ -5,6 +5,9 @@
 #include "vkutil.hpp"
 #include "window.hpp"
 
+#include "commandbuffer.hpp"
+#include "fence.hpp"
+
 #include <VkBootstrap.h>
 #include <memory>
 #include <vulkan/vulkan_core.h>
@@ -98,6 +101,26 @@ void Core::destroy_queued_handles() {
     for (auto handle : m_dset_layouts) {
         vkDestroyDescriptorSetLayout(device(), handle, nullptr);
     }
+}
+
+void Core::immediate_submit(std::function<void(CommandBuffer& cmd)> function) {
+    CommandBuffer cmd(this, true);
+    Fence fence(this, false);
+
+    cmd.begin();
+    function(cmd);
+    cmd.end();
+
+    VkSubmitInfo info{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+
+        .commandBufferCount = 1,
+        .pCommandBuffers    = &cmd.handle(),
+    };
+
+    CommandBuffer* cmds[] = {&cmd};
+    fence.submit(&info, cmds);
+    fence.wait();
 }
 
 } // namespace vke

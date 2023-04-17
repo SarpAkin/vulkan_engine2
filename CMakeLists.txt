@@ -22,11 +22,18 @@ add_library(vke
     ${LIB_CPPS}
 )
 
+#imgui manager
+add_subdirectory(src/vke/imgui)
+
 target_include_directories(vke PUBLIC ${Vulkan_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/libs/)
-target_link_libraries(vke PUBLIC ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES})
+target_link_libraries(vke PUBLIC ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES} vke_imgui)
+
 # target_compile_options(vke PRIVATE -fPIC)
 
 target_include_directories(vke INTERFACE $<BUILD_INTERFACE:${VKE_INCLUDE}> $<INSTALL_INTERFACE:include>)
+
+
+
 
 # demos
 add_subdirectory(demos/1)
