@@ -179,6 +179,7 @@ std::unique_ptr<Pipeline> GPipelineBuilder::build() {
 
     auto vke_pipeline            = std::make_unique<Pipeline>(core(), pipeline, layouts.layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
     vke_pipeline->m_data.dset_layouts = std::move(layouts.dset_layouts);
+    vke_pipeline->m_data.push_stages = layouts.push_stages;
     return vke_pipeline;
 }
 
@@ -348,6 +349,7 @@ PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders()
     return LayoutBuild{
         .layout       = layout,
         .dset_layouts = dset_layouts,
+        .push_stages = (VkShaderStageFlagBits)push_stage,
     };
 }
 

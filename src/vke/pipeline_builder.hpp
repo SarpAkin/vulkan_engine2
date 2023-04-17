@@ -63,6 +63,7 @@ protected:
     struct LayoutBuild {
         VkPipelineLayout layout;
         std::vector<VkDescriptorSetLayout> dset_layouts;
+        VkShaderStageFlagBits push_stages;
     };
 
     LayoutBuild build_layout_and_shaders();

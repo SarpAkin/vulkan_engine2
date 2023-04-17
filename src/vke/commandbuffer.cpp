@@ -77,10 +77,6 @@ void CommandBuffer::cmd_end_renderpass() {
     m_current_pipeline_state = VK_PIPELINE_BIND_POINT_COMPUTE;
 }
 
-void CommandBuffer::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) {
-    vkCmdDraw(handle(), vertexCount, instanceCount, firstVertex, firstInstance);
-}
-
 void CommandBuffer::bind_pipeline(Pipeline* pipeline) {
     m_current_pipeline = pipeline;
 
@@ -104,6 +100,12 @@ void CommandBuffer::push_constant(u32 size, const void* pValues) {
     assert(m_current_pipeline != nullptr && "a pipeline must be bound first before binding a set");
 
     vkCmdPushConstants(handle(), m_current_pipeline->layout(), m_current_pipeline->data().push_stages, 0, size, pValues);    
+}
+
+
+//draw calls
+void CommandBuffer::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) {
+    vkCmdDraw(handle(), vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 } // namespace vke

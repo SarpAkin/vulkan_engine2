@@ -143,6 +143,7 @@ void WindowRenderPass::destroy_framebuffers() {
         vkDestroyFramebuffer(device(), fb, nullptr);
         fb = nullptr;
     }
+    m_framebuffers.resize(0);
 }
 
 VkFramebuffer WindowRenderPass::next_framebuffer() {

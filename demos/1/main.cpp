@@ -49,6 +49,11 @@ public:
         cmd.bind_pipeline(m_pipeline.get());
         cmd.bind_descriptor_set(0, m_dset);
         cmd.bind_vertex_buffer({m_vertex_buffer.get()});
+        Push push{
+            .color = {1.0,0.2,0.4},
+        };
+        
+        cmd.push_constant(&push);
         cmd.draw(3, 1, 0, 0);
 
 
