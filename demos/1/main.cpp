@@ -25,7 +25,6 @@
 
 #include <imgui.h>
 
-
 struct Vertex {
     f32 pos[2];
     f32 color[3];
@@ -34,6 +33,7 @@ struct Vertex {
 struct Push {
     f32 color[4];
 };
+
 
 class App : public vke::RenderEngine {
 public:

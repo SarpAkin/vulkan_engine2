@@ -101,7 +101,7 @@ public:
 private:
     void set_opaque_color_blend();
 
-    VertexInputDescriptionBuilder* m_input_description_builder;
+    VertexInputDescriptionBuilder* m_input_description_builder = nullptr;
     Renderpass* m_renderpass = nullptr;
     u32 m_subpass_index      = 0;
 
@@ -111,6 +111,13 @@ private:
     VkPipelineRasterizationStateCreateInfo m_rasterizer                        = {};
     VkPipelineMultisampleStateCreateInfo m_multisampling                       = {};
     std::vector<VkPipelineColorBlendAttachmentState> m_color_blend_attachments = {};
+};
+
+class CPipelineBuilder : public PipelineBuilderBase {
+public:
+    CPipelineBuilder(Core* core);
+
+    std::unique_ptr<Pipeline> build();
 };
 
 } // namespace vke

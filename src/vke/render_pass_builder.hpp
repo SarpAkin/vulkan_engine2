@@ -27,6 +27,7 @@ namespace impl {
 
 class MultiPassRenderPass;
 
+
 class RenderPassBuilder {
     friend MultiPassRenderPass;
 public:
@@ -37,7 +38,6 @@ public:
 private:
     std::vector<VkSubpassDependency> create_subpass_dependencies();
     VkRenderPass create_vk_renderpass(Core* core);
-
 
     std::vector<impl::AttachmentInfo> m_attachment_infos;
     std::vector<VkClearValue> m_clear_values;

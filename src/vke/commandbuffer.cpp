@@ -99,13 +99,24 @@ void CommandBuffer::bind_descriptor_set(u32 index, VkDescriptorSet set) {
 void CommandBuffer::push_constant(u32 size, const void* pValues) {
     assert(m_current_pipeline != nullptr && "a pipeline must be bound first before binding a set");
 
-    vkCmdPushConstants(handle(), m_current_pipeline->layout(), m_current_pipeline->data().push_stages, 0, size, pValues);    
+    vkCmdPushConstants(handle(), m_current_pipeline->layout(), m_current_pipeline->data().push_stages, 0, size, pValues);
 }
 
-
-//draw calls
+// draw calls
 void CommandBuffer::draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) {
     vkCmdDraw(handle(), vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void CommandBuffer::dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z) {
+    vkCmdDispatch(handle(), group_count_x, group_count_y, group_count_z);
+}
+
+void CommandBuffer::pipeline_barrier(const PipelineBarrierArgs& args) {
+    vkCmdPipelineBarrier(handle(),
+        args.src_stage_mask, args.dst_stage_mask, args.dependency_flags,
+        static_cast<uint32_t>(args.memory_barriers.size()), args.memory_barriers.data(),
+        static_cast<uint32_t>(args.buffer_memory_barriers.size()), args.buffer_memory_barriers.data(),
+        static_cast<uint32_t>(args.image_memory_barriers.size()), args.image_memory_barriers.data());
 }
 
 } // namespace vke

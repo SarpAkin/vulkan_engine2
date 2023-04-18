@@ -23,6 +23,8 @@ Image::Image(const ImageArgs& args) : Resource(args.core) {
         .samples     = VK_SAMPLE_COUNT_1_BIT,
         .tiling      = args.host_visible ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL,
         .usage       = args.usage_flags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
     VmaAllocationCreateInfo dimg_allocinfo = {
@@ -32,11 +34,16 @@ Image::Image(const ImageArgs& args) : Resource(args.core) {
 
     VK_CHECK(vmaCreateImage(core()->gpu_allocator(), &ic_info, &dimg_allocinfo, &m_image, &m_allocation, nullptr));
 
+    // VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT
+
+    
+
     VkImageViewCreateInfo ivc_info = {
         .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image            = m_image,
         .viewType         = args.layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
         .format           = args.format,
+        
         .subresourceRange = {
             .aspectMask     = is_depth_format(args.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel   = 0,

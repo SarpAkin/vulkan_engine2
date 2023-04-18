@@ -10,8 +10,6 @@
 
 namespace vke {
 
-constexpr usize FRAME_OVERLAP = 2;
-
 class RenderEngine {
 public:
     RenderEngine();
@@ -22,6 +20,11 @@ public:
     Window* window() const { return m_primary_window.get(); }
 
     void run();
+
+    inline u32 get_frame_index() { return m_frame_index; }
+    inline u32 get_frame_overlap() { return FRAME_OVERLAP; }
+
+    DescriptorPool* get_framely_pool() { return get_current_frame_data().framely_pool.get(); }
 
 protected:
     virtual void on_frame(CommandBuffer& cmd){};
@@ -45,9 +48,9 @@ private:
     struct FrameData {
         std::unique_ptr<Fence> render_fence;
         std::unique_ptr<CommandBuffer> cmd;
-        std::unique_ptr<Semaphore> render_semaphore; //signaled after framely submitted cmd finishes.  
+        std::unique_ptr<Semaphore> render_semaphore; // signaled after framely submitted cmd finishes.
+        std::unique_ptr<DescriptorPool> framely_pool;
     } m_frame_data[FRAME_OVERLAP];
-
 };
 
 } // namespace vke

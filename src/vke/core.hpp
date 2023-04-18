@@ -7,10 +7,10 @@
 
 #include "sampler_manager.hpp"
 
+#include <functional>
 #include <span>
 #include <vector>
 #include <vulkan/vulkan_core.h>
-#include <functional>
 
 typedef struct VmaAllocator_T* VmaAllocator;
 typedef struct VmaAllocation_T* VmaAllocation;
@@ -18,6 +18,8 @@ typedef struct VmaAllocation_T* VmaAllocation;
 namespace vke {
 struct CoreConfig;
 struct ImageArgs;
+
+constexpr usize FRAME_OVERLAP = 2;
 
 class Core {
 
@@ -29,6 +31,8 @@ public: // getters
     inline VmaAllocator gpu_allocator() { return m_gpu_allocator; }
     inline VkPhysicalDevice physical_device() const { return m_chosen_gpu; }
 
+
+
 public: // util
     inline usize gpu_allignment() const { return 256; }
     usize pad_buffer(usize bsize) const;
@@ -36,7 +40,6 @@ public: // util
     SamplerManager* get_sampler_manager() const { return m_sampler_manager; }
 
     void immediate_submit(std::function<void(CommandBuffer& cmd)> function);
-
 
 public: // resource creation
     // these are located individually at the resources cpp file. ex: buffer.cpp

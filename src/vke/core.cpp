@@ -20,6 +20,17 @@ struct Core::CoreData {
     vkb::Device vkb_device;
 };
 
+inline VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void*) {
+    auto ms = vkb::to_string_message_severity(messageSeverity);
+    auto mt = vkb::to_string_message_type(messageType);
+    printf("[%s: %s]\n%s\n", ms, mt, pCallbackData->pMessage);
+
+    return VK_FALSE; // Applications must return false here
+}
+
 Core::Core(CoreConfig* config) {
     auto vkb_instance =
         vkb::InstanceBuilder()
@@ -27,8 +38,8 @@ Core::Core(CoreConfig* config) {
             .require_api_version(config->vk_version_major, config->vk_version_minor, config->vk_version_patch)
 #ifndef NDEBUG
             .request_validation_layers(true)
-            .use_default_debug_messenger()
-    // .set_debug_callback(debug_callback)
+            // .use_default_debug_messenger()
+            .set_debug_callback(debug_callback)
     // .set_debug_callback_user_data_pointer(m_data)
 #endif
             .build()

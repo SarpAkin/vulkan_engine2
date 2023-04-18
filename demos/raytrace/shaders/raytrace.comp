@@ -1,0 +1,119 @@
+#version 450 core
+
+#include "device_buffers.h"
+
+layout(local_size_x = SUB_GROUB_SIZE_XY, local_size_y = SUB_GROUB_SIZE_XY, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rgba8) uniform image2D albedo;
+
+layout(set = 0, binding = 1, std430) readonly buffer _ObjBuffer {
+    ObjectBuffer objects;
+};
+
+layout(set = 0, binding = 2, std140) uniform _RayTraceConfig {
+    RayTracerConfigUBO config;
+};
+
+struct RayHit {
+    bool did_hit;
+    vec3 color;
+    vec3 hit_pos;
+    float t;
+    vec3 hit_normal;
+};
+
+struct Ray {
+    vec3 origin;
+    vec3 dir;
+};
+
+RayHit sphere_vs_ray(in Ray ray, in Sphere sphere) {
+    RayHit hit;
+    hit.did_hit = false;
+
+    // Calculate vector from ray origin to sphere center
+    vec3 sphere_relative = sphere.pos - ray.origin;
+
+    // Calculate the projection of sphere_relative onto the ray direction
+    float t = dot(sphere_relative, ray.dir);
+
+    // If t < 0, the sphere is behind the ray origin and there is no intersection
+    if (t < 0) {
+        return hit;
+    }
+
+    // closest point of ray to center of the circle
+    float d = distance(sphere_relative, t * ray.dir);
+    if (d > sphere.radius) {
+        return hit;
+    }
+
+    // calculate the hit position
+    vec3 pos_relative = ray.dir * (t - sqrt(sphere.radius * sphere.radius - d * d));
+    hit.hit_pos       = ray.origin + pos_relative;
+    hit.hit_normal    = (pos_relative - sphere_relative) / sphere.radius;
+
+    hit.t       = t;
+    hit.did_hit = true;
+    hit.color   = sphere.color;
+
+    return hit;
+}
+
+RayHit trace_all(in Ray ray) {
+    RayHit closest_hit;
+    closest_hit.did_hit = false;
+    closest_hit.t       = 1E20;
+    closest_hit.did_hit = false;
+
+    for (int i = 0; i < min(OBJECT_BUFFER_MAX_SPHERES, objects.sphere_count); ++i) {
+        RayHit hit = sphere_vs_ray(ray, objects.spheres[i]);
+        if (hit.t < closest_hit.t && hit.did_hit) {
+            closest_hit = hit;
+        }
+    }
+
+    return closest_hit;
+}
+
+const uint MAX_BOUNCE = 5;
+
+void main() {
+    ivec2 pixel_pos = ivec2(gl_GlobalInvocationID.xy);
+
+    // Set the color of the pixel to red
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+
+    Ray ray;
+    ray.origin = config.cam_pos.xyz;
+
+    vec2 screen_pos = (vec2(pixel_pos) / (config.screen_pixel_size) - 0.5) * 2;
+
+    vec4 raydir4 = config.inv_proj_view * vec4(screen_pos, 0, 1);
+    ray.dir      = normalize((raydir4.xyz / raydir4.w) - config.cam_pos.xyz);
+
+    float total_contribution = 0.0;
+    float multiplier         = 1.0;
+    vec3 accumulated_color   = vec3(0.0, 0.0, 0.0);
+
+    for (int i = 0; i < MAX_BOUNCE; i++) {
+        RayHit hit = trace_all(ray);
+        if (hit.did_hit) {
+            float diffuse    = max(dot(config.sun_dir, hit.hit_normal), 0.0);
+            vec3 final_color = hit.color * (config.ambient_lightning + diffuse);
+            accumulated_color += final_color * multiplier;
+            total_contribution += multiplier;
+            multiplier *= 0.5;
+
+            ray.origin = hit.hit_pos;
+            ray.dir    = reflect(ray.dir, hit.hit_normal);
+        } else {
+            break;
+        }
+    }
+
+    color = vec4(accumulated_color / total_contribution, 1.0);
+
+    // Write the color to the image
+    imageStore(albedo, pixel_pos, color);
+}

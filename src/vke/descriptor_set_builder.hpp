@@ -21,6 +21,11 @@ public:
         return add_images(images, layout, sampler, stage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     }
 
+    inline DescriptorSetBuilder& add_storage_image(Image* image, VkImageLayout layout, VkShaderStageFlags stage) {
+        Image* images[] = {image};
+        return add_images(images, layout, nullptr, stage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    }
+
     VkDescriptorSet build(DescriptorPool* pool, VkDescriptorSetLayout layout);
 
 private:

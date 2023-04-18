@@ -2,6 +2,7 @@
 
 #include <initializer_list>
 #include <memory>
+#include <span>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -10,6 +11,14 @@
 #include "vk_resource.hpp"
 
 namespace vke {
+
+struct PipelineBarrierArgs {
+    VkPipelineStageFlags src_stage_mask, dst_stage_mask;
+    VkDependencyFlags dependency_flags                      = 0;
+    std::span<VkMemoryBarrier> memory_barriers              = std::span((VkMemoryBarrier*)nullptr, 0);
+    std::span<VkBufferMemoryBarrier> buffer_memory_barriers = std::span((VkBufferMemoryBarrier*)nullptr, 0);
+    std::span<VkImageMemoryBarrier> image_memory_barriers   = std::span((VkImageMemoryBarrier*)nullptr, 0);
+};
 
 class CommandBuffer : public Resource {
 public:
@@ -40,6 +49,10 @@ public:
     void push_constant(const T* push) { push_constant(sizeof(T), push); }
 
     void draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance);
+
+    void dispatch(u32 group_count_x, u32 group_count_y, u32 group_count_z);
+
+    void pipeline_barrier(const PipelineBarrierArgs& args);
 
 private:
     VkCommandBuffer m_cmd;

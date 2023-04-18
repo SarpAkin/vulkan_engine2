@@ -25,8 +25,11 @@ add_library(vke
 #imgui manager
 add_subdirectory(src/vke/imgui)
 
+add_subdirectory(submodules/glm)
+
+
 target_include_directories(vke PUBLIC ${Vulkan_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/libs/)
-target_link_libraries(vke PUBLIC ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES} vke_imgui)
+target_link_libraries(vke PUBLIC ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES} vke_imgui glm)
 
 # target_compile_options(vke PRIVATE -fPIC)
 
@@ -37,3 +40,4 @@ target_include_directories(vke INTERFACE $<BUILD_INTERFACE:${VKE_INCLUDE}> $<INS
 
 # demos
 add_subdirectory(demos/1)
+add_subdirectory(demos/raytrace)

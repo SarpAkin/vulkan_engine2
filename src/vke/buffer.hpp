@@ -31,7 +31,8 @@ public:
     ~Buffer();
 
     VkBuffer handle() const override { return m_buffer; }
-    inline void* mapped_data_ptr() const { return m_mapped_data; }
+    template <typename T = void>
+    inline T* mapped_data_ptr() const { return reinterpret_cast<T*>(m_mapped_data); }
     template <typename T>
     inline std::span<T> mapped_data_as_span() {
         T* data_begin = reinterpret_cast<T*>(m_mapped_data);

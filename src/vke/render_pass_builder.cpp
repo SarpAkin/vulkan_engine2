@@ -15,7 +15,7 @@ u32 RenderPassBuilder::add_attachment(VkFormat format, std::optional<VkClearValu
         .description = VkAttachmentDescription{
             .format         = format,
             .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = clear_value ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .loadOp         = clear_value ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
             .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
             .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -184,7 +184,5 @@ std::vector<VkSubpassDependency> RenderPassBuilder::create_subpass_dependencies(
 
     return dependencies;
 }
-
-
 
 } // namespace vke

@@ -16,6 +16,7 @@
 #include "semaphore.hpp"
 #include "vkutil.hpp"
 #include "window_sdl.hpp"
+#include "descriptor_pool.hpp"
 
 namespace vke {
 
@@ -28,7 +29,7 @@ constexpr u64 MAX_FRAME_TIME = UINT64_MAX;
 RenderEngine::RenderEngine() {
     CoreConfig config;
 
-    m_primary_window = Window_SDL::create_window(1280, 720, "engine");
+    m_primary_window = Window_SDL::create_window(1920, 1080, "engine");
     config.window    = m_primary_window.get();
 
     m_windows.push_back(m_primary_window.get());
@@ -43,6 +44,7 @@ RenderEngine::RenderEngine() {
             .cmd          = std::make_unique<CommandBuffer>(core(), true),
             // .present_semaphore = std::make_unique<Semaphore>(core()),
             .render_semaphore = std::make_unique<Semaphore>(core()),
+            .framely_pool = std::make_unique<DescriptorPool>(core(),100),
         };
     }
 }

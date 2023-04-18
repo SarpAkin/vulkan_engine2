@@ -10,15 +10,18 @@
 namespace vke {
 
 class GPipelineBuilder;
+class CPipelineBuilder;
 
 class Pipeline : public Resource {
+    friend GPipelineBuilder;
+    friend CPipelineBuilder;
+
 public:
     struct PipelineData {
         VkShaderStageFlagBits push_stages;
         std::vector<VkDescriptorSetLayout> dset_layouts;
     };
 
-    friend GPipelineBuilder;
     Pipeline(Core* core, VkPipeline pipeline, VkPipelineLayout layout, VkPipelineBindPoint bindpoint) : Resource(core) {
         m_pipeline  = pipeline;
         m_layout    = layout;
@@ -31,6 +34,7 @@ public:
     VkPipelineBindPoint bindpoint() const { return m_bindpoint; }
 
     const PipelineData& data() const { return m_data; }
+    VkDescriptorSetLayout get_descriptor_layout(u32 index) const { return m_data.dset_layouts[index]; }
 
 private:
     VkPipeline m_pipeline;

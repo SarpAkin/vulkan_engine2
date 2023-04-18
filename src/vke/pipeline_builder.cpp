@@ -154,7 +154,13 @@ std::unique_ptr<Pipeline> GPipelineBuilder::build() {
         };
     });
 
-    VkPipelineVertexInputStateCreateInfo vertex_input_info = m_input_description_builder->get_info();
+    VkPipelineVertexInputStateCreateInfo vertex_input_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount = 0,
+    }; 
+    if(m_input_description_builder){
+        vertex_input_info = m_input_description_builder->get_info();
+    }
 
     VkGraphicsPipelineCreateInfo pipeline_info = {
         .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -177,9 +183,9 @@ std::unique_ptr<Pipeline> GPipelineBuilder::build() {
     VkPipeline pipeline;
     VK_CHECK(vkCreateGraphicsPipelines(device(), nullptr, 1, &pipeline_info, nullptr, &pipeline));
 
-    auto vke_pipeline            = std::make_unique<Pipeline>(core(), pipeline, layouts.layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    auto vke_pipeline                 = std::make_unique<Pipeline>(core(), pipeline, layouts.layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
     vke_pipeline->m_data.dset_layouts = std::move(layouts.dset_layouts);
-    vke_pipeline->m_data.push_stages = layouts.push_stages;
+    vke_pipeline->m_data.push_stages  = layouts.push_stages;
     return vke_pipeline;
 }
 
@@ -315,7 +321,7 @@ PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders()
         SPV_CHECK(spvReflectEnumeratePushConstantBlocks(&module, &push_count, push_blocks.data()));
 
         if (push_size == UINT32_MAX && push_count > 0) {
-            push_size = push_blocks[0]->size;
+            push_size  = push_blocks[0]->size;
             push_stage = stage;
         }
 
@@ -336,8 +342,8 @@ PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders()
     }
 
     PipelineLayoutBuilder p_builder;
-    if(push_size != UINT32_MAX){
-        p_builder.add_push_constant(push_stage,push_size);
+    if (push_size != UINT32_MAX) {
+        p_builder.add_push_constant(push_stage, push_size);
     }
 
     for (auto& set_layout : dset_layouts) {
@@ -349,8 +355,36 @@ PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders()
     return LayoutBuild{
         .layout       = layout,
         .dset_layouts = dset_layouts,
-        .push_stages = (VkShaderStageFlagBits)push_stage,
+        .push_stages  = (VkShaderStageFlagBits)push_stage,
     };
+}
+
+CPipelineBuilder::CPipelineBuilder(Core* core) : PipelineBuilderBase(core) {}
+
+std::unique_ptr<Pipeline> CPipelineBuilder::build() {
+    assert(m_shader_details.size() == 1 && "compute pipeline must have exactly one shader module");
+
+    auto layout_details = build_layout_and_shaders();
+
+    VkComputePipelineCreateInfo create_info{
+        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        .stage = VkPipelineShaderStageCreateInfo{
+            .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
+            .module = m_shader_details[0].module,
+            .pName  = "main",
+        },
+        .layout = layout_details.layout,
+    };
+
+    VkPipeline vk_pipeline;
+    vkCreateComputePipelines(device(), nullptr, 1, &create_info, nullptr, &vk_pipeline);
+
+    auto vke_pipeline                 = std::make_unique<Pipeline>(core(), vk_pipeline, layout_details.layout, VK_PIPELINE_BIND_POINT_COMPUTE);
+    vke_pipeline->m_data.dset_layouts = std::move(layout_details.dset_layouts);
+    vke_pipeline->m_data.push_stages  = layout_details.push_stages;
+
+    return vke_pipeline;
 }
 
 } // namespace vke
