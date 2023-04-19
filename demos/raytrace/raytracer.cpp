@@ -2,14 +2,15 @@
 
 #include <vke/buffer.hpp>
 #include <vke/commandbuffer.hpp>
+#include <vke/descriptor_set_builder.hpp>
 #include <vke/engine.hpp>
 #include <vke/image.hpp>
 #include <vke/pipeline_builder.hpp>
+#include <vke/util.hpp>
 #include <vke/window.hpp>
 
+#include "camera.hpp"
 #include "shaders/device_buffers.h"
-#include "vke/descriptor_set_builder.hpp"
-#include "vke/util.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -42,51 +43,70 @@ Raytracer::Raytracer(vke::RenderEngine* engine) : vke::System<RaytracerFrameData
 void Raytracer::init_object_buffer() {
     m_object_buffer             = core()->create_buffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(ObjectBuffer), true);
     auto* object_buffer         = m_object_buffer->mapped_data_ptr<ObjectBuffer>();
-    object_buffer->sphere_count = 3;
-    object_buffer->spheres[0]   = Sphere{
-          .pos    = vec3(0.0, 0.0, 5.0),
-          .radius = 0.5f,
-          .color  = vec3(0.0, 1.0, 0.0),
+    object_buffer->sphere_count = 6;
+    object_buffer->box_count    = 1;
+
+    object_buffer->spheres[0] = Sphere{
+        .pos       = vec3(0.0, 0.0, 5.0),
+        .radius    = 0.5f,
+        .color     = vec3(0.0, 1.0, 0.0),
+        .roughness = 0.4,
     };
     object_buffer->spheres[1] = Sphere{
-        .pos    = vec3(1.5, 0.5, 4.0),
-        .radius = 0.5f,
-        .color  = vec3(0.0, 1.0, 1.0),
+        .pos       = vec3(1.5, 0.5, 4.0),
+        .radius    = 0.5f,
+        .color     = vec3(0.0, 1.0, 1.0),
+        .roughness = 0.2,
+
     };
     object_buffer->spheres[2] = Sphere{
-        .pos    = vec3(-1.5, -0.5, 4.0),
-        .radius = 1.0f,
-        .color  = vec3(1.0, 1.0, 0.0),
-    };
+        .pos       = vec3(-1.5, -0.5, 4.0),
+        .radius    = 1.0f,
+        .color     = vec3(1.0, 1.0, 0.0),
+        .roughness = 0.2,
 
+    };
+    object_buffer->spheres[3] = Sphere{
+        .pos       = vec3(0.0, -6, 1.0),
+        .radius    = 4.5f,
+        .color     = vec3(1.0, 0.0, 0.7),
+        .roughness = 0.0,
+    };
+    object_buffer->spheres[4] = Sphere{
+        .pos       = vec3(1.0, 1, -5.0),
+        .radius    = 3.5f,
+        .color     = vec3(0.3, 0.3, 0.3),
+        .roughness = 0.0,
+    };
+    object_buffer->boxes[0] = AABB{
+        .pos   = vec3(0, 0, 0),
+        .size  = vec3(5.0, 5.0, 5.0),
+        .color = vec3(0, 1, 0),
+    };
 }
 
 void Raytracer::raytarce(vke::CommandBuffer& cmd) {
-    vec3 camera_pos = vec3(0, 0, 0);
-    vec3 camera_dir = vec3(0, 0, 1);
-    float fov       = 90.f;
-    u32 width       = m_window->width();
-    u32 height      = m_window->height();
+    float width  = m_window->width();
+    float height = m_window->height();
 
-    vec3 up = vec3(0, 1, 0);
-
-    mat4 projection = glm::perspective(glm::radians(fov), (float)width / (float)height, 0.1f, 1000.0f);
-    mat4 view       = glm::lookAt(camera_pos, camera_pos + camera_dir, up);
-    mat4 proj_view  = projection * view;
-
-    mat4 inv_proj_view = glm::inverse(proj_view);
+    mat4 inv_proj_view = glm::inverse(m_camera->proj_view);
 
     auto& config_buffer = get_frame_data().config_ubo;
     auto* data          = config_buffer->mapped_data_ptr<RayTracerConfigUBO>();
 
-    data->cam_dir           = vec4(camera_dir, 0.0);
-    data->cam_pos           = vec4(camera_pos, 0.0);
+    data->cam.tan_half_fovy = std::tan(glm::radians(m_camera->fov) / 2.0);
+    data->cam.tan_half_fovx = data->cam.tan_half_fovy * m_camera->aspect_ratio;
+
+    data->cam.right = glm::normalize(glm::cross(m_camera->dir, m_camera->up));
+    data->cam.up    = -glm::normalize(glm::cross(data->cam.right, m_camera->dir)); // negative for the vulkan flipped y viewport
+
+    data->cam.dir           = m_camera->dir;
+    data->cam.pos           = m_camera->pos;
     data->inv_proj_view     = inv_proj_view;
     data->screen_pixel_size = vec2(width, height);
     data->sun_dir           = glm::normalize(vec3(0.2, -1.0, 0.0));
     data->sun_color         = vec3(0.8, 0.9, 0.5);
     data->ambient_lightning = 0.2;
-
 
     VkImageMemoryBarrier pre_barrier{
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,

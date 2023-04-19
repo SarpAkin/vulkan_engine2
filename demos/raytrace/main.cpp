@@ -25,6 +25,7 @@
 
 #include <imgui.h>
 
+#include "camera.hpp"
 #include "raytracer.hpp"
 
 struct Vertex {
@@ -36,7 +37,6 @@ struct Push {
     f32 color[4];
 };
 
-
 class App : public vke::RenderEngine {
 public:
     App() {
@@ -45,10 +45,14 @@ public:
         init_pipeline();
 
         m_imgui_manager = std::make_unique<vke::ImguiManager>(core(), window(), m_renderpass.get(), 0);
-        m_raytracer = std::make_unique<Raytracer>(this);
+        m_camera        = std::make_unique<Camera>(this);
+        m_raytracer     = std::make_unique<Raytracer>(this);
+        m_raytracer->set_camera(m_camera.get());
     }
 
     void on_frame(vke::CommandBuffer& cmd) override {
+        m_camera->free_move();
+
         m_raytracer->raytarce(cmd);
 
         m_renderpass->begin(cmd);
@@ -61,14 +65,14 @@ public:
 
         cmd.draw(3, 1, 0, 0);
 
-        ImGui::ShowDemoWindow();
+        // ImGui::ShowDemoWindow();
 
         m_imgui_manager->flush_frame(cmd);
 
         m_renderpass->end(cmd);
     }
 
-    VkDescriptorSet create_descriptor_set(){
+    VkDescriptorSet create_descriptor_set() {
         vke::DescriptorSetBuilder builder;
         builder.add_image_sampler(m_raytracer->get_image(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, core()->get_sampler_manager()->nearest_sampler(), VK_SHADER_STAGE_FRAGMENT_BIT);
         return builder.build(get_framely_pool(), m_pipeline->get_descriptor_layout(0));
@@ -93,7 +97,16 @@ private:
     std::unique_ptr<vke::Pipeline> m_pipeline;
     std::unique_ptr<vke::ImguiManager> m_imgui_manager;
     std::unique_ptr<Raytracer> m_raytracer;
+    std::unique_ptr<Camera> m_camera;
 };
+
+// https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+float fast_pow2(i32 a) {
+    i32 val = (a + 127) << 23;
+    return *reinterpret_cast<float*>(&val);
+}
+
+
 
 int main() {
     App engine;

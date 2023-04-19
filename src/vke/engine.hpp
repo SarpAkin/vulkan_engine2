@@ -24,6 +24,8 @@ public:
     inline u32 get_frame_index() { return m_frame_index; }
     inline u32 get_frame_overlap() { return FRAME_OVERLAP; }
 
+    inline f64 get_delta_time() { return m_delta_time; }
+
     DescriptorPool* get_framely_pool() { return get_current_frame_data().framely_pool.get(); }
 
 protected:

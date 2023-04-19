@@ -37,10 +37,17 @@ endforeach()
 add_executable(raytrace.out
     main.cpp 
     raytracer.cpp
+    camera.cpp
     ${shader_binaries}
 )
 
 # add_subdirectory(../..)
+
+# Add compile options for GLM
+target_compile_options(raytrace.out PRIVATE
+    -DGLM_FORCE_DEPTH_ZERO_TO_ONE
+    -DGLM_FORCE_RADIANS
+)
 
 
 target_link_libraries(raytrace.out PUBLIC vke fmt::fmt glm)

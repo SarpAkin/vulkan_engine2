@@ -6,6 +6,9 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+
+#include <SDL2/SDL_keycode.h>
+
 #include <SDL_video.h>
 #include <memory>
 #include <vulkan/vulkan_core.h>
@@ -37,6 +40,10 @@ void Window_SDL::init_surface(Core* core) {
 
 void Window_SDL::poll_events() {
     SDL_Event e;
+
+    m_mouse_input.delta_x = 0;
+    m_mouse_input.delta_y = 0;
+
     while (SDL_PollEvent(&e)) {
         if (m_imgui_manager) {
             m_imgui_manager->process_sdl_event(e);
@@ -48,40 +55,45 @@ void Window_SDL::poll_events() {
         case SDL_QUIT:
             m_is_open = false;
             break;
-            // case SDL_KEYDOWN:
-            //     m_keystates[e.key.keysym.sym] = true;
-            //     if (auto it = m_on_key_down.find(e.key.keysym.sym); it != m_on_key_down.end())
-            //         for (auto& [_, f] : it->second)
-            //             f();
-            //     break;
-            // case SDL_KEYUP:
-            //     m_keystates[e.key.keysym.sym] = false;
-            //     break;
+        case SDL_KEYDOWN:
+            m_key_states[e.key.keysym.sym] = true;
+            if (auto it = m_key_callbacks.find(e.key.keysym.sym); it != m_key_callbacks.end())
+                it->second();
 
-            // case SDL_MOUSEBUTTONDOWN:
-            //     m_mouse_button_states[e.button.button] = true;
-            //     if (auto it = m_on_mouse_click.find(e.button.button); it != m_on_mouse_click.end())
-            //         for (auto& [_, f] : it->second)
-            //             f();
+            break;
+        case SDL_KEYUP:
+            m_key_states[e.key.keysym.sym] = false;
+            break;
 
-            //     break;
+        case SDL_MOUSEBUTTONDOWN:
+            // m_mouse_button_states[e.button.button] = true;
+            if (auto it = m_mouse_callbacks.find(e.button.button); it != m_mouse_callbacks.end())
+                it->second();
 
-            // case SDL_MOUSEBUTTONUP:
-            //     m_mouse_button_states[e.button.button] = false;
-            //     break;
-            // case SDL_MOUSEMOTION:
+            break;
 
-            //     m_mouse_delta_x = m_mouse_x - e.motion.x;
-            //     m_mouse_delta_y = m_mouse_y - e.motion.y;
+        // case SDL_MOUSEBUTTONUP:
+        //     m_mouse_button_states[e.button.button] = false;
+        //     break;
+        case SDL_MOUSEMOTION:
+            m_mouse_input.delta_x = m_mouse_input.xpos - e.motion.x;
+            m_mouse_input.delta_y = m_mouse_input.ypos - e.motion.y;
 
-            //     m_mouse_x = e.motion.x;
-            //     m_mouse_y = e.motion.y;
-            //     break;
+            m_mouse_input.xpos = e.motion.x;
+            m_mouse_input.ypos = e.motion.y;
+            break;
         }
     }
 
     if (m_imgui_manager) {
         m_imgui_manager->new_frame();
+    }
+
+    if (m_mouse_locked) {
+
+        SDL_WarpMouseInWindow(m_window, width() / 2, height() / 2);
+        m_mouse_input.xpos = (float)width() / 2;
+        m_mouse_input.ypos = (float)height() / 2;
     }
 }
 

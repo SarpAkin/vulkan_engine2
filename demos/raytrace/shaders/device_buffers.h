@@ -1,6 +1,5 @@
 
 
-
 #ifdef __cplusplus
 
 #include <glm/mat4x4.hpp>
@@ -21,12 +20,22 @@ using ivec2 = glm::ivec2;
 using ivec3 = glm::ivec3;
 using ivec4 = glm::ivec4;
 
-
 #endif
 
-struct RayTracerConfigUBO{
-    vec4 cam_pos;
-    vec4 cam_dir;
+struct GPUCamera {
+    vec3 pos;
+    float tan_half_fovx;
+    vec3 dir;
+    float tan_half_fovy;
+    vec3 up;
+    float padding;
+    vec3 right;
+    float padding2;
+};
+
+
+struct RayTracerConfigUBO {
+    GPUCamera cam;
     mat4 inv_proj_view;
     vec2 screen_pixel_size;
     vec2 padding;
@@ -36,19 +45,31 @@ struct RayTracerConfigUBO{
     float padding2;
 };
 
-struct Sphere{
+
+struct Sphere {
     vec3 pos;
-    float radius;  
+    float radius;
     vec3 color;
+    float roughness;
+};
+
+struct AABB {
+    vec3 pos;
     float padding;
+    vec3 size;
+    float padding2;
+    vec3 color;
+    float padding3;
 };
 
 const uint OBJECT_BUFFER_MAX_SPHERES = 15;
-const uint SUB_GROUB_SIZE_XY = 8;
+const uint OBJECT_BUFFER_MAX_AABB    = 8;
+const uint SUB_GROUB_SIZE_XY         = 8;
 
-struct ObjectBuffer{
+struct ObjectBuffer {
     uint sphere_count;
-    uint padding[3];
+    uint box_count;
+    uint padding[2];
     Sphere spheres[OBJECT_BUFFER_MAX_SPHERES];
+    AABB boxes[OBJECT_BUFFER_MAX_AABB];
 };
-

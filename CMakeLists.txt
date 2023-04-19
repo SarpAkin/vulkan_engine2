@@ -35,6 +35,10 @@ target_link_libraries(vke PUBLIC ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES} vke_imgui
 
 target_include_directories(vke INTERFACE $<BUILD_INTERFACE:${VKE_INCLUDE}> $<INSTALL_INTERFACE:include>)
 
+target_compile_options(vke PUBLIC
+    -DGLM_FORCE_DEPTH_ZERO_TO_ONE
+    -DGLM_FORCE_RADIANS
+)
 
 
 

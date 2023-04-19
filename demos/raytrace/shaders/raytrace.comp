@@ -1,6 +1,7 @@
 #version 450 core
 
 #include "device_buffers.h"
+#include "random.glsl"
 
 layout(local_size_x = SUB_GROUB_SIZE_XY, local_size_y = SUB_GROUB_SIZE_XY, local_size_z = 1) in;
 
@@ -27,6 +28,11 @@ struct Ray {
     vec3 dir;
 };
 
+float distance2(in vec3 a, in vec3 b) {
+    vec3 ab = a - b;
+    return dot(ab, ab);
+}
+
 RayHit sphere_vs_ray(in Ray ray, in Sphere sphere) {
     RayHit hit;
     hit.did_hit = false;
@@ -38,26 +44,113 @@ RayHit sphere_vs_ray(in Ray ray, in Sphere sphere) {
     float t = dot(sphere_relative, ray.dir);
 
     // If t < 0, the sphere is behind the ray origin and there is no intersection
-    if (t < 0) {
-        return hit;
-    }
+    if (t < 0) return hit;
 
-    // closest point of ray to center of the circle
-    float d = distance(sphere_relative, t * ray.dir);
-    if (d > sphere.radius) {
-        return hit;
-    }
+    float d2 = distance2(sphere_relative, t * ray.dir);
+    float r2 = sphere.radius * sphere.radius;
+    if (d2 > r2) return hit;
+
+    // adjust t to the surface of the sphere
+    t -= sqrt(r2 - d2);
 
     // calculate the hit position
-    vec3 pos_relative = ray.dir * (t - sqrt(sphere.radius * sphere.radius - d * d));
+    vec3 pos_relative = ray.dir * t;
     hit.hit_pos       = ray.origin + pos_relative;
     hit.hit_normal    = (pos_relative - sphere_relative) / sphere.radius;
+
+    hit.hit_normal = normalize(hit.hit_normal + srandom3() * sphere.roughness);
 
     hit.t       = t;
     hit.did_hit = true;
     hit.color   = sphere.color;
 
     return hit;
+}
+
+void swap(inout float a, inout float b) {
+    float tmp = a;
+    a         = b;
+    b         = tmp;
+}
+
+RayHit ray_vs_aabb(in Ray ray, in AABB box) {
+    RayHit hit;
+    hit.did_hit = false;
+
+    vec3 begin_relative = box.pos - ray.origin;
+    vec3 end_relative   = begin_relative + box.size;
+
+    vec3 near = begin_relative / ray.dir;
+    vec3 far  = end_relative / ray.dir;
+
+    // swap if near values are further
+    if (near.x > far.x) swap(near.x, far.x);
+    if (near.y > far.y) swap(near.y, far.y);
+    if (near.z > far.z) swap(near.z, far.z);
+
+    float nearest_far = min(min(far.x, far.y), far.z);
+
+    uint furthest_near_axis = near.x > near.y ? (near.x > near.z ? 0 : 2) : (near.y > near.z ? 1 : 2);
+    float furthest_near     = near[furthest_near_axis];
+
+    if (furthest_near > nearest_far) return hit; // no hit
+    if (furthest_near < 0.0) return hit;
+
+    hit.t       = furthest_near;
+    hit.hit_pos = ray.origin + ray.dir * furthest_near;
+    hit.color   = box.color;
+    hit.did_hit = true;
+
+    hit.hit_normal                     = vec3(0, 0, 0);
+    hit.hit_normal[furthest_near_axis] = -sign(ray.dir[furthest_near_axis]);
+
+    return hit;
+}
+
+RayHit ray_vs_aabb_octbox(in Ray ray, in AABB box) {
+    RayHit hit;
+    hit.did_hit = false;
+
+    vec3 begin_relative = box.pos - ray.origin;
+    vec3 end_relative   = begin_relative + box.size;
+
+    vec3 near = begin_relative / ray.dir;
+    vec3 far  = end_relative / ray.dir;
+
+    // swap if near values are further
+    if (near.x > far.x) swap(near.x, far.x);
+    if (near.y > far.y) swap(near.y, far.y);
+    if (near.z > far.z) swap(near.z, far.z);
+
+    float nearest_far = min(min(far.x, far.y), far.z);
+
+    uint furthest_near_axis = near.x > near.y ? (near.x > near.z ? 0 : 2) : (near.y > near.z ? 1 : 2);
+    float furthest_near     = near[furthest_near_axis];
+
+    if (furthest_near > nearest_far) return hit; // no hit
+    if (furthest_near < 0.0) return hit;
+
+    vec3 mid          = (near + far) * 0.5;
+    uvec3 inside_cord = uvec3(
+        (mid.x < furthest_near) ^^ (ray.dir.x > 0),
+        (mid.y < furthest_near) ^^ (ray.dir.y > 0),
+        (mid.z < furthest_near) ^^ (ray.dir.z > 0) //
+    );
+
+    hit.t       = furthest_near;
+    hit.hit_pos = ray.origin + ray.dir * furthest_near;
+    hit.color   = vec3(inside_cord);
+    hit.did_hit = true;
+
+    hit.hit_normal                     = vec3(0, 0, 0);
+    hit.hit_normal[furthest_near_axis] = -sign(ray.dir[furthest_near_axis]);
+
+    return hit;
+}
+
+float fast_pow2(int a) {
+    // https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+    return intBitsToFloat((a + 127) << 23);
 }
 
 RayHit trace_all(in Ray ray) {
@@ -73,10 +166,85 @@ RayHit trace_all(in Ray ray) {
         }
     }
 
+    for (int i = 0; i < min(OBJECT_BUFFER_MAX_AABB, objects.box_count); ++i) {
+        RayHit hit = ray_vs_aabb_octbox(ray, objects.boxes[i]);
+        if (hit.t < closest_hit.t && hit.did_hit) {
+            closest_hit = hit;
+        }
+    }
+
     return closest_hit;
 }
 
-const uint MAX_BOUNCE = 5;
+const uint MAX_BOUNCE = 6;
+
+vec3 trace_and_sample(Ray ray) {
+    float total_contribution = 0.0;
+    float multiplier         = 1.0;
+    vec3 accumulated_color   = vec3(0.0, 0.0, 0.0);
+
+    for (int i = 0; i < MAX_BOUNCE; i++) {
+        RayHit hit = trace_all(ray);
+        if (hit.did_hit) {
+            vec3 normal = hit.hit_normal;
+            // normal = normalize(mix(normal,srandom3(),));
+
+            Ray directional_ray;
+            directional_ray.origin = hit.hit_pos;
+            directional_ray.origin += +srandom3() * 0.05;
+
+            directional_ray.dir        = -config.sun_dir;
+            RayHit directional_ray_hit = trace_all(directional_ray);
+
+            float diffuse = max(-dot(config.sun_dir, normal), 0.0);
+            if (directional_ray_hit.did_hit) {
+                diffuse = max(0, diffuse - 0.4);
+            }
+
+            vec3 final_color = hit.color * (config.ambient_lightning + diffuse);
+
+            accumulated_color += final_color * multiplier;
+            total_contribution += multiplier;
+            multiplier *= 0.5;
+
+            ray.origin = hit.hit_pos;
+            ray.dir    = reflect(ray.dir, normal);
+        } else {
+            vec3 sky_color = vec3(0.35, 0.5, 0.8);
+            accumulated_color += sky_color * multiplier;
+            total_contribution += multiplier;
+            break;
+        }
+    }
+
+    return accumulated_color / total_contribution;
+}
+
+const uint SAMPLE_COUNT = 10;
+
+void adjust_ray_for_zero_dir(inout vec3 ray_dir) {
+    if (ray_dir.x == 0) ray_dir.x += 1e-6;
+    if (ray_dir.y == 0) ray_dir.y += 1e-6;
+    if (ray_dir.z == 0) ray_dir.z += 1e-6;
+}
+
+vec3 calculate_ray_dir(vec2 screen_pos) {
+
+    vec4 raydir4_0 = config.inv_proj_view * vec4(screen_pos, 0, 1);
+    vec4 raydir4_1 = config.inv_proj_view * vec4(screen_pos, 1, 1);
+
+    return normalize(raydir4_1.xyz / raydir4_1.w - raydir4_0.xyz / raydir4_0.w);
+}
+
+vec3 calculate_ray_dir2(vec2 screen_pos) {
+    GPUCamera cam = config.cam;
+
+    vec3 total = cam.dir;
+    total += (screen_pos.x * cam.tan_half_fovx) * cam.right;
+    total += (screen_pos.y * cam.tan_half_fovy) * cam.up;
+
+    return normalize(total);
+}
 
 void main() {
     ivec2 pixel_pos = ivec2(gl_GlobalInvocationID.xy);
@@ -85,34 +253,20 @@ void main() {
     vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
     Ray ray;
-    ray.origin = config.cam_pos.xyz;
+    ray.origin = config.cam.pos;
 
     vec2 screen_pos = (vec2(pixel_pos) / (config.screen_pixel_size) - 0.5) * 2;
+    seed_random(screen_pos);
 
-    vec4 raydir4 = config.inv_proj_view * vec4(screen_pos, 0, 1);
-    ray.dir      = normalize((raydir4.xyz / raydir4.w) - config.cam_pos.xyz);
+    ray.dir = calculate_ray_dir2(screen_pos);
+    // adjust_ray_for_zero_dir(ray.dir);
 
-    float total_contribution = 0.0;
-    float multiplier         = 1.0;
-    vec3 accumulated_color   = vec3(0.0, 0.0, 0.0);
-
-    for (int i = 0; i < MAX_BOUNCE; i++) {
-        RayHit hit = trace_all(ray);
-        if (hit.did_hit) {
-            float diffuse    = max(dot(config.sun_dir, hit.hit_normal), 0.0);
-            vec3 final_color = hit.color * (config.ambient_lightning + diffuse);
-            accumulated_color += final_color * multiplier;
-            total_contribution += multiplier;
-            multiplier *= 0.5;
-
-            ray.origin = hit.hit_pos;
-            ray.dir    = reflect(ray.dir, hit.hit_normal);
-        } else {
-            break;
-        }
+    vec3 total_color = vec3(0, 0, 0);
+    for (int i = 0; i < SAMPLE_COUNT; ++i) {
+        total_color += trace_and_sample(ray);
     }
 
-    color = vec4(accumulated_color / total_contribution, 1.0);
+    color.xyz = total_color / SAMPLE_COUNT;
 
     // Write the color to the image
     imageStore(albedo, pixel_pos, color);
