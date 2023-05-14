@@ -106,9 +106,31 @@ float fast_pow2(i32 a) {
     return *reinterpret_cast<float*>(&val);
 }
 
+#include <vke/material_loader/material_loader.hpp>
+#include <vke/serialization/json_serialization.hpp>
+#include <vke/util.hpp>
 
+void foo() {
+    auto s = read_file("res/materials.json");
+
+    nlohmann::json json = nlohmann::json::parse(s);
+    // for(auto& field : json){
+    //     std::cout << field << '\n';
+    // }
+
+
+    vke::JsonDeserializer deserializer(json);
+
+    vke::MaterialPack pack;
+    deserializer.pull_root(pack);
+
+    printf("foo\n");
+}
 
 int main() {
+    foo();
+    return 0;
+
     App engine;
 
     engine.run();

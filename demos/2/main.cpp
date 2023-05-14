@@ -14,12 +14,15 @@
 #include <vke/engine.hpp>
 #include <vke/fwd.hpp>
 #include <vke/image.hpp>
+#include <vke/material_manager.hpp>
 #include <vke/pipeline.hpp>
 #include <vke/pipeline_builder.hpp>
 #include <vke/renderpass.hpp>
 #include <vke/util.hpp>
 #include <vke/vertex_input_builder.hpp>
 #include <vke/window_sdl.hpp>
+
+#include <vke/material_loader/material_loader.hpp>
 
 struct Vertex {
     f32 pos[2];
@@ -30,49 +33,37 @@ class App : public vke::RenderEngine {
 public:
     App() {
         m_renderpass = std::make_unique<vke::WindowRenderPass>(window());
-
-        init_descriptor_sets();
-        init_pipeline();
+    
         init_vertex_data();
-
     }
 
     void on_frame(vke::CommandBuffer& cmd) override {
-        if(m_image == nullptr){
-            load_image(cmd);
-        }
+        if (!m_default_material) init_material(cmd);
+
         m_renderpass->begin(cmd);
+        cmd.bind_material(m_default_material);
 
-
-        cmd.bind_pipeline(m_pipeline.get());
-        cmd.bind_descriptor_set(0, m_dset);
         cmd.bind_vertex_buffer({m_vertex_buffer.get()});
         cmd.draw(3, 1, 0, 0);
 
         m_renderpass->end(cmd);
     }
 
-    void init_pipeline() {
-        vke::PipelineLayoutBuilder layout_builder;
-        layout_builder.add_set_layout(m_dset_layout);
+    void init_material(vke::CommandBuffer& cmd) {
+        auto* mat_man = get_material_manager();
+        mat_man->register_render_target("default", m_renderpass.get(), 0);
 
-        vke::VertexInputDescriptionBuilder vertex_builder;
-        vertex_builder.push_binding<Vertex>();
-        vertex_builder.push_attribute<f32>(2);
-        vertex_builder.push_attribute<f32>(3);
+        vke::VertexInputDescriptionBuilder builder;
+        builder.push_binding<Vertex>();
+        builder.push_attribute<f32>(2);
+        builder.push_attribute<f32>(3);
 
-        vke::GPipelineBuilder pipeline_builder(core());
-        pipeline_builder.set_layout_builder(&layout_builder);
-        pipeline_builder.set_renderpass(m_renderpass.get(), 0);
-        pipeline_builder.set_vertex_input(&vertex_builder);
+        mat_man->register_vertex_input("shader1", std::move(builder));
 
-        auto frag_code = read_file_binary("res/spv/1.frag.spv");
-        auto vert_code = read_file_binary("res/spv/1.vert.spv");
+        vke::MaterialLoader loader(mat_man);
+        loader.load_material_file(cmd, "demos/2/res/materials.json");
 
-        pipeline_builder.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, cast_u8_to_span_u32(frag_code));
-        pipeline_builder.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, cast_u8_to_span_u32(vert_code));
-
-        m_pipeline = pipeline_builder.build();
+        m_default_material = mat_man->get_material("material1");
     }
 
     void init_vertex_data() {
@@ -85,30 +76,10 @@ public:
         m_vertex_buffer = core()->create_buffer_from_data(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, std::span(verticies));
     }
 
-    void init_descriptor_sets() {
-        m_dpool = std::make_unique<vke::DescriptorPool>(core());
-
-        vke::DescriptorSetLayoutBuilder builder;
-        builder.add_image_sampler(VK_SHADER_STAGE_FRAGMENT_BIT);
-        m_dset_layout = builder.build(core());
-    }
-
-    void load_image(vke::CommandBuffer& cmd) {
-        m_image = vke::Image::load_png(cmd, "res/grid.png");
-
-        vke::DescriptorSetBuilder builder;
-        builder.add_image_sampler(m_image.get(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, core()->get_sampler_manager()->default_sampler(), VK_SHADER_STAGE_FRAGMENT_BIT);
-        m_dset = builder.build(m_dpool.get(), m_dset_layout);
-    }
-
 private:
     std::unique_ptr<vke::Renderpass> m_renderpass;
-    std::unique_ptr<vke::Pipeline> m_pipeline;
     std::unique_ptr<vke::Buffer> m_vertex_buffer;
-    std::unique_ptr<vke::DescriptorPool> m_dpool;
-    std::unique_ptr<vke::Image> m_image;
-    VkDescriptorSetLayout m_dset_layout = nullptr;
-    VkDescriptorSet m_dset = nullptr;
+    vke::Material* m_default_material = nullptr;
 };
 
 int main() {

@@ -10,24 +10,22 @@
 
 #include "commandbuffer.hpp"
 #include "core.hpp"
+#include "descriptor_pool.hpp"
 #include "fence.hpp"
 #include "fwd.hpp"
+#include "material_manager.hpp"
 #include "renderpass.hpp"
 #include "semaphore.hpp"
 #include "vkutil.hpp"
 #include "window_sdl.hpp"
-#include "descriptor_pool.hpp"
 
 namespace vke {
 
-#ifndef NDEBUG
-constexpr u64 MAX_FRAME_TIME = 10E9;
-#else
-constexpr u64 MAX_FRAME_TIME = UINT64_MAX;
-#endif
-
-RenderEngine::RenderEngine() {
+RenderEngine::RenderEngine(CoreConfig* base_config) {
     CoreConfig config;
+    if (base_config) {
+        config = *base_config;
+    }
 
     m_primary_window = Window_SDL::create_window(1920, 1080, "engine");
     config.window    = m_primary_window.get();
@@ -36,15 +34,14 @@ RenderEngine::RenderEngine() {
 
     m_core = std::make_unique<Core>(&config);
 
-    // m_renderpass = std::make_unique<WindowRenderPass>(m_primary_window.get());
+    m_material_manager = std::make_unique<MaterialManager>(this);
 
     for (int i = 0; i < FRAME_OVERLAP; ++i) {
         m_frame_data[i] = {
-            .render_fence = std::make_unique<Fence>(core(), true),
-            .cmd          = std::make_unique<CommandBuffer>(core(), true),
-            // .present_semaphore = std::make_unique<Semaphore>(core()),
+            .render_fence     = std::make_unique<Fence>(core(), true),
+            .cmd              = std::make_unique<CommandBuffer>(core(), true),
             .render_semaphore = std::make_unique<Semaphore>(core()),
-            .framely_pool = std::make_unique<DescriptorPool>(core(),100),
+            .framely_pool     = std::make_unique<DescriptorPool>(core(), 100),
         };
     }
 }
@@ -83,6 +80,12 @@ void RenderEngine::run() {
 }
 
 void RenderEngine::frame() {
+#ifndef NDEBUG
+    constexpr u64 MAX_FRAME_TIME = 10E9;
+#else
+    constexpr u64 MAX_FRAME_TIME = UINT64_MAX;
+#endif
+
     m_primary_window->poll_events();
 
     FrameData& current_frame = get_current_frame_data();

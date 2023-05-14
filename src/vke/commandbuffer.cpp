@@ -77,6 +77,7 @@ void CommandBuffer::cmd_end_renderpass() {
     m_current_pipeline_state = VK_PIPELINE_BIND_POINT_COMPUTE;
 }
 
+
 void CommandBuffer::bind_pipeline(Pipeline* pipeline) {
     m_current_pipeline = pipeline;
 

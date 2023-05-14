@@ -1,0 +1,40 @@
+{
+    "shaders": [
+        {
+            "name": "shader1",
+            "render_target": "target1",
+            "vertex_input": "input1",
+            "shader_paths": [
+                "shader1.vert",
+                "shader1.frag"
+            ],
+            "material_set_index": 0
+        },
+        {
+            "name": "shader2",
+            "render_target": "target2",
+            "shader_paths": [
+                "shader2.vert",
+                "shader2.frag"
+            ],
+            "material_set_index": 1
+        }
+    ],
+    "materials": [
+        {
+            "name": "material1",
+            "shader_name": "shader1",
+            "texture_paths": [
+                "texture1.png",
+                "texture2.png"
+            ]
+        },
+        {
+            "name": "material2",
+            "shader_name": "shader2",
+            "texture_paths": [
+                "texture3.png"
+            ]
+        }
+    ]
+}

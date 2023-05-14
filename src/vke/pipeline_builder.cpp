@@ -155,10 +155,10 @@ std::unique_ptr<Pipeline> GPipelineBuilder::build() {
     });
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .sType                         = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .vertexBindingDescriptionCount = 0,
-    }; 
-    if(m_input_description_builder){
+    };
+    if (m_input_description_builder) {
         vertex_input_info = m_input_description_builder->get_info();
     }
 
@@ -181,7 +181,7 @@ std::unique_ptr<Pipeline> GPipelineBuilder::build() {
     };
 
     VkPipeline pipeline;
-    VK_CHECK(vkCreateGraphicsPipelines(device(), nullptr, 1, &pipeline_info, nullptr, &pipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(device(), m_pipeline_cache, 1, &pipeline_info, nullptr, &pipeline));
 
     auto vke_pipeline                 = std::make_unique<Pipeline>(core(), pipeline, layouts.layout, VK_PIPELINE_BIND_POINT_GRAPHICS);
     vke_pipeline->m_data.dset_layouts = std::move(layouts.dset_layouts);
@@ -229,6 +229,9 @@ VkShaderStageFlags convert_to_vk(SpvReflectShaderStageFlagBits stage) {
     case SPV_REFLECT_SHADER_STAGE_CALLABLE_BIT_KHR:
         return VK_SHADER_STAGE_CALLABLE_BIT_KHR;
     }
+
+    assert(0);
+    return 0;
 }
 
 VkDescriptorType convert_to_vk(SpvReflectDescriptorType type) {
@@ -258,6 +261,9 @@ VkDescriptorType convert_to_vk(SpvReflectDescriptorType type) {
     case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
         return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     }
+
+    assert(0);
+    return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
 PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders() {
@@ -276,7 +282,13 @@ PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders()
     for (auto& shader : m_shader_details) {
 
         SpvReflectShaderModule module;
-        SPV_CHECK(spvReflectCreateShaderModule(shader.spirv_len * 4, shader.spirv_code, &module));
+        {
+            SpvReflectResult result = spvReflectCreateShaderModule(shader.spirv_len * 4, shader.spirv_code, &module);
+            if (result != SPV_REFLECT_RESULT_SUCCESS) {
+                fmt ::print(stderr, "[SPV Reflection Error]: {}\n", result);
+                (static_cast<bool>(0) ? void(0) : __assert_fail("0", "/mnt/diske/coding/c++/vke3/src/vke/pipeline_builder.cpp", 285, __extension__ __PRETTY_FUNCTION__));
+            }
+        };
 
         VkShaderStageFlags stage = convert_to_vk(module.shader_stage);
         if (shader.module == nullptr) {
@@ -331,7 +343,10 @@ PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders()
     std::vector<VkDescriptorSetLayout> dset_layouts;
 
     for (auto& set_info : std::span(set_infos)) {
-        if (set_info.bindings.empty()) break;
+        if (set_info.bindings.empty()) {
+            break;
+            // dset_layouts.push_back(nullptr);
+        }
 
         DescriptorSetLayoutBuilder builder;
         for (auto& binding : set_info.bindings) {
@@ -351,6 +366,8 @@ PipelineBuilderBase::LayoutBuild PipelineBuilderBase::build_layout_and_shaders()
     }
 
     VkPipelineLayout layout = p_builder.build(device());
+
+    dset_layouts.resize(4);
 
     return LayoutBuild{
         .layout       = layout,
@@ -378,7 +395,7 @@ std::unique_ptr<Pipeline> CPipelineBuilder::build() {
     };
 
     VkPipeline vk_pipeline;
-    vkCreateComputePipelines(device(), nullptr, 1, &create_info, nullptr, &vk_pipeline);
+    vkCreateComputePipelines(device(), m_pipeline_cache, 1, &create_info, nullptr, &vk_pipeline);
 
     auto vke_pipeline                 = std::make_unique<Pipeline>(core(), vk_pipeline, layout_details.layout, VK_PIPELINE_BIND_POINT_COMPUTE);
     vke_pipeline->m_data.dset_layouts = std::move(layout_details.dset_layouts);

@@ -19,5 +19,7 @@ class IBufferSpan;
 class Image;
 class DescriptorPool;
 class RenderEngine;
+class MaterialManager;
+class Material;
 
 } // namespace vke

@@ -79,9 +79,10 @@ void Raytracer::init_object_buffer() {
         .roughness = 0.0,
     };
     object_buffer->boxes[0] = AABB{
-        .pos   = vec3(0, 0, 0),
-        .size  = vec3(5.0, 5.0, 5.0),
-        .color = vec3(0, 1, 0),
+        .pos         = vec3(0, 0, 0),
+        .size        = vec3(5.0, 5.0, 5.0),
+        .color       = vec3(0, 1, 0),
+        .filled_bits = 0b1101'1011,
     };
 }
 

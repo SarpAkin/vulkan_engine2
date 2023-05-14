@@ -23,7 +23,7 @@ void Renderpass::begin(CommandBuffer& cmd) {
         .pClearValues    = m_clear_values.data(),
     };
 
-    cmd.cmd_begin_renderpass( &rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    cmd.cmd_begin_renderpass(&rp_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport view_port = {
         .x        = 0.f,
@@ -44,8 +44,12 @@ void Renderpass::begin(CommandBuffer& cmd) {
     vkCmdSetScissor(cmd.handle(), 0, 1, &scissor);
 }
 
+void CommandBuffer::begin_renderpass(Renderpass* renderpass, VkSubpassContents contents) {
+    renderpass->begin(*this);
+}
+
 void Renderpass::next_subpass(CommandBuffer& cmd) {
-    cmd.cmd_next_subpass( VK_SUBPASS_CONTENTS_INLINE);
+    cmd.cmd_next_subpass(VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void Renderpass::end(CommandBuffer& cmd) {
@@ -68,8 +72,8 @@ WindowRenderPass::WindowRenderPass(Window* window) : Renderpass(window->surface(
 
     m_subpasses.push_back(SubpassDetails{
         .color_attachments = {m_window->surface()->get_swapchain_image_format()},
-        .renderpass = this,
-        .subpass_index = 0,
+        .renderpass        = this,
+        .subpass_index     = 0,
     });
 }
 
@@ -153,7 +157,6 @@ VkFramebuffer WindowRenderPass::next_framebuffer() {
 WindowRenderPass::~WindowRenderPass() {
     destroy_framebuffers();
 }
-
 
 void WindowRenderPass::begin(CommandBuffer& cmd) {
     m_window->surface()->prepare();

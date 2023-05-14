@@ -20,7 +20,12 @@ AlignConsecutiveAssignments: Consecutive
 AllowShortFunctionsOnASingleLine: All
 AlignAfterOpenBracket: DontAlign
 LambdaBodyIndentation: OuterScope
+
+
+RequiresClausePosition: OwnLine
+IndentCaseLabels: false
+ContinuationIndentWidth: 4
+
 BraceWrapping:
-    # AlwaysMultiline: true
-    # AfterFunction: false
+    AfterEnum: true
 

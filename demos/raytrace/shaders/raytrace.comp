@@ -120,7 +120,7 @@ RayHit ray_vs_aabb_octbox(in Ray ray, in AABB box) {
     // swap if near values are further
     if (near.x > far.x) swap(near.x, far.x);
     if (near.y > far.y) swap(near.y, far.y);
-    if (near.z > far.z) swap(near.z, far.z);
+    if (near.z > far.z) swap(near.z, far.z);    
 
     float nearest_far = min(min(far.x, far.y), far.z);
 
@@ -132,18 +132,20 @@ RayHit ray_vs_aabb_octbox(in Ray ray, in AABB box) {
 
     vec3 mid          = (near + far) * 0.5;
     uvec3 inside_cord = uvec3(
-        (mid.x < furthest_near) ^^ (ray.dir.x > 0),
-        (mid.y < furthest_near) ^^ (ray.dir.y > 0),
-        (mid.z < furthest_near) ^^ (ray.dir.z > 0) //
+        (mid.x < furthest_near) ^^ (ray.dir.x < 0),
+        (mid.y < furthest_near) ^^ (ray.dir.y < 0),
+        (mid.z < furthest_near) ^^ (ray.dir.z < 0) //
     );
 
     hit.t       = furthest_near;
     hit.hit_pos = ray.origin + ray.dir * furthest_near;
     hit.color   = vec3(inside_cord);
-    hit.did_hit = true;
+    hit.did_hit = true; 
 
     hit.hit_normal                     = vec3(0, 0, 0);
     hit.hit_normal[furthest_near_axis] = -sign(ray.dir[furthest_near_axis]);
+
+    
 
     return hit;
 }

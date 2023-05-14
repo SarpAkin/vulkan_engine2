@@ -4,6 +4,7 @@
 #include <cassert>
 #include <optional>
 #include <span>
+#include <string>
 #include <vector>
 
 #include "common.hpp"
@@ -63,5 +64,7 @@ auto map_optional(const std::optional<T>& opt, auto&& func) -> std::optional<dec
 })
 
 std::vector<u8> read_file_binary(const char* name);
+
+std::string read_file(const char* name);
 
 std::span<u32> cast_u8_to_span_u32(std::span<u8> span);

@@ -13,7 +13,8 @@ find_package(fmt REQUIRED)
 
 file(GLOB LIB_CPPS "libs/*.c*")
 
-file(GLOB VKE_SRC_FILES "${CMAKE_SOURCE_DIR}/src/vke/*.cpp")
+file(GLOB_RECURSE VKE_SRC_FILES "${CMAKE_SOURCE_DIR}/src/vke/*.cpp")
+
 set(VKE_INCLUDE  "${CMAKE_SOURCE_DIR}/src")
 
 add_library(vke 
@@ -44,4 +45,5 @@ target_compile_options(vke PUBLIC
 
 # demos
 add_subdirectory(demos/1)
+add_subdirectory(demos/2)
 add_subdirectory(demos/raytrace)

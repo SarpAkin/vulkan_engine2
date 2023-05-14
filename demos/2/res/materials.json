@@ -1,0 +1,21 @@
+{
+    "shaders": [
+        {
+            "name": "shader1",
+            "render_target": "default",
+            "vertex_input": "shader1",
+            "shader_paths": [
+                "spirv/1.frag.spv",
+                "spirv/1.vert.spv"
+            ],
+            "material_set_index": 0
+        }
+    ],
+    "materials": [
+        {
+            "name": "material1",
+            "shader_name": "shader1",
+            "texture_paths": ["grid.png"]
+        }
+    ]
+}

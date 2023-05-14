@@ -2,34 +2,53 @@
 
 #include <cassert>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <stdexcept>
 
 #include "../common.hpp"
 #include "../util.hpp"
 
 namespace vke {
 class Serializer;
-}
+class Deserializer;
+
+template <typename T>
+concept Serializable =
+    requires(T& a, Serializer* s, Deserializer* d) {
+        { a.serialize(s) };
+        { a.deserialize(d) };
+    };
+
+template <typename T>
+concept BinarySerializable =
+    requires(T& a, Serializer* s, Deserializer* d) {
+        { a.serialize_bin(s) };
+        { a.deserialize_bin(d) };
+    };
+
+
+
+// template <typename T>
+// concept ExternalySerializeable =
+//     requires(T a, Serializer* s, Deserializer* d) {
+//         { ::serialize_external(s) };
+//         { a.deserialize(d) };
+//     };
 
 class FieldNotFoundException : public std::runtime_error {
 public:
-    explicit FieldNotFoundException(const std::string& fieldName)
-        : std::runtime_error("Field not found: " + fieldName), fieldName_(fieldName) {}
+    explicit FieldNotFoundException(const std::string& field_name)
+        : std::runtime_error("Field not found: " + field_name),
+          fieldName_(field_name) {}
 
-    const std::string& getFieldName() const {
-        return fieldName_;
-    }
+    const std::string& get_field_name() const { return fieldName_; }
 
 private:
     std::string fieldName_;
 };
 
-void serialize_external(vke::Serializer*, u32);
-
-namespace vke {
 class Serializer {
 public:
     template <typename T>
@@ -54,29 +73,28 @@ protected:
     virtual void _push(f32 item)                    = 0;
     virtual void _push(const std::string_view item) = 0;
     virtual void _push(std::span<u8> bytes)         = 0;
+    virtual void _push(std::nullptr_t);
 
     void _push(const std::string& item) { _push(std::string_view(item)); }
 
+    template <Serializable T>
+    void _push(const T& item) { item.serialize(this); }
+
     template <typename T>
-    void _push(const T& item) {
-        if constexpr (requires(T x) {x.begin();x.end(); }) {
-            _push_container(item);
-        } else if constexpr (requires(Serializer * s, const T& x) { x.serialize(s); }) {
-            item.serialize(this);
-        } else if constexpr (requires(Serializer * s, const T& x) { ::serialize_external(s, x); }) {
-            ::serialize_external(this, item);
+    void _push(const std::optional<T>& item) {
+        if (item.has_value()) {
+            _push(item.value());
         } else {
-            assert(!"serialization failed");
+            _push(nullptr);
         }
     }
 
     template <typename T>
-    void _push_container(const T& item) {
+    void _push(const std::vector<T>& item) {
         start_array();
         for (const auto& e : item) {
             push(e);
         }
-
         end_array();
     }
 
@@ -94,13 +112,11 @@ public:
         pull(item);
     }
 
-
-    template<typename T>
-    void pull_root(T& object){
+    template <typename T>
+    void pull_root(T& object) {
         prepare_root_pull();
         pull(object);
     }
-
 
     // retrun the amount of fields in the object
     virtual usize start_object() = 0;
@@ -114,11 +130,13 @@ protected:
     virtual void prepare_pull_field(const char* field_name){};
     virtual void prepare_root_pull(){};
 
-
     virtual void _pull(u32& item)         = 0;
     virtual void _pull(i32& item)         = 0;
     virtual void _pull(f32& item)         = 0;
     virtual void _pull(std::string& item) = 0;
+
+    template <Serializable T>
+    void _pull(T& item) { item.deserialize(this); }
 
     template <typename T>
     void _pull(std::vector<T>& container) {
@@ -131,8 +149,8 @@ protected:
         end_array();
     }
 
-    template<typename T>
-    void _pull(std::optional<T>& item){
+    template <typename T>
+    void _pull(std::optional<T>& item) {
         try {
             T tmp;
             pull(tmp);
@@ -141,22 +159,6 @@ protected:
             item = std::nullopt;
         }
     }
-
-    template <typename T>
-    void _pull(T& item) {
-        if constexpr (requires(T x) {x.begin();x.end(); }) {
-            // _pull_container(item);
-            TODO();
-        } else if constexpr (requires(Deserializer * d, T& x) { x.deserialize(d); }) {
-            item.deserialize(this);
-            // } else if constexpr (requires(Serializer * s, const T& x) { ::serialize_external(s, x); }) {
-            //     ::serialize_external(this, item);
-        } else {
-            assert(!"serialization failed");
-        }
-    }
-
-
 
 private:
 };

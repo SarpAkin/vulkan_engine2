@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <span>
@@ -56,8 +57,14 @@ public:
 
     // 0 is for auto
     void add_shader_stage(u32* spirv_code, usize spirv_len, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0);
-    inline void add_shader_stage(std::span<u32> span, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0) { add_shader_stage(span.data(), span.size(), stage); };
+    void add_shader_stage(std::span<u8> span, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0) {
+        assert(span.size() % 4 == 0);
+        add_shader_stage(reinterpret_cast<u32*>(span.data()), span.size() / 4, stage);
+    }
+    void add_shader_stage(std::span<u32> span, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0) { add_shader_stage(span.data(), span.size(), stage); };
     void set_layout_builder(PipelineLayoutBuilder* builder) { m_layout_builder = builder; }
+    void set_pipeline_cache(VkPipelineCache cache) { m_pipeline_cache = cache; }
+
 
 protected:
     struct LayoutBuild {
@@ -78,6 +85,7 @@ protected:
     std::vector<ShaderDetails> m_shader_details;
     PipelineLayoutBuilder* m_layout_builder;
     std::unique_ptr<PipelineLayoutBuilder> m_owned_builder;
+    VkPipelineCache m_pipeline_cache = nullptr;
 };
 
 class VertexInputDescriptionBuilder;
@@ -94,16 +102,16 @@ public:
     void set_topology(VkPrimitiveTopology topology);                                  // Set to triangle list by default
     void set_rasterization(VkPolygonMode polygon_mode, VkCullModeFlagBits cull_mode); // Set to Triangle Fill & Back Cull
     void set_depth_testing(bool depth_testing);                                       // Set to false
-    inline void set_vertex_input(VertexInputDescriptionBuilder* builder) { m_input_description_builder = builder; };
+    inline void set_vertex_input(const VertexInputDescriptionBuilder* builder) { m_input_description_builder = builder; };
 
     std::unique_ptr<Pipeline> build();
 
 private:
     void set_opaque_color_blend();
 
-    VertexInputDescriptionBuilder* m_input_description_builder = nullptr;
-    Renderpass* m_renderpass = nullptr;
-    u32 m_subpass_index      = 0;
+    const VertexInputDescriptionBuilder* m_input_description_builder = nullptr;
+    Renderpass* m_renderpass                                   = nullptr;
+    u32 m_subpass_index                                        = 0;
 
     VkPipelineDepthStencilStateCreateInfo m_depth_stencil                      = {};
     VkPipelineVertexInputStateCreateInfo m_vertex_input_info                   = {};

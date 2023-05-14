@@ -1,4 +1,5 @@
-
+#ifndef _DEVICE_BUFFERS_
+#define _DEVICE_BUFFERS_
 
 #ifdef __cplusplus
 
@@ -33,7 +34,6 @@ struct GPUCamera {
     float padding2;
 };
 
-
 struct RayTracerConfigUBO {
     GPUCamera cam;
     mat4 inv_proj_view;
@@ -44,7 +44,6 @@ struct RayTracerConfigUBO {
     vec3 sun_color;
     float padding2;
 };
-
 
 struct Sphere {
     vec3 pos;
@@ -59,7 +58,7 @@ struct AABB {
     vec3 size;
     float padding2;
     vec3 color;
-    float padding3;
+    uint filled_bits;
 };
 
 const uint OBJECT_BUFFER_MAX_SPHERES = 15;
@@ -73,3 +72,5 @@ struct ObjectBuffer {
     Sphere spheres[OBJECT_BUFFER_MAX_SPHERES];
     AABB boxes[OBJECT_BUFFER_MAX_AABB];
 };
+
+#endif

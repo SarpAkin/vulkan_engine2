@@ -3,14 +3,6 @@
 #include <json.hpp>
 
 #include "../util.hpp"
-
-namespace vke {
-class Serializer;
-}
-class Bar;
-
-// void serialize_external(vke::Serializer* ser, const Bar& b);
-
 #include "serializer.hpp"
 
 namespace vke {
@@ -47,6 +39,7 @@ protected:
     void _push(f32 item) override { push_primative(item); }
     void _push(std::string_view item) override { push_primative(item); }
     void _push(std::span<u8> bytes) override { TODO(); }
+    void _push(std::nullptr_t) override { push_primative(nullptr); };
 
 private:
     template <typename T>
@@ -77,9 +70,9 @@ public:
         });
     }
 
-    JsonDeserializer(std::string s) {
+    JsonDeserializer(const std::string& s) {
         m_stack.push_back(JsonStack{
-            .json = std::move(nlohmann::json(s)),
+            .json = std::move(nlohmann::json::parse(s)),
         });
     }
 
@@ -117,8 +110,8 @@ private:
     void pull_primative(T& item) {
         auto& stack_top = m_stack.back();
         if (stack_top.field_name) {
-            auto field = stack_top.json[stack_top.field_name]; 
-            if(field.is_null()){
+            auto field = stack_top.json[stack_top.field_name];
+            if (field.is_null()) {
                 throw FieldNotFoundException(stack_top.field_name);
             }
             item = field.get<T>();
@@ -139,57 +132,3 @@ private:
 };
 
 } // namespace vke
-
-// struct Bar {
-//     u32 age;
-//     std::string name;
-//     std::vector<u32> nums;
-
-//     AUTO_SERIALIZATON(Bar, age, name, nums);
-// };
-
-// inline void bar() {
-//     std::string jsonString = R"({
-//         "joe": {
-//             "age": 23,
-//             "name": "aaa",
-//             "nums": [1, 2, 3, 24]
-//         },
-//         "hello": 67
-//     })";
-
-//     vke::JsonDeserializer deserializer(nlohmann::json::parse(jsonString));
-
-//     u32 helloValue;
-//     deserializer.get_field("hello", helloValue);
-
-//     Bar b;
-//     deserializer.get_field("joe", b);
-
-//     // Print the deserialized values
-//     printf("hello: %u\n", helloValue);
-//     printf("age: %u\n", b.age);
-//     printf("name: %s\n", b.name.c_str());
-//     printf("nums: ");
-//     for (const auto& num : b.nums) {
-//         printf("%u ", num);
-//     }
-//     printf("\n");
-// }
-
-// inline void foo() {
-//     return bar();
-
-//     Bar b{
-//         .age  = 23,
-//         .name = "aaa",
-//         .nums = {1, 2, 3, 24},
-//     };
-
-//     vke::JsonSerializer serializer;
-//     serializer.insert("hello", 67);
-//     serializer.insert("joe", b);
-//     auto string = serializer.dump().dump();
-
-//     printf("%s\n", string.c_str());
-// }

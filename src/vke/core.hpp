@@ -1,16 +1,15 @@
 #pragma once
 
+#include <functional>
 #include <memory>
+#include <span>
+#include <vector>
+
+#include <vulkan/vulkan_core.h>
 
 #include "common.hpp"
 #include "fwd.hpp"
-
 #include "sampler_manager.hpp"
-
-#include <functional>
-#include <span>
-#include <vector>
-#include <vulkan/vulkan_core.h>
 
 typedef struct VmaAllocator_T* VmaAllocator;
 typedef struct VmaAllocation_T* VmaAllocation;
@@ -30,8 +29,6 @@ public: // getters
     inline u32 queue_family() const { return m_graphics_queue_family; }
     inline VmaAllocator gpu_allocator() { return m_gpu_allocator; }
     inline VkPhysicalDevice physical_device() const { return m_chosen_gpu; }
-
-
 
 public: // util
     inline usize gpu_allignment() const { return 256; }
@@ -83,7 +80,7 @@ private: // private fields
     // handles to be destroyed before core destruction
     std::vector<VkDescriptorSetLayout> m_dset_layouts;
 
-    // owned by core
+    // owned by this class
     SamplerManager* m_sampler_manager = nullptr;
 };
 

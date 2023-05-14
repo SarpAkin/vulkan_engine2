@@ -36,10 +36,17 @@ public:
     void end();
     void reset();
 
-    // VkCmd* wrappers
     void cmd_begin_renderpass(const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents);
     void cmd_next_subpass(VkSubpassContents contents);
     void cmd_end_renderpass();
+
+    // VkCmd* wrappers
+    void begin_renderpass(Renderpass* renderpass, VkSubpassContents contents);
+    void next_subpass(VkSubpassContents contents) { cmd_next_subpass(contents); };
+    void end_renderpass() { cmd_end_renderpass(); }
+
+    //definition at material_manager.cpp
+    void bind_material(Material* material);
 
     void bind_pipeline(Pipeline* pipeline);
     void bind_vertex_buffer(const std::initializer_list<Buffer*>& buffer);

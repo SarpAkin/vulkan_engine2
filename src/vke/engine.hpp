@@ -12,7 +12,7 @@ namespace vke {
 
 class RenderEngine {
 public:
-    RenderEngine();
+    RenderEngine(CoreConfig* config = nullptr);
     ~RenderEngine();
 
     Core* core() const { return m_core.get(); }
@@ -25,8 +25,8 @@ public:
     inline u32 get_frame_overlap() { return FRAME_OVERLAP; }
 
     inline f64 get_delta_time() { return m_delta_time; }
-
     DescriptorPool* get_framely_pool() { return get_current_frame_data().framely_pool.get(); }
+    MaterialManager* get_material_manager() { return m_material_manager.get(); }
 
 protected:
     virtual void on_frame(CommandBuffer& cmd){};
@@ -53,6 +53,8 @@ private:
         std::unique_ptr<Semaphore> render_semaphore; // signaled after framely submitted cmd finishes.
         std::unique_ptr<DescriptorPool> framely_pool;
     } m_frame_data[FRAME_OVERLAP];
+
+    std::unique_ptr<MaterialManager> m_material_manager;
 };
 
 } // namespace vke

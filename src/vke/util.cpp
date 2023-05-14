@@ -24,3 +24,12 @@ std::span<u32> cast_u8_to_span_u32(std::span<u8> span) {
 
     return std::span<u32>(reinterpret_cast<u32*>(span.data()), span.size() / sizeof(u32));
 }
+
+std::string read_file(const char* name) {
+    std::ifstream file(name);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file: " + std::string(name));
+    }
+
+    return std::string(std::istreambuf_iterator<char>(file), {});
+}
