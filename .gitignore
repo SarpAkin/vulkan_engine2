@@ -39,3 +39,5 @@ misc_stuff
 *.exe
 *.out
 *.app
+
+res/

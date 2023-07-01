@@ -1,10 +1,10 @@
 #include "imgui_manager.hpp"
 
-#include "../commandbuffer.hpp"
-#include "../core.hpp"
-#include "../renderpass.hpp"
-#include "../vkutil.hpp"
-#include "../window_sdl.hpp"
+#include "../core/commandbuffer.hpp"
+#include "../core/core.hpp"
+#include "../core/renderpass.hpp"
+#include "../core/vkutil.hpp"
+#include "../core/window_sdl.hpp"
 
 #include <backends/imgui_impl_sdl2.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -78,7 +78,7 @@ ImguiManager::~ImguiManager() {
 void ImguiManager::new_frame() {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL2_NewFrame(m_window->handle());
-    
+
     ImGui::NewFrame();
 }
 
@@ -91,4 +91,9 @@ void ImguiManager::process_sdl_event(SDL_Event& event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
 }
 
+void ImguiManager::render(vke::IRenderTarget* render_target) {
+    flush_frame(*render_target->get_draw_cmd());
+};
+
+void ImguiManager::on_subscribe(vke::IRenderTarget* target){};
 } // namespace vke

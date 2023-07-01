@@ -41,8 +41,8 @@ public:
         if (!m_default_material) init_material(cmd);
 
         m_renderpass->begin(cmd);
-        cmd.bind_material(m_default_material);
 
+        cmd.bind_material(m_default_material);
         cmd.bind_vertex_buffer({m_vertex_buffer.get()});
         cmd.draw(3, 1, 0, 0);
 
@@ -83,7 +83,6 @@ private:
 };
 
 int main() {
-
     App engine;
 
     engine.run();

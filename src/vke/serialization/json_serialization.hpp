@@ -37,6 +37,8 @@ protected:
     void _push(u32 item) override { push_primative(item); }
     void _push(i32 item) override { push_primative(item); }
     void _push(f32 item) override { push_primative(item); }
+    void _push(f64 item) override { push_primative(item); }
+
     void _push(std::string_view item) override { push_primative(item); }
     void _push(std::span<u8> bytes) override { TODO(); }
     void _push(std::nullptr_t) override { push_primative(nullptr); };
@@ -103,6 +105,7 @@ protected:
     void _pull(u32& item) override { pull_primative(item); }
     void _pull(i32& item) override { pull_primative(item); }
     void _pull(f32& item) override { pull_primative(item); }
+    void _pull(f64& item) override { pull_primative(item); }
     void _pull(std::string& item) override { pull_primative(item); }
 
 private:

@@ -1,9 +1,12 @@
 #include "util.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <ios>
 #include <iterator>
 #include <vector>
+
+#include "util/arena_alloc.hpp"
 
 std::vector<u8> read_file_binary(const char* name) {
     std::ifstream file(name, std::ios::ate | std::ios::binary);
@@ -32,4 +35,22 @@ std::string read_file(const char* name) {
     }
 
     return std::string(std::istreambuf_iterator<char>(file), {});
+}
+
+std::string relative_path_impl(const char* source_path, const char* path) {
+    std::filesystem::path p = source_path;
+    return p.parent_path() / path;
+}
+
+std::span<u8> read_file_binary(vke::ArenaAllocator* arena, const char* name) {
+    std::ifstream file(name, std::ios::ate | std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open file");
+    }
+    size_t fileSize = static_cast<size_t>(file.tellg());
+    u8* data        = arena->alloc<u8>(fileSize);
+
+    file.seekg(0);
+    file.read(reinterpret_cast<char*>(data), fileSize);
+    return std::span(data, fileSize);
 }

@@ -28,14 +28,22 @@ concept BinarySerializable =
         { a.deserialize_bin(d) };
     };
 
+template <typename T>
+class SerializationHelper {
+};
 
+// template <>
+// class SerializationHelper<int> {
+//     static void serialize(Serializer* s, int a);
+//     static void deserialize(Deserializer* d, int& a);
+// };
 
-// template <typename T>
-// concept ExternalySerializeable =
-//     requires(T a, Serializer* s, Deserializer* d) {
-//         { ::serialize_external(s) };
-//         { a.deserialize(d) };
-//     };
+template <typename T>
+concept ExternalySerializeable =
+    requires(T a, Serializer* s, Deserializer* d) {
+        { SerializationHelper<T>::serialize(s, a) };
+        { SerializationHelper<T>::deserialize(d, a) };
+    };
 
 class FieldNotFoundException : public std::runtime_error {
 public:
@@ -71,6 +79,7 @@ protected:
     virtual void _push(u32 item)                    = 0;
     virtual void _push(i32 item)                    = 0;
     virtual void _push(f32 item)                    = 0;
+    virtual void _push(f64 item)                    = 0;
     virtual void _push(const std::string_view item) = 0;
     virtual void _push(std::span<u8> bytes)         = 0;
     virtual void _push(std::nullptr_t);
@@ -79,6 +88,8 @@ protected:
 
     template <Serializable T>
     void _push(const T& item) { item.serialize(this); }
+    template <ExternalySerializeable T>
+    void _push(const T& item) { SerializationHelper<T>::serialize(this, item); }
 
     template <typename T>
     void _push(const std::optional<T>& item) {
@@ -133,10 +144,14 @@ protected:
     virtual void _pull(u32& item)         = 0;
     virtual void _pull(i32& item)         = 0;
     virtual void _pull(f32& item)         = 0;
+    virtual void _pull(f64& item)         = 0;
     virtual void _pull(std::string& item) = 0;
 
     template <Serializable T>
     void _pull(T& item) { item.deserialize(this); }
+
+    template <ExternalySerializeable T>
+    void _push(T& item) { SerializationHelper<T>::serialize(this, item); }
 
     template <typename T>
     void _pull(std::vector<T>& container) {
