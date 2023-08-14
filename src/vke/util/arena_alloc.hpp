@@ -15,13 +15,20 @@ public:
     void* alloc(usize size);
 
     template <typename T>
-    T* alloc(usize count) { return reinterpret_cast<T*>(alloc(count * sizeof(T))); }
+    T* alloc(usize count = 1) { return reinterpret_cast<T*>(alloc(count * sizeof(T))); }
 
     template <typename T>
     std::span<T> create_copy(std::span<const T> src) {
         T* dst = alloc<T>(src.size());
         memcpy(dst, src.data(), src.size_bytes());
         return std::span<T>(dst,src.size());
+    }
+
+    template <typename T>
+    T* create_copy(const T& src) {
+        T* dst = alloc<T>(1);
+        memcpy(dst, &src, sizeof(T));
+        return dst;
     }
 
     ArenaAllocator(const ArenaAllocator&)            = delete;
@@ -32,4 +39,10 @@ private:
     u8* m_top;
     u8* m_cap;
 };
+
+class ArenaGen{
+
+};
+
+
 } // namespace vke

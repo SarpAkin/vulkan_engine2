@@ -39,6 +39,16 @@ public: // util
 
     void immediate_submit(std::function<void(CommandBuffer& cmd)> function);
 
+    template<typename T>
+    T immediate_submit(std::function<T(CommandBuffer& cmd)> function){
+        T v;
+        immediate_submit([&](vke::CommandBuffer& cmd){
+            v = function(cmd);
+        });
+        return v;
+    }
+
+
 public: // resource creation
     // these are located individually at the resources cpp file. ex: buffer.cpp
     std::unique_ptr<Buffer> create_buffer(VkBufferUsageFlags usage, usize buffer_size, bool host_visible /* whether it is accessible by cpu*/);

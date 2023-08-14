@@ -198,10 +198,13 @@ std::unique_ptr<Pipeline> GPipelineBuilder::build() {
     {                                                                   \
         SpvReflectResult result = x;                                    \
         if (result != SPV_REFLECT_RESULT_SUCCESS) {                     \
-            fmt::print(stderr, "[SPV Reflection Error]: {}\n", result); \
+            fmt::print(stderr, "[SPV Reflection Error]: {}\n", static_cast<u32>(result)); \
             assert(0);                                                  \
         }                                                               \
     }
+
+
+
 
 VkShaderStageFlags convert_to_vk(SpvReflectShaderStageFlagBits stage) {
     switch (stage) {
