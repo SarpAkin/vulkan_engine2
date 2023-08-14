@@ -53,4 +53,16 @@ void MaterialManager::register_vertex_input(std::string name, VertexInputDescrip
     m_vertex_inputs.emplace(name, std::make_unique<VertexInputDescriptionBuilder>(std::move(vertex_input)));
 }
 
+void MaterialManager::register_texture(std::string name, std::shared_ptr<vke::Image> texture) {
+    assert(name[0] == '#' && "registered image  should start must have the '#' prefix!");
+
+    m_textures[name] = texture;
+}
+
+void MaterialManager::register_buffer(std::string name, std::shared_ptr<vke::Buffer> ubo) {
+    assert(name[0] == '#' && "registered buffer should start must have the '#' prefix!");
+
+    m_config_ubos[name] = ubo;
+}
+
 } // namespace vke

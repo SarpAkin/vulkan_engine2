@@ -24,7 +24,6 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
     auto* render_target = m_material_manager->get_render_target(description.render_target);
     if (!render_target) throw std::runtime_error("render target couldn't be found");
 
-    
     builder.set_depth_testing(render_target->depth_format.has_value());
     builder.set_renderpass(render_target->renderpass, render_target->subpass_index);
     if (description.vertex_input.has_value()) {
@@ -40,9 +39,19 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
 
 void MaterialLoader::load_material(CommandBuffer& cmd, const MaterialDescription& description) {
     m_material_manager->register_material(std::make_unique<Material>(Material{
-        .shader   = m_material_manager->get_shader(description.shader_name),
-        .textures = map_vec(description.texture_paths, [&, this](const std::string& path) { return load_image(cmd, path); }),
-        .name     = description.name,
+        .shader     = m_material_manager->get_shader(description.shader_name),
+        .textures   = map_vec(description.texture_paths, [&, this](const std::string& path) {
+            if (path[0] == '#') return m_material_manager->get_texture(path);
+            return load_image(cmd, path);
+        }),
+        .config_ubo = [&] {
+            if (auto& path = description.buffer_path) {
+                return m_material_manager->get_buffer(description.buffer_path.value());
+            } else {
+                return std::shared_ptr<vke::Buffer>(nullptr);
+            }
+        }(),
+        .name = description.name,
     }));
 }
 
@@ -76,6 +85,7 @@ void MaterialLoader::load_material_file(CommandBuffer& cmd, const char* filename
     auto base_dir = fs::path(filename).parent_path();
 
     auto update_path = [&](std::string& path) {
+        if (path[0] == '#') return;
         path = (base_dir / path).string();
     };
 

@@ -4,9 +4,9 @@
 #include "../fwd.hpp"
 #include "vk_system.hpp"
 
-#include "../core/vertex_input_builder.hpp"
 #include "../core/buffer.hpp"
 #include "../core/renderpass.hpp"
+#include "../core/vertex_input_builder.hpp"
 
 namespace vke {
 
@@ -22,7 +22,6 @@ public:
 private:
 };
 
-
 class Material {
 public:
     const std::string& material_name() const { return name; }
@@ -31,10 +30,10 @@ public:
     void build_dset(DescriptorPool* pool);
 
 public:
-    Shader* shader = nullptr;
+    Shader* shader       = nullptr;
     VkDescriptorSet dset = nullptr;
     std::vector<std::shared_ptr<Image>> textures;
-    std::unique_ptr<Buffer> config_ubo = nullptr;
+    std::shared_ptr<Buffer> config_ubo = nullptr;
     std::string name;
 };
 
@@ -63,13 +62,28 @@ public:
         return it != m_vertex_inputs.end() ? it->second.get() : nullptr;
     }
 
+    const std::shared_ptr<Buffer> get_buffer(const std::string& name){
+        assert(name[0] == '#' && "registered image  should start must have the '#' prefix!");
+        return m_config_ubos[name];
+    }
+    const std::shared_ptr<Image> get_texture(const std::string& name){
+        assert(name[0] == '#' && "registered buffer should start must have the '#' prefix!");
+        return m_textures[name];
+    }
+    
+
     void register_shader(std::unique_ptr<Shader> shader);
     void register_material(std::unique_ptr<Material> material);
-    void register_render_target(std::string name, Renderpass* renderpass, u32 subpass_index) ;
-    void register_vertex_input(std::string name ,VertexInputDescriptionBuilder vertex_input);
+    void register_render_target(std::string name, Renderpass* renderpass, u32 subpass_index);
+    void register_vertex_input(std::string name, VertexInputDescriptionBuilder vertex_input);
+    void register_texture(std::string name, std::shared_ptr<vke::Image> texture);
+    void register_buffer(std::string name, std::shared_ptr<vke::Buffer> buffer);
 
 private:
     std::unique_ptr<DescriptorPool> m_pool;
+
+    std::unordered_map<std::string, std::shared_ptr<vke::Image>> m_textures;
+    std::unordered_map<std::string, std::shared_ptr<vke::Buffer>> m_config_ubos;
 
     std::unordered_map<std::string, std::unique_ptr<Shader>> m_shaders;
     std::unordered_map<std::string, std::unique_ptr<Material>> m_materials;

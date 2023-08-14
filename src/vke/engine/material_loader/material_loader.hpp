@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include <json.hpp>
+
 #include "../../serialization/serializer.hpp"
 
 #include "../../common.hpp"
@@ -25,6 +27,8 @@ struct MaterialDescription {
     std::string name;
     std::string shader_name;//name of the shader used
     std::vector<std::string> texture_paths;
+    std::optional<std::string> buffer_path;
+    // std::optional<nlohmann::json> ubo;
 
     AUTO_SERIALIZATON(MaterialDescription, name,shader_name,texture_paths);
 };
@@ -53,6 +57,8 @@ private:
     Core* core() { return m_material_manager->core(); }
 
     std::shared_ptr<Image> load_image(CommandBuffer& cmd, const std::string& path);
+
+    std::shared_ptr<Image> get_registered_material(const std::string& path);
 
 private:
     MaterialManager* m_material_manager;
