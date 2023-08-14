@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <regex>
 #include <vector>
 
 #include <shaderc/shaderc.hpp>
@@ -34,8 +35,33 @@ bool is_depth_format(VkFormat format) {
     return false;
 }
 
+std::string resolve_includes(std::string& glsl, fs::path path) {
+    path = path.parent_path();
+
+    std::string final;
+
+    std::regex pattern("(#include\\s+\"([^\"]+)\")");
+    std::smatch match;
+
+    auto it  = glsl.cbegin();
+    auto end = glsl.cend();
+    while (std::regex_search(it, end, match, pattern)) {
+        final += std::string_view(it, match[0].first);
+        auto header_path = path / match[2].str();
+    
+        auto header      = read_file(header_path.c_str());
+        final += resolve_includes(header, header_path);
+        it = match[0].second;
+    }
+
+    final += std::string_view(it, end);
+
+    return final;
+}
+
 std::span<u32> compile_glsl_file(ArenaAllocator* alloc, const char* path) {
     auto glsl = read_file(path);
+    glsl      = resolve_includes(glsl, path);
 
     shaderc_shader_kind kind = shaderc_glsl_infer_from_source;
     auto ext                 = fs::path(path).extension().string();
@@ -55,7 +81,6 @@ std::span<u32> compile_glsl_file(ArenaAllocator* alloc, const char* path) {
     }
 
     return alloc->create_copy(std::span(result.begin(), result.end()));
-
 }
 
 } // namespace vke
