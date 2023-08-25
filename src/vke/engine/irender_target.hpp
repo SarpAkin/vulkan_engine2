@@ -15,6 +15,8 @@ public:
     virtual Renderpass* get_renderpass() = 0;
     virtual u32 get_subpass_index()      = 0;
     virtual Camera* get_camera()         = 0;
+    virtual void set_camera(Camera*)         = 0;
+
 
     virtual CommandBuffer* get_draw_cmd()    = 0;
     virtual CommandBuffer* get_compute_cmd() = 0;

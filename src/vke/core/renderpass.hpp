@@ -29,11 +29,13 @@ public: // getters
 public: // methods
     virtual void set_states(CommandBuffer& cmd);
 
+    virtual vke::Image* get_attachment_image(const char* attachment_name) = 0;
+
     virtual void begin(CommandBuffer& cmd);
     virtual void next_subpass(CommandBuffer& cmd);
     virtual void end(CommandBuffer& cmd);
     virtual void set_external(bool is_external) { m_is_external = is_external; }
-    virtual bool has_depth(u32 subpass) { return false; }
+    virtual bool has_depth(u32 subpass) { return get_subpass(subpass)->depth_format.has_value(); }
 
     Renderpass(Core* core) : Resource(core) {}
     ~Renderpass();
@@ -57,6 +59,8 @@ public:
     void begin(CommandBuffer& cmd) override;
 
     bool has_depth(u32 subpass) override { return true; }
+
+    vke::Image* get_attachment_image(const char* attachment_name) override { return nullptr; }
 
 private:
     void init_renderpass();

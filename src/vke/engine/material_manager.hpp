@@ -16,7 +16,7 @@ class MaterialLoader;
 class Shader {
 public:
     std::unique_ptr<Pipeline> pipeline;
-    u32 material_set_index;
+    std::optional<u32> material_set_index;
     std::string name;
 
 private:

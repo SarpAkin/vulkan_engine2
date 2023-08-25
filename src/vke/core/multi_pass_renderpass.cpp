@@ -6,7 +6,6 @@
 #include "vkutil.hpp"
 #include "window.hpp"
 
-
 #include "../util.hpp"
 
 namespace vke {
@@ -15,12 +14,21 @@ MultiPassRenderPass::MultiPassRenderPass(Core* core, RenderPassBuilder* builder,
     m_width  = width;
     m_height = height;
 
-    m_clear_values     = builder->m_clear_values;
-    m_attachment_infos = builder->m_attachment_infos;
+    m_clear_values     = std::move(builder->m_clear_values);
+    m_attachment_infos = std::move(builder->m_attachment_infos);
+    m_renderpass       = builder->m_renderpass;
+    m_subpasses        = std::move(builder->m_subpass_details);
+
+    for (auto& s : m_subpasses) {
+        s.renderpass = this;
+    }
+
+    create_attachments();
+    create_framebuffers();
 }
 
 void MultiPassRenderPass::create_attachments() {
-    m_attachments = map_vec(m_attachment_infos, [this](const impl::AttachmentInfo& info) {
+    m_attachments = map_vec_indicies(m_attachment_infos, [this](const impl::AttachmentInfo& info, int i) {
         if (info.is_surface_attachment) return Attachment{};
 
         VkImageUsageFlags flags = is_depth_format(info.description.format) ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -29,6 +37,10 @@ void MultiPassRenderPass::create_attachments() {
         }
         if (info.is_input_attachment) {
             flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+        }
+
+        if (!info.name.empty()) {
+            m_attachment_indicies[info.name] = i;
         }
 
         return Attachment{
@@ -83,7 +95,9 @@ void MultiPassRenderPass::destroy_framebuffers() {
 }
 
 VkFramebuffer MultiPassRenderPass::next_framebuffer() {
-    return m_framebuffers[m_window->surface()->get_swapchain_image_index()];
+    if (m_window) return m_framebuffers[m_window->surface()->get_swapchain_image_index()];
+
+    return m_framebuffers[0];
 }
 
 MultiPassRenderPass::~MultiPassRenderPass() {
@@ -91,11 +105,18 @@ MultiPassRenderPass::~MultiPassRenderPass() {
 }
 
 void MultiPassRenderPass::begin(CommandBuffer& cmd) {
-    if(m_has_surface_attachment){
+    if (m_has_surface_attachment) {
         m_window->surface()->prepare();
     }
 
     Renderpass::begin(cmd);
 }
 
+vke::Image* MultiPassRenderPass::get_attachment_image(const char* attachment_name) {
+    if (auto it = m_attachment_indicies.find(attachment_name); it != m_attachment_indicies.end()) {
+        return m_attachments[it->second].image.get();
+    } else {
+        return nullptr;
+    }
+}
 } // namespace vke

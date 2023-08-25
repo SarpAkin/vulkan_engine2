@@ -8,7 +8,7 @@ class IRenderSystem {
 public:
     virtual void render(vke::IRenderTarget* render_target) = 0;
 
-    virtual void on_subscribe(vke::IRenderTarget*)=0;
+    virtual void on_subscribe(vke::IRenderTarget*){};
 };
 
 } // namespace vke

@@ -16,7 +16,7 @@ struct ShaderDescription {
     std::string render_target;
     std::optional<std::string> vertex_input;
     std::vector<std::string> shader_paths;
-    u32 material_set_index;
+    std::optional<u32> material_set_index;
 
     AUTO_SERIALIZATON(ShaderDescription, name, render_target, vertex_input, shader_paths, material_set_index);
 };
@@ -24,7 +24,7 @@ struct ShaderDescription {
 struct MaterialDescription {
     std::string name;
     std::string shader_name;//name of the shader used
-    std::vector<std::string> texture_paths;
+    std::optional<std::vector<std::string>> texture_paths;
 
     AUTO_SERIALIZATON(MaterialDescription, name,shader_name,texture_paths);
 };

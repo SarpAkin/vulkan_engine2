@@ -15,7 +15,7 @@ MaterialManager::~MaterialManager() {}
 void Material::bind(CommandBuffer& cmd) {
     cmd.bind_pipeline(shader->pipeline.get());
     if (dset)
-        cmd.bind_descriptor_set(shader->material_set_index, dset);
+        cmd.bind_descriptor_set(shader->material_set_index.value(), dset);
 }
 
 void CommandBuffer::bind_material(Material* material) {
@@ -23,7 +23,8 @@ void CommandBuffer::bind_material(Material* material) {
 }
 
 void Material::build_dset(DescriptorPool* pool) {
-    auto descrriptor_layout = shader->pipeline->get_descriptor_layout(shader->material_set_index);
+    if (!shader->material_set_index.has_value()) return;
+    auto descrriptor_layout = shader->pipeline->get_descriptor_layout(shader->material_set_index.value());
     if (descrriptor_layout == nullptr) {
         dset = nullptr;
         return;

@@ -20,10 +20,22 @@ auto map_vec(auto&& vector, auto&& f) -> std::vector<decltype(f(*vector.begin())
     return results;
 }
 
+auto map_vec_indicies(auto&& vector, auto&& f) -> std::vector<decltype(f(*vector.begin(),0))> {
+    std::vector<decltype(f(*vector.begin(),0))> results;
+    results.reserve(vector.size());
+    int i = 0;
+    for (const auto& element : vector) {
+        results.push_back(f(element,i));
+        i++;
+    }
+
+    return results;
+}
+
 template <typename T>
 auto map_optional(const std::optional<T>& opt, auto&& func) -> std::optional<decltype(func(*opt))> {
     if (opt) {
-        std::make_optional(func(*opt));
+        return std::make_optional(func(*opt));
     }
     return std::nullopt;
 }

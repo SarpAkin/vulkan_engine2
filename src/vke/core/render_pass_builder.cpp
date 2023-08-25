@@ -11,7 +11,7 @@ namespace vke {
 
 using namespace impl;
 
-u32 RenderPassBuilder::add_attachment(VkFormat format, std::optional<VkClearValue> clear_value, bool is_sampled) {
+u32 RenderPassBuilder::add_attachment(VkFormat format, std::optional<VkClearValue> clear_value, bool is_sampled, const char* name) {
     m_attachment_infos.push_back(AttachmentInfo{
         .description = VkAttachmentDescription{
             .format         = format,
@@ -23,6 +23,7 @@ u32 RenderPassBuilder::add_attachment(VkFormat format, std::optional<VkClearValu
             .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
             .finalLayout    = is_sampled ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : (is_depth_format(format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL),
         },
+        .name       = name,
         .is_sampled = is_sampled,
     });
 
@@ -42,7 +43,8 @@ void RenderPassBuilder::add_subpass(const std::initializer_list<u32>& color_atta
         .depth_attachment  = map_optional(depth_attachment, [](u32 attachment_index) {
             return VkAttachmentReference{
                  .attachment = attachment_index,
-                 .layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+                 .layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            };
         }),
         .input_attachments = map_vec(input_attachments, [](u32 attachment_index) {
             return VkAttachmentReference{
@@ -50,6 +52,14 @@ void RenderPassBuilder::add_subpass(const std::initializer_list<u32>& color_atta
                 .layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             };
         }),
+    });
+
+    m_subpass_details.push_back(SubpassDetails{
+        .color_attachments = map_vec(color_attachments, [&](u32 attachment_index) {
+            return m_attachment_infos[attachment_index].description.format;
+        }),
+        .depth_format      = map_optional(depth_attachment, [&](u32 d) { return m_attachment_infos[d].description.format; }),
+        .subpass_index     = static_cast<u32>(m_subpass_details.size()),
     });
 
     // flag input attachments
@@ -92,6 +102,7 @@ VkRenderPass RenderPassBuilder::create_vk_renderpass(Core* core) {
 std::unique_ptr<Renderpass> RenderPassBuilder::build(Core* core, u32 width, u32 height) {
     assert(core);
 
+    m_renderpass = this->create_vk_renderpass(core);
     return std::make_unique<MultiPassRenderPass>(core, this, width, height);
 }
 

@@ -24,7 +24,6 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
     auto* render_target = m_material_manager->get_render_target(description.render_target);
     if (!render_target) throw std::runtime_error("render target couldn't be found");
 
-    
     builder.set_depth_testing(render_target->depth_format.has_value());
     builder.set_renderpass(render_target->renderpass, render_target->subpass_index);
     if (description.vertex_input.has_value()) {
@@ -41,7 +40,7 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
 void MaterialLoader::load_material(CommandBuffer& cmd, const MaterialDescription& description) {
     m_material_manager->register_material(std::make_unique<Material>(Material{
         .shader   = m_material_manager->get_shader(description.shader_name),
-        .textures = map_vec(description.texture_paths, [&, this](const std::string& path) { return load_image(cmd, path); }),
+        .textures = description.texture_paths ? map_vec(description.texture_paths.value(), [&, this](const std::string& path) { return load_image(cmd, path); }) : std::vector<std::shared_ptr<Image>>(),
         .name     = description.name,
     }));
 }
@@ -89,7 +88,7 @@ void MaterialLoader::load_material_file(CommandBuffer& cmd, const char* filename
     }
 
     for (auto& material : pack.materials) {
-        update_paths(material.texture_paths);
+        if (material.texture_paths) update_paths(material.texture_paths.value());
     }
 
     load_material_pack(cmd, pack);
