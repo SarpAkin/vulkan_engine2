@@ -25,6 +25,13 @@ public:
     }
 
     template <typename T>
+    std::span<T> create_copy(std::span<T> src) {
+        T* dst = alloc<T>(src.size());
+        memcpy(dst, src.data(), src.size_bytes());
+        return std::span<T>(dst,src.size());
+    }
+
+    template <typename T>
     T* create_copy(const T& src) {
         T* dst = alloc<T>(1);
         memcpy(dst, &src, sizeof(T));
