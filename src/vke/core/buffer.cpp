@@ -64,7 +64,7 @@ Buffer::~Buffer() {
 }
 
 BufferSpan IBufferSpan::subspan(usize _byte_offset, usize _byte_size) {
-    return BufferSpan(vke_buffer(), byte_offset() + _byte_offset, _byte_size);
+    return BufferSpan(vke_buffer(), byte_offset() + _byte_offset, std::min(_byte_size, byte_size() - _byte_offset));
 }
 
 } // namespace vke

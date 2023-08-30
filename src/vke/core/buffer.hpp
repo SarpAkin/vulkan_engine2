@@ -32,7 +32,7 @@ public:
         return std::span<T>(reinterpret_cast<T*>(bytes.data()), bytes.size_bytes() / sizeof(T));
     }
 
-    BufferSpan subspan(usize byte_offset, usize byte_size);
+    BufferSpan subspan(usize byte_offset, usize byte_size = SIZE_MAX);
 
     template <typename T>
     BufferSpan subspan_item(usize item_offset, usize item_count);
