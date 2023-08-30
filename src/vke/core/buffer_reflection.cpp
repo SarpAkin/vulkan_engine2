@@ -1,4 +1,4 @@
-#include "reflected_buffer.hpp"
+#include "buffer_reflection.hpp"
 
 #include "spv_reflect_util.hpp"
 

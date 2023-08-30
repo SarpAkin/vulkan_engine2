@@ -1,4 +1,4 @@
-#include "pipeline_reflections.hpp"
+#include "pipeline_reflection.hpp"
 
 #include <cassert>
 #include <cstdio>
@@ -11,7 +11,7 @@
 #include "pipeline_builder.hpp"
 
 #include "../util.hpp"
-#include "reflected_buffer.hpp"
+#include "buffer_reflection.hpp"
 #include "spv_reflect_util.hpp"
 
 namespace vke {
