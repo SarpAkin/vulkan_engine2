@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -62,9 +63,14 @@ class FieldAccesor {
     using FType = BufferRefletion::Field::Type;
 
 public:
-    FieldAccesor(vke::BufferSpan span, BufferRefletion::Field field) : m_span(span) {
+    FieldAccesor(vke::IBufferSpan* buffer_root, BufferRefletion::Field field) : m_span(buffer_root->subspan(field.offset)) {
         m_field_data = field;
     }
+
+    FType get_type() { return m_field_data.type; }
+    
+    template <class T>
+    T& get_as() { return m_span.mapped_data<T>(); }
 
     void operator=(const i32& val) {
         assert(m_field_data.type == FType::UINT || m_field_data.type == FType::INT);
@@ -107,7 +113,15 @@ public:
 
     FieldAccesor operator[](const std::string& field_name) {
         auto field = m_reflection->get_field(field_name);
-        return FieldAccesor(m_buffer->subspan(field->offset), field.value());
+        return FieldAccesor(m_buffer, field.value());
+    }
+
+    template <class F>
+        requires std::invocable<F, const std::string&, FieldAccesor&>
+    void for_each_field(F&& func) {
+        for (auto& [name, field] : m_reflection->get_fields()) {
+            func(name, FieldAccesor(m_buffer, field));
+        }
     }
 
 private:
