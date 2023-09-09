@@ -3,8 +3,10 @@
 #include <exception>
 #include <filesystem>
 
+#include "../../core/buffer_reflection.hpp"
 #include "../../core/image.hpp"
 #include "../../core/pipeline_builder.hpp"
+#include "../../core/pipeline_reflection.hpp"
 #include "../../core/renderpass.hpp"
 #include "../../util.hpp"
 
@@ -29,6 +31,17 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
     if (description.vertex_input.has_value()) {
         builder.set_vertex_input(m_material_manager->get_vertex_input(*description.vertex_input));
     }
+
+    VkCullModeFlagBits cull_mode = VK_CULL_MODE_NONE;
+    if (description.cull) {
+        if (description.cull == "back") {
+            cull_mode = VK_CULL_MODE_BACK_BIT;
+        } else if (description.cull == "front") {
+            cull_mode = VK_CULL_MODE_FRONT_BIT;
+        }
+    }
+
+    builder.set_rasterization(VK_POLYGON_MODE_FILL, cull_mode);
 
     m_material_manager->register_shader(std::make_unique<Shader>(Shader{
         .pipeline           = builder.build(),
