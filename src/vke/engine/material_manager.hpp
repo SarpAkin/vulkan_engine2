@@ -4,24 +4,27 @@
 #include "../fwd.hpp"
 #include "vk_system.hpp"
 
-#include "../core/vertex_input_builder.hpp"
 #include "../core/buffer.hpp"
 #include "../core/renderpass.hpp"
+#include "../core/vertex_input_builder.hpp"
 
 namespace vke {
 
 struct SubpassDetails;
 class MaterialLoader;
+class BufferRefletion;
 
 class Shader {
 public:
     std::unique_ptr<Pipeline> pipeline;
     std::optional<u32> material_set_index;
+    std::optional<u32> debug_buffer_index;
+    std::shared_ptr<Buffer> debug_ubo  = nullptr;
+    std::unique_ptr<BufferRefletion> debug_ubo_reflection;
     std::string name;
 
 private:
 };
-
 
 class Material {
 public:
@@ -31,7 +34,7 @@ public:
     void build_dset(DescriptorPool* pool);
 
 public:
-    Shader* shader = nullptr;
+    Shader* shader       = nullptr;
     VkDescriptorSet dset = nullptr;
     std::vector<std::shared_ptr<Image>> textures;
     std::unique_ptr<Buffer> config_ubo = nullptr;
@@ -65,8 +68,10 @@ public:
 
     void register_shader(std::unique_ptr<Shader> shader);
     void register_material(std::unique_ptr<Material> material);
-    void register_render_target(std::string name, Renderpass* renderpass, u32 subpass_index) ;
-    void register_vertex_input(std::string name ,VertexInputDescriptionBuilder vertex_input);
+    void register_render_target(std::string name, Renderpass* renderpass, u32 subpass_index);
+    void register_vertex_input(std::string name, VertexInputDescriptionBuilder vertex_input);
+
+    void debug_gui();
 
 private:
     std::unique_ptr<DescriptorPool> m_pool;
@@ -75,6 +80,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Material>> m_materials;
     std::unordered_map<std::string, const SubpassDetails*> m_render_targets;
     std::unordered_map<std::string, std::unique_ptr<VertexInputDescriptionBuilder>> m_vertex_inputs;
+
 };
 
 } // namespace vke

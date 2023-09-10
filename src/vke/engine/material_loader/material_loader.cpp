@@ -46,6 +46,7 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
     m_material_manager->register_shader(std::make_unique<Shader>(Shader{
         .pipeline           = builder.build(),
         .material_set_index = description.material_set_index,
+        .debug_buffer_index = description.debug_buffer,
         .name               = description.name,
     }));
 }
