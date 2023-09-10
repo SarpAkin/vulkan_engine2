@@ -26,7 +26,10 @@ void Camera::calculate_proj_view() {
     proj_view = proj * view;
 }
 
+bool mouse_on_ui = false;
+
 void FreeMoveCamera::update() {
+    if (mouse_on_ui) return;
     auto* window = engine()->window();
 
     m_yaw += window->get_mouse_input().delta_x * sensivity_x;
@@ -64,11 +67,19 @@ void FreeMoveCamera::update() {
     pos += total_move;
 
     calculate_proj_view();
-
 }
 
 FreeMoveCamera::FreeMoveCamera(vke::RenderEngine* _engine) : Camera(_engine) {
+    engine()->window()->on_key_down(SDLK_u, [_engine] {
+        if (!mouse_on_ui) {
+            _engine->window()->unlock_mouse();
+        }
+
+        mouse_on_ui = !mouse_on_ui;
+    });
+
     engine()->window()->on_mouse_down(SDL_BUTTON_LEFT, [_engine] {
+        if (mouse_on_ui) return;
         _engine->window()->lock_mouse();
     });
 
