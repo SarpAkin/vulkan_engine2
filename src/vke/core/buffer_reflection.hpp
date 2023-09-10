@@ -21,7 +21,8 @@ class ReflectionMappedBuffer;
 
 class BufferRefletion {
 public:
-    BufferRefletion(SpvReflectBlockVariable* block);
+    BufferRefletion(SpvReflectBlockVariable* block, VkShaderStageFlagBits stages);
+    ~BufferRefletion();
 
     struct Field {
         enum Type : u32 {
@@ -49,11 +50,15 @@ public:
 public:
     const auto& get_fields() const { return m_fields; }
     usize get_buffer_size() const { return m_buffer_size; }
+    VkShaderStageFlagBits get_stages() const { return m_stages; }
+
     std::optional<Field> get_field(const std::string& field) const;
 
     ReflectionMappedBuffer bind(vke::IBufferSpan* buffer);
 
 private:
+    VkShaderStageFlagBits m_stages;
+
 private:
     usize m_buffer_size;
     std::unordered_map<std::string, Field> m_fields;
@@ -68,9 +73,9 @@ public:
     }
 
     FType get_type() { return m_field_data.type; }
-    
+
     template <class T>
-    T& get_as() { return m_span.mapped_data<T>(); }
+    T& get_as() { return m_span.mapped_data<T>()[0]; }
 
     void operator=(const i32& val) {
         assert(m_field_data.type == FType::UINT || m_field_data.type == FType::INT);
@@ -120,7 +125,8 @@ public:
         requires std::invocable<F, const std::string&, FieldAccesor&>
     void for_each_field(F&& func) {
         for (auto& [name, field] : m_reflection->get_fields()) {
-            func(name, FieldAccesor(m_buffer, field));
+            auto accesor = FieldAccesor(m_buffer, field);
+            func(name, accesor);
         }
     }
 

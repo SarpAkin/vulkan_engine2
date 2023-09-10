@@ -1,6 +1,6 @@
 #pragma once
 
-#include <optional>
+#include <memory>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -8,6 +8,7 @@
 #include "../util/arena_alloc.hpp"
 
 struct SpvReflectShaderModule;
+struct SpvReflectDescriptorBinding;
 
 namespace vke {
 
@@ -26,16 +27,19 @@ public:
     VkShaderStageFlagBits add_shader_stage(std::span<const u32> spirv);
 
     LayoutBuild build_pipeline_layout(Core* core) const;
-    std::optional<BufferRefletion> reflect_buffer(u32 set, u32 binding) const;
+    std::unique_ptr<BufferRefletion> reflect_buffer(u32 set, u32 binding) const;
 
 private:
-    ArenaAllocator m_alloc;
-
     struct ShaderStage {
         std::span<u32> spirv;
         VkShaderStageFlagBits stage;
         SpvReflectShaderModule* module;
     };
+
+    std::vector<std::pair<SpvReflectDescriptorBinding*, const ShaderStage*>> find_bindings(u32 set, u32 binding) const;
+
+    ArenaAllocator m_alloc;
+
     std::vector<ShaderStage> m_shaders;
 };
 } // namespace vke

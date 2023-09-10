@@ -104,25 +104,44 @@ PipelineReflection::LayoutBuild PipelineReflection::build_pipeline_layout(vke::C
     };
 }
 
-static std::optional<BufferRefletion> reflect_binding(SpvReflectDescriptorBinding* binding) {
-    if (binding->descriptor_type != SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER && binding->descriptor_type != SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) return std::nullopt;
+static std::unique_ptr<BufferRefletion> reflect_binding(SpvReflectDescriptorBinding* binding, VkShaderStageFlagBits flags) {
+    if (binding->descriptor_type != SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER && binding->descriptor_type != SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) return nullptr;
     auto* block = &binding->block;
 
-    return BufferRefletion(block);
+    return std::make_unique<BufferRefletion>(block, flags);
 }
 
-std::optional<BufferRefletion> PipelineReflection::reflect_buffer(u32 nset, u32 nbinding) const {
-    for (auto& shader : m_shaders) {
-        SpvReflectShaderModule* module = shader.module;
-        auto* set                      = &module->descriptor_sets[nset];
-        assert(set->set == nset);
-        auto* binding = set->bindings[nbinding];
-        assert(binding->binding == nbinding);
+std::unique_ptr<BufferRefletion> PipelineReflection::reflect_buffer(u32 nset, u32 nbinding) const {
+    auto bindings = find_bindings(nset, nbinding);
 
-        return reflect_binding(binding);
+    if (bindings.size() == 0) return nullptr;
+
+    VkShaderStageFlags stages;
+    for (auto& [binding, shader] : bindings) {
+        stages |= shader->stage;
     }
 
-    return std::nullopt;
+    return reflect_binding(bindings[0].first, static_cast<VkShaderStageFlagBits>(stages));
+}
+
+std::vector<std::pair<SpvReflectDescriptorBinding*, const PipelineReflection::ShaderStage*>> PipelineReflection::find_bindings(u32 nset, u32 nbinding) const {
+    std::vector<std::pair<SpvReflectDescriptorBinding*, const ShaderStage*>> found_bindings;
+
+    for (auto& shader : m_shaders) {
+        SpvReflectShaderModule* module = shader.module;
+
+        for (auto& set : std::span(module->descriptor_sets, module->descriptor_set_count)) {
+            if (set.set != nset) continue;
+
+            for (auto& binding : std::span(set.bindings, set.binding_count)) {
+                if (binding->binding != nbinding) continue;
+
+                found_bindings.push_back(std::pair(binding, &shader));
+            }
+        }
+    }
+
+    return found_bindings;
 }
 
 } // namespace vke

@@ -5,9 +5,10 @@
 namespace vke {
 
 ReflectionMappedBuffer BufferRefletion::bind(vke::IBufferSpan* buffer) {
-    return ReflectionMappedBuffer(buffer,this);
+    return ReflectionMappedBuffer(buffer, this);
 }
 
+BufferRefletion::~BufferRefletion() = default;
 
 std::optional<BufferRefletion::Field> BufferRefletion::get_field(const std::string& field) const {
     if (auto it = m_fields.find(field); it != m_fields.end()) {
@@ -17,13 +18,15 @@ std::optional<BufferRefletion::Field> BufferRefletion::get_field(const std::stri
     }
 }
 
-BufferRefletion::BufferRefletion(SpvReflectBlockVariable* block) {
+BufferRefletion::BufferRefletion(SpvReflectBlockVariable* block, VkShaderStageFlagBits stage) {
+    m_stages      = stage;
     m_buffer_size = block->size;
 
     for (int i = 0; i < block->member_count; i++) {
         auto& member = block->members[i];
         using Type   = BufferRefletion::Field::Type;
-        Type type;
+        Type type = Type::NONE;
+
         switch (member.type_description->type_flags) {
         case SPV_REFLECT_TYPE_FLAG_BOOL:
             type = Type::BOOL;
@@ -34,7 +37,7 @@ BufferRefletion::BufferRefletion(SpvReflectBlockVariable* block) {
         case SPV_REFLECT_TYPE_FLAG_FLOAT:
             type = Type::FLOAT;
             break;
-        case SPV_REFLECT_TYPE_FLAG_VECTOR:
+        case (SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT):
             type = Type(Type::VEC_BASE + member.type_description->traits.numeric.vector.component_count);
             break;
         }
@@ -47,7 +50,5 @@ BufferRefletion::BufferRefletion(SpvReflectBlockVariable* block) {
         );
     }
 }
-
-
 
 } // namespace vke
