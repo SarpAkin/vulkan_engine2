@@ -20,12 +20,12 @@ auto map_vec(auto&& vector, auto&& f) -> std::vector<decltype(f(*vector.begin())
     return results;
 }
 
-auto map_vec_indicies(auto&& vector, auto&& f) -> std::vector<decltype(f(*vector.begin(),0))> {
-    std::vector<decltype(f(*vector.begin(),0))> results;
+auto map_vec_indicies(auto&& vector, auto&& f) -> std::vector<decltype(f(*vector.begin(), 0))> {
+    std::vector<decltype(f(*vector.begin(), 0))> results;
     results.reserve(vector.size());
     int i = 0;
     for (const auto& element : vector) {
-        results.push_back(f(element,i));
+        results.push_back(f(element, i));
         i++;
     }
 
@@ -66,6 +66,7 @@ auto map_optional(const std::optional<T>& opt, auto&& func) -> std::optional<dec
 })
 
 // returns an std::span allocated from alloca
+// WARNING IT DOESN'T CALL DESTRUCTOR
 #define MAP_VEC_ALLOCA(vector, f...) ({                                   \
     using T    = decltype(f(*vector.begin()));                            \
     T* results = reinterpret_cast<T*>(alloca(sizeof(T) * vector.size())); \
@@ -77,13 +78,12 @@ auto map_optional(const std::optional<T>& opt, auto&& func) -> std::optional<dec
 })
 
 std::vector<u8> read_file_binary(const char* name);
-std::span<u8> read_file_binary(vke::ArenaAllocator* arena,const char* name);
-
+std::span<u8> read_file_binary(vke::ArenaAllocator* arena, const char* name);
 
 std::string read_file(const char* name);
 
 std::span<u32> cast_u8_to_span_u32(std::span<u8> span);
 
-#define RELATIVE_PATH(path) relative_path_impl(__FILE__,path) 
+#define RELATIVE_PATH(path) relative_path_impl(__FILE__, path)
 
 std::string relative_path_impl(const char* source_path, const char* path);
