@@ -25,13 +25,18 @@ BufferRefletion::BufferRefletion(SpvReflectBlockVariable* block, VkShaderStageFl
     for (int i = 0; i < block->member_count; i++) {
         auto& member = block->members[i];
         using Type   = BufferRefletion::Field::Type;
-        Type type = Type::NONE;
+        Type type    = Type::NONE;
 
         switch (member.type_description->type_flags) {
         case SPV_REFLECT_TYPE_FLAG_BOOL:
             type = Type::BOOL;
             break;
         case SPV_REFLECT_TYPE_FLAG_INT:
+            if (member.type_description->id == 25) // 25 is bool
+            {
+                type = Type::BOOL;
+                break;
+            }
             type = Type::INT;
             break;
         case SPV_REFLECT_TYPE_FLAG_FLOAT:

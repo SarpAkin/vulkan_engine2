@@ -33,6 +33,8 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
     }
 
     VkCullModeFlagBits cull_mode = VK_CULL_MODE_NONE;
+    VkPolygonMode polygon_mode   = VK_POLYGON_MODE_FILL;
+
     if (description.cull) {
         if (description.cull == "back") {
             cull_mode = VK_CULL_MODE_BACK_BIT;
@@ -41,7 +43,13 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
         }
     }
 
-    builder.set_rasterization(VK_POLYGON_MODE_FILL, cull_mode);
+    if (description.polygon_mode) {
+        if (description.polygon_mode == "LINE") {
+            polygon_mode = VK_POLYGON_MODE_LINE;
+        }
+    }
+
+    builder.set_rasterization(polygon_mode, cull_mode);
 
     m_material_manager->register_shader(std::make_unique<Shader>(Shader{
         .pipeline           = builder.build(),
