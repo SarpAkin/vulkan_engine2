@@ -1,5 +1,6 @@
 #include "multi_pass_renderpass.hpp"
 
+#include "commandbuffer.hpp"
 #include "core.hpp"
 #include "image.hpp"
 #include "render_pass_builder.hpp"
@@ -34,6 +35,7 @@ void MultiPassRenderPass::create_attachments() {
         VkImageUsageFlags flags = is_depth_format(info.description.format) ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         if (info.is_sampled) {
             flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+            m_sampled_attachments.push_back(i);
         }
         if (info.is_input_attachment) {
             flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
@@ -118,5 +120,40 @@ vke::Image* MultiPassRenderPass::get_attachment_image(const char* attachment_nam
     } else {
         return nullptr;
     }
+}
+
+void MultiPassRenderPass::barrier_sampled_attachments(CommandBuffer& cmd) {
+    if (m_sampled_attachments.empty()) return;
+
+    auto barriers = MAP_VEC_ALLOCA(m_sampled_attachments, [&](u32 index) {
+        auto& attachment = m_attachments[index];
+
+        return VkImageMemoryBarrier{
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .image            = attachment.image->handle(),
+            .subresourceRange = VkImageSubresourceRange{
+                .aspectMask     = is_depth_format(attachment.image->format()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel   = 0,
+                .levelCount     = 1,
+                .baseArrayLayer = 0,
+                .layerCount     = 1,
+            },
+        };
+    });
+
+    cmd.pipeline_barrier(PipelineBarrierArgs{
+        .src_stage_mask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .dst_stage_mask        = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        .image_memory_barriers = barriers,
+    });
+}
+void MultiPassRenderPass::end(CommandBuffer& cmd) {
+    Renderpass::end(cmd);
+
+    barrier_sampled_attachments(cmd);
 }
 } // namespace vke

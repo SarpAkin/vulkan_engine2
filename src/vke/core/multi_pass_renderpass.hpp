@@ -4,15 +4,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "renderpass.hpp"
 #include "../fwd.hpp"
-
+#include "renderpass.hpp"
 
 namespace vke {
 class RenderPassBuilder;
 
 namespace impl {
-    struct AttachmentInfo;
+struct AttachmentInfo;
 }
 
 class MultiPassRenderPass : public Renderpass {
@@ -27,24 +26,29 @@ public:
     VkFramebuffer next_framebuffer() override;
 
     void begin(CommandBuffer& cmd) override;
+    void end(CommandBuffer& cmd) override;
+
 private:
     void create_attachments();
     void create_framebuffers();
     void destroy_framebuffers();
 
+    void barrier_sampled_attachments(CommandBuffer& cmd);
+
 private:
-    struct Attachment{
+    struct Attachment {
         std::unique_ptr<Image> image;
     };
 
-    Window* m_window = nullptr;
-    bool m_has_surface_attachment = false;
+    Window* m_window               = nullptr;
+    bool m_has_surface_attachment  = false;
     u32 m_surface_attachment_index = UINT32_MAX;
 
     std::vector<VkFramebuffer> m_framebuffers;
     std::vector<impl::AttachmentInfo> m_attachment_infos;
 
     std::vector<Attachment> m_attachments;
+    std::vector<u32> m_sampled_attachments;
 
     std::unordered_map<std::string, u32> m_attachment_indicies;
 };
