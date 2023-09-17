@@ -145,4 +145,11 @@ void Core::immediate_submit(std::function<void(CommandBuffer& cmd)> function) {
     fence.wait();
 }
 
+const VkPhysicalDeviceProperties* Core::get_physical_device_properties()const {
+    return &m_data->vkb_pdevice.properties;
+}
+const VkPhysicalDeviceFeatures* Core::get_physical_device_features() const{
+    return &m_data->vkb_pdevice.features;
+}
+
 } // namespace vke
