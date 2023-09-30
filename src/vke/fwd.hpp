@@ -32,4 +32,7 @@ class IStencilBuffer;
 
 class ArenaAllocator;
 
+template <class... TArgs>
+class EventManager;
+
 } // namespace vke

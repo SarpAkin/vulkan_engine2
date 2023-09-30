@@ -81,7 +81,7 @@ Core::Core(CoreConfig* config) {
     m_data->vkb_instance = vkb_instance;
 
     if (config->window) {
-        config->window->surface()->init_swapchain();
+        config->window->surface()->init();
     }
 
     init_allocator();

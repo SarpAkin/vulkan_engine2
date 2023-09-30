@@ -5,6 +5,8 @@
 #include "../core/window_sdl.hpp"
 #include "../fwd.hpp"
 
+#include "../util/event_system.hpp"
+
 #include <memory>
 #include <vector>
 
@@ -12,7 +14,7 @@ namespace vke {
 
 class RenderEngine {
 public:
-    RenderEngine(CoreConfig* config = nullptr,bool headless = false);
+    RenderEngine(CoreConfig* config = nullptr, bool headless = false);
     ~RenderEngine();
 
     Core* core() const { return m_core.get(); }
@@ -29,6 +31,10 @@ public:
     MaterialManager* get_material_manager() { return m_material_manager.get(); }
 
     u64 get_frames_since_start() { return m_total_frame_counter; };
+
+    void wait_all_cmds();
+
+    EventManager<int, int> window_resized_event;
 
 protected:
     virtual void on_frame(CommandBuffer& cmd){};
@@ -50,6 +56,8 @@ private:
     u32 m_fps        = 0;
 
     u32 m_frame_index = 0;
+
+    bool m_window_resized_flag = false;
 
     struct FrameData {
         std::unique_ptr<Fence> render_fence;
