@@ -37,14 +37,16 @@ public:
     void lock_mouse();
     void unlock_mouse();
 
+    bool has_resized() { return m_resized_flag; }
 
     virtual ~Window();
 
 protected:
     u32 m_width = 0, m_height = 0;
     std::string m_title;
-    bool m_is_open = true;
-    bool m_mouse_locked = false;
+    bool m_is_open          = true;
+    bool m_mouse_locked     = false;
+    bool m_resized_flag = false;
 
     std::unique_ptr<Surface> m_surface;
 

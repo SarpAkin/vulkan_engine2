@@ -1,7 +1,7 @@
 #include "window_sdl.hpp"
 
-#include "core.hpp"
 #include "../fwd.hpp"
+#include "core.hpp"
 #include "surface.hpp"
 
 #include <SDL2/SDL.h>
@@ -28,7 +28,7 @@ static void init_sdl() {
 void Window_SDL::init() {
     init_sdl();
 
-    m_window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, m_width, m_height, (SDL_WindowFlags)(SDL_WINDOW_VULKAN));
+    m_window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, m_width, m_height, (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE));
 }
 
 void Window_SDL::init_surface(Core* core) {
@@ -39,18 +39,28 @@ void Window_SDL::init_surface(Core* core) {
 }
 
 void Window_SDL::poll_events() {
-    SDL_Event e;
-
     m_mouse_input.delta_x = 0;
     m_mouse_input.delta_y = 0;
 
+    m_resized_flag = false;
+
+    SDL_Event e;
     while (SDL_PollEvent(&e)) {
         if (m_imgui_manager) {
             m_imgui_manager->process_sdl_event(e);
         }
 
         switch (e.type) {
-            // case SDL_WINDOWEVENT_CLOSE:
+        case SDL_WINDOWEVENT:
+            switch (e.window.event) {
+
+            case SDL_WINDOWEVENT_RESIZED:
+                m_width        = e.window.data1;
+                m_height       = e.window.data2;
+                m_resized_flag = true;
+                break;
+            }
+            break;
 
         case SDL_QUIT:
             m_is_open = false;
