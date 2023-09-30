@@ -28,16 +28,22 @@ public: // getters
     ~Surface();
 
     // must be called after device initialization
-    void init_swapchain();
+    void init();
 
     void prepare(u64 time_out = UINT64_MAX);
-    void present();
+    bool present();
 
     u32 get_swapchain_image_index() const { return m_swapchain_image_index; }
 
     Semaphore* get_prepare_semaphore()const {return m_current_prepare_semaphore;} //returns null if prepare isn't called that frame
     Semaphore* get_wait_semaphore() const {return m_current_wait_semaphore;}
+    
+    void recrate_swapchain();
 private:
+    void create_swapchain();
+    void destroy_swapchain();
+
+
     VkSurfaceKHR m_surface;
     VkFormat m_swapchain_image_format;
     VkSwapchainKHR m_swapchain = nullptr;

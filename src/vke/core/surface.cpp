@@ -11,7 +11,14 @@
 #include "vkutil.hpp"
 
 namespace vke {
-void Surface::init_swapchain() {
+void Surface::init() {
+    create_swapchain();
+
+    m_prepare_semaphores.resize(m_swapchain_images.size());
+    m_wait_semaphores.resize(m_swapchain_images.size());
+}
+
+void Surface::create_swapchain() {
     vkb::Swapchain vkb_swapchain =
         vkb::SwapchainBuilder(core()->physical_device(), device(), m_surface)
             .use_default_format_selection()
@@ -26,14 +33,9 @@ void Surface::init_swapchain() {
     m_swapchain              = vkb_swapchain.swapchain;
     m_swapchain_image_views  = vkb_swapchain.get_image_views().value();
     m_swapchain_images       = vkb_swapchain.get_images().value();
+};
 
-    m_prepare_semaphores.resize(m_swapchain_images.size());
-    m_wait_semaphores.resize(m_swapchain_images.size());
-}
-
-Surface::~Surface() {
-    fmt::print("Surface cleanup\n");
-
+void Surface::destroy_swapchain() {
     if (m_swapchain) {
         vkDestroySwapchainKHR(device(), m_swapchain, nullptr);
 
@@ -41,6 +43,12 @@ Surface::~Surface() {
         for (auto& iv : m_swapchain_image_views)
             vkDestroyImageView(device(), iv, nullptr);
     }
+}
+
+Surface::~Surface() {
+    fmt::print("Surface cleanup\n");
+
+    destroy_swapchain();
 
     vkDestroySurfaceKHR(core()->instance(), m_surface, nullptr);
 }
@@ -76,16 +84,16 @@ void Surface::prepare(u64 time_out) {
     auto& wait_semaphore    = m_wait_semaphores[m_swapchain_image_index];
     if (prepare_semaphore == nullptr) {
         prepare_semaphore = std::make_unique<Semaphore>(core()); // lazily initialize semaphore since during surface creation device doesn't exist.
-        wait_semaphore = std::make_unique<Semaphore>(core());
+        wait_semaphore    = std::make_unique<Semaphore>(core());
     }
 
     m_current_prepare_semaphore = prepare_semaphore.get();
-    m_current_wait_semaphore = wait_semaphore.get();
+    m_current_wait_semaphore    = wait_semaphore.get();
 
     VK_CHECK(vkAcquireNextImageKHR(device(), m_swapchain, time_out, prepare_semaphore->handle(), nullptr, &m_swapchain_image_index));
 }
 
-void Surface::present() {
+bool Surface::present() {
     VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = nullptr,
@@ -99,9 +107,22 @@ void Surface::present() {
         .pImageIndices = &m_swapchain_image_index,
     };
 
-    VK_CHECK(vkQueuePresentKHR(core()->queue(), &presentInfo));
+    VkResult result = vkQueuePresentKHR(core()->queue(), &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        m_current_prepare_semaphore = nullptr;
+        return false;
+    } else if (result != VK_SUCCESS) {
+        VK_CHECK(result);
+    }
 
     m_current_prepare_semaphore = nullptr;
+
+    return true;
+}
+
+void Surface::recrate_swapchain() {
+    destroy_swapchain();
+    create_swapchain();
 }
 
 } // namespace vke
