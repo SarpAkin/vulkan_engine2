@@ -28,7 +28,7 @@ RenderEngine::RenderEngine(CoreConfig* base_config, bool headless) {
     }
 
     if (!headless) {
-        m_primary_window = Window_SDL::create_window(1920, 1080, "engine");
+        m_primary_window = Window_SDL::create_window(1080, 720, "engine");
         config.window    = m_primary_window.get();
 
         m_windows.push_back(m_primary_window.get());
@@ -77,9 +77,7 @@ void RenderEngine::run() {
         }
     }
 
-    for (int i = 0; i < FRAME_OVERLAP; i++) {
-        m_frame_data[i].render_fence->wait();
-    }
+    wait_all_cmds();
 }
 
 void RenderEngine::frame() {
@@ -90,6 +88,13 @@ void RenderEngine::frame() {
 #endif
 
     m_primary_window->poll_events();
+    if (m_window_resized_flag) {
+        wait_all_cmds();
+        m_primary_window->surface()->recrate_swapchain();
+        window_resized_event.event(m_primary_window->width(), m_primary_window->height());
+
+        m_window_resized_flag = false;
+    }
 
     FrameData& current_frame = get_current_frame_data();
 
@@ -139,12 +144,19 @@ void RenderEngine::frame() {
     current_frame.render_fence->submit(&submit, cmds);
 
     for (auto& window : windows_to_present) {
-        window->surface()->present();
+        if (!window->surface()->present()) {
+            m_window_resized_flag = true;
+        }
     }
 
     // m_primary_window->surface()->present(current_frame.render_semaphore.get());
 
-    m_frame_index = (m_frame_index + 1) % FRAME_OVERLAP;
+    m_frame_index = (m_frame_index + 1) % get_frame_overlap();
 }
 
+void RenderEngine::wait_all_cmds() {
+    for (int i = 0; i < get_frame_overlap(); i++) {
+        m_frame_data[(i + m_frame_index) % get_frame_overlap()].render_fence->wait();
+    }
+}
 } // namespace vke
