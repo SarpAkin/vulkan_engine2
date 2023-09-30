@@ -5,6 +5,7 @@
 #include "../common.hpp"
 #include "../fwd.hpp"
 #include "../util.hpp"
+#include "../util/event_system.hpp"
 
 #include "commandbuffer.hpp"
 #include "core.hpp"
@@ -66,7 +67,15 @@ void Renderpass::end(CommandBuffer& cmd) {
 }
 
 Renderpass::~Renderpass() {
+    if (m_resize_eman) m_resize_eman->remove_listener(this);
+
     vkDestroyRenderPass(device(), m_renderpass, nullptr);
+}
+
+void Renderpass::set_resize_event_manager(EventManager<int, int>* event_man) {
+    if (m_resize_eman) m_resize_eman->remove_listener(this);
+    event_man->register_listener<&Renderpass::resize>(this);
+    m_resize_eman = event_man;
 }
 
 WindowRenderPass::WindowRenderPass(Window* window, bool has_depth) : Renderpass(window->surface()->core()) {
@@ -75,15 +84,10 @@ WindowRenderPass::WindowRenderPass(Window* window, bool has_depth) : Renderpass(
     m_window = window;
 
     m_clear_values = {VkClearValue{.color = VkClearColorValue{0.f, 0.f, 1.f, 0.f}}};
-    if(has_depth) m_clear_values.push_back({VkClearValue{.depthStencil = VkClearDepthStencilValue{.depth = 1.0}}});
-
     if (has_depth) {
-        m_depth = core()->create_image(ImageArgs{
-            .format      = VK_FORMAT_D16_UNORM,
-            .usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            .width       = width(),
-            .height      = height(),
-        });
+        m_clear_values.push_back({VkClearValue{.depthStencil = VkClearDepthStencilValue{.depth = 1.0}}});
+
+        create_depth_image();
     }
 
     init_renderpass();
@@ -201,4 +205,25 @@ void WindowRenderPass::begin(CommandBuffer& cmd) {
     Renderpass::begin(cmd);
 }
 
+void WindowRenderPass::resize(int width, int height) {
+    assert(width >= 0 && height >= 0);
+
+    destroy_framebuffers();
+    m_width  = width;
+    m_height = height;
+
+    if (m_depth) { // recrate depth image
+        create_depth_image();
+    }
+
+    create_framebuffers();
+}
+void WindowRenderPass::create_depth_image() {
+    m_depth = core()->create_image(ImageArgs{
+        .format      = VK_FORMAT_D16_UNORM,
+        .usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        .width       = width(),
+        .height      = height(),
+    });
+}
 } // namespace vke
