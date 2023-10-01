@@ -4,9 +4,9 @@
 #include "../fwd.hpp"
 #include "vk_system.hpp"
 
-#include "../core/vertex_input_builder.hpp"
 #include "../core/buffer.hpp"
 #include "../core/renderpass.hpp"
+#include "../core/vertex_input_builder.hpp"
 
 namespace vke {
 
@@ -22,7 +22,6 @@ public:
 private:
 };
 
-
 class Material {
 public:
     const std::string& material_name() const { return name; }
@@ -31,7 +30,8 @@ public:
     void build_dset(DescriptorPool* pool);
 
 public:
-    Shader* shader = nullptr;
+    VkSampler sampler    = nullptr;
+    Shader* shader       = nullptr;
     VkDescriptorSet dset = nullptr;
     std::vector<std::shared_ptr<Image>> textures;
     std::unique_ptr<Buffer> config_ubo = nullptr;
@@ -65,8 +65,8 @@ public:
 
     void register_shader(std::unique_ptr<Shader> shader);
     void register_material(std::unique_ptr<Material> material);
-    void register_render_target(std::string name, Renderpass* renderpass, u32 subpass_index) ;
-    void register_vertex_input(std::string name ,VertexInputDescriptionBuilder vertex_input);
+    void register_render_target(std::string name, Renderpass* renderpass, u32 subpass_index);
+    void register_vertex_input(std::string name, VertexInputDescriptionBuilder vertex_input);
 
 private:
     std::unique_ptr<DescriptorPool> m_pool;
