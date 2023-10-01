@@ -41,6 +41,8 @@ class FreeMoveCamera : public Camera {
 public:
     FreeMoveCamera(vke::RenderEngine* engine);
 
+    float sprint_mul = 5.5f;
+
     void update() override;
 
 private:
