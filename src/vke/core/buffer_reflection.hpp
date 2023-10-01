@@ -19,10 +19,10 @@ namespace vke {
 
 class ReflectionMappedBuffer;
 
-class BufferRefletion {
+class BufferReflection {
 public:
-    BufferRefletion(SpvReflectBlockVariable* block, VkShaderStageFlagBits stages);
-    ~BufferRefletion();
+    BufferReflection(SpvReflectBlockVariable* block, VkShaderStageFlagBits stages);
+    ~BufferReflection();
 
     struct Field {
         enum Type : u32 {
@@ -65,10 +65,10 @@ private:
 };
 
 class FieldAccesor {
-    using FType = BufferRefletion::Field::Type;
+    using FType = BufferReflection::Field::Type;
 
 public:
-    FieldAccesor(vke::IBufferSpan* buffer_root, BufferRefletion::Field field) : m_span(buffer_root->subspan(field.offset)) {
+    FieldAccesor(vke::IBufferSpan* buffer_root, BufferReflection::Field field) : m_span(buffer_root->subspan(field.offset)) {
         m_field_data = field;
     }
 
@@ -92,6 +92,16 @@ public:
         m_span.mapped_data<u32>()[0] = val ? 1 : 0;
     }
 
+    void operator=(const glm::vec3& val) {
+        assert(m_field_data.type == (FType::VEC_BASE + 3));
+        m_span.mapped_data<glm::vec3>()[0] = val;
+    }
+
+    void operator=(const glm::vec2& val) {
+        assert(m_field_data.type == (FType::VEC_BASE + 2));
+        m_span.mapped_data<glm::vec2>()[0] = val;
+    }
+
     template <usize N>
     void operator=(const glm::vec<N, i32>& val) {
         assert(m_field_data.type == (FType::IVEC_BASE + N));
@@ -106,12 +116,12 @@ public:
 
 private:
     vke::BufferSpan m_span;
-    BufferRefletion::Field m_field_data;
+    BufferReflection::Field m_field_data;
 };
 
 class ReflectionMappedBuffer {
 public:
-    ReflectionMappedBuffer(vke::IBufferSpan* buffer, BufferRefletion* reflection) {
+    ReflectionMappedBuffer(vke::IBufferSpan* buffer, BufferReflection* reflection) {
         m_buffer     = buffer;
         m_reflection = reflection;
     }
@@ -132,7 +142,7 @@ public:
 
 private:
     vke::IBufferSpan* m_buffer;
-    BufferRefletion* m_reflection;
+    BufferReflection* m_reflection;
 };
 
 } // namespace vke

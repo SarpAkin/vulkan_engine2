@@ -12,7 +12,6 @@ struct SpvReflectDescriptorBinding;
 
 namespace vke {
 
-class BufferRefletion;
 
 class PipelineReflection {
 public:
@@ -27,7 +26,7 @@ public:
     VkShaderStageFlagBits add_shader_stage(std::span<const u32> spirv);
 
     LayoutBuild build_pipeline_layout(Core* core) const;
-    std::unique_ptr<BufferRefletion> reflect_buffer(u32 set, u32 binding) const;
+    std::unique_ptr<BufferReflection> reflect_buffer(u32 set, u32 binding) const;
 
 private:
     struct ShaderStage {

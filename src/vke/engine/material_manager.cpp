@@ -28,30 +28,30 @@ void MaterialManager::debug_gui() {
         auto bound_ubo = shader->debug_ubo_reflection->bind(shader->debug_ubo.get());
         bound_ubo.for_each_field([](const std::string& fname, FieldAccesor& field) {
             switch (field.get_type()) {
-            case BufferRefletion::Field::UINT:
+            case BufferReflection::Field::UINT:
                 break;
-            case BufferRefletion::Field::INT:
+            case BufferReflection::Field::INT:
                 ImGui::InputInt(fname.c_str(), &field.get_as<int>());
                 break;
-            case BufferRefletion::Field::FLOAT:
+            case BufferReflection::Field::FLOAT:
                 // ImGui::DragFloat(const char *label, float *v)
                 ImGui::DragFloat(fname.c_str(), &field.get_as<float>(), 0.0, 1.0);
                 break;
-            case BufferRefletion::Field::BOOL:
+            case BufferReflection::Field::BOOL:
                 ImGui::Checkbox(fname.c_str(), &field.get_as<bool>());
                 break;
-            case BufferRefletion::Field::VEC2:
+            case BufferReflection::Field::VEC2:
                 break;
-            case BufferRefletion::Field::VEC3:
+            case BufferReflection::Field::VEC3:
                 ImGui::ColorPicker4(fname.c_str(), &field.get_as<float>());
                 break;
-            case BufferRefletion::Field::VEC4:
+            case BufferReflection::Field::VEC4:
                 break;
-            case BufferRefletion::Field::IVEC2:
+            case BufferReflection::Field::IVEC2:
                 break;
-            case BufferRefletion::Field::IVEC3:
+            case BufferReflection::Field::IVEC3:
                 break;
-            case BufferRefletion::Field::IVEC4:
+            case BufferReflection::Field::IVEC4:
                 break;
             default:
                 break;

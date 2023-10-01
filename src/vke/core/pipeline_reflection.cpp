@@ -104,14 +104,14 @@ PipelineReflection::LayoutBuild PipelineReflection::build_pipeline_layout(vke::C
     };
 }
 
-static std::unique_ptr<BufferRefletion> reflect_binding(SpvReflectDescriptorBinding* binding, VkShaderStageFlagBits flags) {
+static std::unique_ptr<BufferReflection> reflect_binding(SpvReflectDescriptorBinding* binding, VkShaderStageFlagBits flags) {
     if (binding->descriptor_type != SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER && binding->descriptor_type != SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) return nullptr;
     auto* block = &binding->block;
 
-    return std::make_unique<BufferRefletion>(block, flags);
+    return std::make_unique<BufferReflection>(block, flags);
 }
 
-std::unique_ptr<BufferRefletion> PipelineReflection::reflect_buffer(u32 nset, u32 nbinding) const {
+std::unique_ptr<BufferReflection> PipelineReflection::reflect_buffer(u32 nset, u32 nbinding) const {
     auto bindings = find_bindings(nset, nbinding);
 
     if (bindings.size() == 0) return nullptr;

@@ -12,7 +12,6 @@ namespace vke {
 
 struct SubpassDetails;
 class MaterialLoader;
-class BufferRefletion;
 
 class Shader {
 public:
@@ -20,7 +19,7 @@ public:
     std::optional<u32> material_set_index;
     std::optional<u32> debug_buffer_index;
     std::shared_ptr<Buffer> debug_ubo  = nullptr;
-    std::unique_ptr<BufferRefletion> debug_ubo_reflection;
+    std::unique_ptr<BufferReflection> debug_ubo_reflection;
     std::string name;
 
 private:

@@ -4,13 +4,13 @@
 
 namespace vke {
 
-ReflectionMappedBuffer BufferRefletion::bind(vke::IBufferSpan* buffer) {
+ReflectionMappedBuffer BufferReflection::bind(vke::IBufferSpan* buffer) {
     return ReflectionMappedBuffer(buffer, this);
 }
 
-BufferRefletion::~BufferRefletion() = default;
+BufferReflection::~BufferReflection() = default;
 
-std::optional<BufferRefletion::Field> BufferRefletion::get_field(const std::string& field) const {
+std::optional<BufferReflection::Field> BufferReflection::get_field(const std::string& field) const {
     if (auto it = m_fields.find(field); it != m_fields.end()) {
         return it->second;
     } else {
@@ -18,13 +18,13 @@ std::optional<BufferRefletion::Field> BufferRefletion::get_field(const std::stri
     }
 }
 
-BufferRefletion::BufferRefletion(SpvReflectBlockVariable* block, VkShaderStageFlagBits stage) {
+BufferReflection::BufferReflection(SpvReflectBlockVariable* block, VkShaderStageFlagBits stage) {
     m_stages      = stage;
     m_buffer_size = block->size;
 
     for (int i = 0; i < block->member_count; i++) {
         auto& member = block->members[i];
-        using Type   = BufferRefletion::Field::Type;
+        using Type   = BufferReflection::Field::Type;
         Type type    = Type::NONE;
 
         switch (member.type_description->type_flags) {
