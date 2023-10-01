@@ -32,6 +32,8 @@ void FreeMoveCamera::update() {
     if (mouse_on_ui) return;
     auto* window = engine()->window();
 
+    aspect_ratio = (float)window->width() / (float)window->height();
+
     m_yaw += window->get_mouse_input().delta_x * sensivity_x;
     m_pitch += window->get_mouse_input().delta_y * sensivity_y;
     m_pitch = std::clamp(m_pitch, -M_PIf / 2 + 0.001f, M_PIf / 2 - 0.001f);
