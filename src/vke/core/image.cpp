@@ -17,13 +17,15 @@ Image::Image(const ImageArgs& args) : Resource(args.core) {
     m_width  = args.width;
     m_height = args.height;
     m_format = args.format;
+    m_num_layers = args.layers;
+    m_num_mipmaps = args.mip_levels;
 
     VkImageCreateInfo ic_info{
         .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType     = VK_IMAGE_TYPE_2D,
         .format        = args.format,
         .extent        = {.width = args.width, .height = args.height, .depth = 1},
-        .mipLevels     = 1,
+        .mipLevels     = args.mip_levels,
         .arrayLayers   = args.layers,
         .samples       = VK_SAMPLE_COUNT_1_BIT,
         .tiling        = args.host_visible ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL,
