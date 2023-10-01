@@ -19,6 +19,8 @@ public:
 
     VkSampler custom_sampler(const VkSamplerCreateInfo& sampler_info);
 
+    VkSampler mipmap_nearest_sampler(int level);
+
 private:
     VkSampler m_default_sampler, m_nearest_sampler;
 

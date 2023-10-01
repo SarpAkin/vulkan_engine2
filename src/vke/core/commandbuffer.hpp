@@ -14,6 +14,7 @@ namespace vke {
 
 struct PipelineBarrierArgs {
     VkPipelineStageFlags src_stage_mask, dst_stage_mask;
+    // VK_DEPENDENCY_DEVICE_GROUP_BIT by default
     VkDependencyFlags dependency_flags                      = VK_DEPENDENCY_DEVICE_GROUP_BIT;
     std::span<VkMemoryBarrier> memory_barriers              = std::span((VkMemoryBarrier*)nullptr, 0);
     std::span<VkBufferMemoryBarrier> buffer_memory_barriers = std::span((VkBufferMemoryBarrier*)nullptr, 0);
@@ -45,7 +46,6 @@ public:
 
     void execute_secondries(const CommandBuffer* cmd);
     void execute_secondries(std::span<const CommandBuffer*> cmd);
-
 
     // VkCmd* wrappers
     void begin_renderpass(Renderpass* renderpass, VkSubpassContents contents);

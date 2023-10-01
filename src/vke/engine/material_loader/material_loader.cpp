@@ -38,20 +38,26 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
 }
 
 void MaterialLoader::load_material(CommandBuffer& cmd, const MaterialDescription& description) {
+    auto* sampler_man = core()->get_sampler_manager();
+
     m_material_manager->register_material(std::make_unique<Material>(Material{
+        .sampler  = description.mip_levels.value_or(1) == 1 ? sampler_man->default_sampler() : sampler_man->mipmap_nearest_sampler(description.mip_levels.value()),
         .shader   = m_material_manager->get_shader(description.shader_name),
-        .textures = description.texture_paths ? map_vec(description.texture_paths.value(), [&, this](const std::string& path) { return load_image(cmd, path); }) : std::vector<std::shared_ptr<Image>>(),
+        .textures = description.texture_paths ? map_vec(description.texture_paths.value(), [&, this](const std::string& path) {
+            return load_image(cmd, path, description.mip_levels.value_or(1));
+        })
+                                              : std::vector<std::shared_ptr<Image>>(),
         .name     = description.name,
     }));
 }
 
-std::shared_ptr<Image> MaterialLoader::load_image(CommandBuffer& cmd, const std::string& path) {
+std::shared_ptr<Image> MaterialLoader::load_image(CommandBuffer& cmd, const std::string& path, int mip_levels) {
     auto it = m_image_cache.find(path);
     if (it != m_image_cache.end()) {
         return it->second;
     }
 
-    std::shared_ptr<Image> image = Image::load_png(cmd, path.c_str());
+    std::shared_ptr<Image> image = Image::load_png(cmd, path.c_str(), mip_levels);
     m_image_cache.emplace(path, image);
 
     return image;
