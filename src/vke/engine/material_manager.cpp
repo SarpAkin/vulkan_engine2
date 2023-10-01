@@ -32,7 +32,7 @@ void Material::build_dset(DescriptorPool* pool) {
 
     DescriptorSetBuilder builder;
     builder.add_image_samplers(MAP_VEC_ALLOCA(textures, [](std::shared_ptr<vke::Image> ptr) { return ptr.get(); }),
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, pool->core()->get_sampler_manager()->nearest_sampler(), VK_SHADER_STAGE_FRAGMENT_BIT);
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_FRAGMENT_BIT);
     dset = builder.build(pool, descrriptor_layout);
 }
 
