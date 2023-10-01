@@ -81,7 +81,7 @@ Core::Core(CoreConfig* config) {
     m_data->vkb_instance = vkb_instance;
 
     if (config->window) {
-        config->window->surface()->init_swapchain();
+        config->window->surface()->init();
     }
 
     init_allocator();
@@ -143,6 +143,13 @@ void Core::immediate_submit(std::function<void(CommandBuffer& cmd)> function) {
     CommandBuffer* cmds[] = {&cmd};
     fence.submit(&info, cmds);
     fence.wait();
+}
+
+const VkPhysicalDeviceProperties* Core::get_physical_device_properties()const {
+    return &m_data->vkb_pdevice.properties;
+}
+const VkPhysicalDeviceFeatures* Core::get_physical_device_features() const{
+    return &m_data->vkb_pdevice.features;
 }
 
 } // namespace vke

@@ -17,6 +17,8 @@ public:
 
     virtual void update(){};
 
+    glm::mat4 inv_proj_view() { return glm::inverse(proj_view); }
+
 public:
     glm::mat4 proj_view;
     glm::vec3 pos = glm::vec3(0, 0, 0);
@@ -38,6 +40,8 @@ private:
 class FreeMoveCamera : public Camera {
 public:
     FreeMoveCamera(vke::RenderEngine* engine);
+
+    float sprint_mul = 5.5f;
 
     void update() override;
 

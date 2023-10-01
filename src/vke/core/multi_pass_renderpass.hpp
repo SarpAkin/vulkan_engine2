@@ -28,6 +28,8 @@ public:
     void begin(CommandBuffer& cmd) override;
     void end(CommandBuffer& cmd) override;
 
+    void resize(int, int) override;
+
 private:
     void create_attachments();
     void create_framebuffers();

@@ -156,4 +156,14 @@ void MultiPassRenderPass::end(CommandBuffer& cmd) {
 
     barrier_sampled_attachments(cmd);
 }
+
+
+void MultiPassRenderPass::resize(int width, int height) {
+    m_width = width;
+    m_height = height;
+
+    destroy_framebuffers();
+    create_attachments();
+    create_framebuffers();
+}
 } // namespace vke

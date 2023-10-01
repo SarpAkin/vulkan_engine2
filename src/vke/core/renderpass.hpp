@@ -31,17 +31,23 @@ public: // methods
 
     virtual vke::Image* get_attachment_image(const char* attachment_name) = 0;
 
+    virtual void resize(int width, int height) { abort(); }
+
     virtual void begin(CommandBuffer& cmd);
     virtual void next_subpass(CommandBuffer& cmd);
     virtual void end(CommandBuffer& cmd);
     virtual void set_external(bool is_external) { m_is_external = is_external; }
     virtual bool has_depth(u32 subpass) { return get_subpass(subpass)->depth_format.has_value(); }
 
+    void set_resize_event_manager(EventManager<int, int>* event_man);
+
     Renderpass(Core* core) : Resource(core) {}
     ~Renderpass();
 
 protected:
     virtual VkFramebuffer next_framebuffer() = 0;
+
+    EventManager<int, int>* m_resize_eman = nullptr;
 
 protected:
     bool m_is_external;
@@ -56,13 +62,16 @@ public:
     WindowRenderPass(Window* window, bool include_depth_buffer = true);
     ~WindowRenderPass();
 
+    void resize(int, int) override;
+
     void begin(CommandBuffer& cmd) override;
 
-    bool has_depth(u32 subpass) override { return true; }
+    bool has_depth(u32 subpass) override { return m_depth != nullptr; }
 
     vke::Image* get_attachment_image(const char* attachment_name) override { return nullptr; }
 
 private:
+    void create_depth_image();
     void init_renderpass();
     void create_framebuffers();
     void destroy_framebuffers();

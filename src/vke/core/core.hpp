@@ -1,10 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <span>
 #include <vector>
-#include <atomic>
 
 #include <vulkan/vulkan_core.h>
 
@@ -32,22 +32,24 @@ public: // getters
     inline VkPhysicalDevice physical_device() const { return m_chosen_gpu; }
 
 public: // util
-    inline usize gpu_allignment() const { return 256; }
+    inline usize gpu_allignment() const { return get_physical_device_properties()->limits.minStorageBufferOffsetAlignment; }
     usize pad_buffer(usize bsize) const;
 
     SamplerManager* get_sampler_manager() const { return m_sampler_manager; }
 
     void immediate_submit(std::function<void(CommandBuffer& cmd)> function);
 
-    template<typename T>
-    T immediate_submit(std::function<T(CommandBuffer& cmd)> function){
+    template <typename T>
+    T immediate_submit(std::function<T(CommandBuffer& cmd)> function) {
         T v;
-        immediate_submit([&](vke::CommandBuffer& cmd){
+        immediate_submit([&](vke::CommandBuffer& cmd) {
             v = function(cmd);
         });
         return v;
     }
 
+    const VkPhysicalDeviceProperties* get_physical_device_properties() const;
+    const VkPhysicalDeviceFeatures* get_physical_device_features() const;
 
 public: // resource creation
     // these are located individually at the resources cpp file. ex: buffer.cpp
@@ -66,7 +68,6 @@ public: // resource creation
     std::atomic<i64> resource_counter;
     std::atomic<i32> buffer_counter;
     std::atomic<i32> image_counter;
-
 
 public: // constructors
     ~Core();
@@ -101,12 +102,12 @@ private: // private fields
 };
 
 struct CoreConfig {
-    const char* app_name = "Default App Name";
-    u32 vk_version_major = 1;
-    u32 vk_version_minor = 3;
-    u32 vk_version_patch = 0;
-    Window* window       = nullptr;
-    VkPhysicalDeviceFeatures features1_0 = {};
+    const char* app_name                         = "Default App Name";
+    u32 vk_version_major                         = 1;
+    u32 vk_version_minor                         = 3;
+    u32 vk_version_patch                         = 0;
+    Window* window                               = nullptr;
+    VkPhysicalDeviceFeatures features1_0         = {};
     VkPhysicalDeviceVulkan11Features features1_1 = {};
     VkPhysicalDeviceVulkan12Features features1_2 = {};
     VkPhysicalDeviceVulkan13Features features1_3 = {};
