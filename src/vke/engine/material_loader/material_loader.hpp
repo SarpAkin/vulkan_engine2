@@ -29,8 +29,9 @@ struct MaterialDescription {
     std::string name;
     std::string shader_name; // name of the shader used
     std::optional<std::vector<std::string>> texture_paths;
+    std::optional<u32> mip_levels;
 
-    AUTO_SERIALIZATON(MaterialDescription, name, shader_name, texture_paths);
+    AUTO_SERIALIZATON(MaterialDescription, name, shader_name, texture_paths, mip_levels);
 };
 
 struct MaterialPack {
@@ -54,7 +55,7 @@ public:
 private:
     Core* core() { return m_material_manager->core(); }
 
-    std::shared_ptr<Image> load_image(CommandBuffer& cmd, const std::string& path);
+    std::shared_ptr<Image> load_image(CommandBuffer& cmd, const std::string& path, int mip_levels);
 
 private:
     MaterialManager* m_material_manager;

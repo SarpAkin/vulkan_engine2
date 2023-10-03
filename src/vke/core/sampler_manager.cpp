@@ -32,4 +32,16 @@ SamplerManager::~SamplerManager() {
     }
 }
 
+VkSampler SamplerManager::mipmap_nearest_sampler(int level) {
+    return custom_sampler(VkSamplerCreateInfo{
+        .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter    = VK_FILTER_NEAREST,
+        .minFilter    = VK_FILTER_NEAREST,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .minLod = 0.0,
+        .maxLod = static_cast<float>(level),
+    });
+}
 } // namespace vke

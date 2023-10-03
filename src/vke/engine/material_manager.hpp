@@ -33,6 +33,7 @@ public:
     void build_dset(DescriptorPool* pool);
 
 public:
+    VkSampler sampler    = nullptr;
     Shader* shader       = nullptr;
     VkDescriptorSet dset = nullptr;
     std::vector<std::shared_ptr<Image>> textures;

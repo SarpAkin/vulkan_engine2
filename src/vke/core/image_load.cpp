@@ -19,7 +19,120 @@
 
 namespace vke {
 
-std::unique_ptr<Image> Image::load_png(CommandBuffer& cmd, const char* path) {
+static void generate_miplevels(CommandBuffer& cmd, vke::Image* image) {
+    int mip_width  = image->width();
+    int mip_height = image->height();
+
+    for (uint32_t i = 1; i < image->miplevel_count(); i++) {
+        VkImageMemoryBarrier barriers[] = {
+            VkImageMemoryBarrier{
+                .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+                .dstAccessMask    = VK_ACCESS_TRANSFER_READ_BIT,
+                .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                .image            = image->handle(),
+                .subresourceRange = {
+                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel   = i - 1,
+                    .levelCount     = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount     = image->layer_count(),
+                },
+            },
+            VkImageMemoryBarrier{
+                .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+                .dstAccessMask    = VK_ACCESS_TRANSFER_READ_BIT,
+                .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                .image            = image->handle(),
+                .subresourceRange = {
+                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel   = i,
+                    .levelCount     = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount     = image->layer_count(),
+                },
+            },
+        };
+
+        cmd.pipeline_barrier(PipelineBarrierArgs{
+            .src_stage_mask        = VK_PIPELINE_STAGE_TRANSFER_BIT,
+            .dst_stage_mask        = VK_PIPELINE_STAGE_TRANSFER_BIT,
+            .image_memory_barriers = barriers,
+        });
+
+        VkImageBlit blit{
+            .srcSubresource = {
+                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel       = i - 1,
+                .baseArrayLayer = 0,
+                .layerCount     = image->layer_count(),
+            },
+            .srcOffsets = {
+                {0, 0, 0},
+                {mip_width, mip_height, 1},
+            },
+            .dstSubresource = {
+                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel       = i,
+                .baseArrayLayer = 0,
+                .layerCount     = image->layer_count(),
+            },
+            .dstOffsets = {
+                {0, 0, 0},
+                {std::max(mip_width / 2, 1), std::max(mip_height / 2, 1), 1},
+            },
+        };
+
+        vkCmdBlitImage(cmd.handle(), image->handle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image->handle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+
+        mip_width  = std::max(mip_width / 2, 1);
+        mip_height = std::max(mip_height / 2, 1);
+    }
+
+    VkImageMemoryBarrier barriers[] = {
+        VkImageMemoryBarrier{
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .image            = image->handle(),
+            .subresourceRange = {
+                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel   = 0,
+                .levelCount     = image->miplevel_count() - 1,
+                .baseArrayLayer = 0,
+                .layerCount     = image->layer_count(),
+            },
+        },
+        VkImageMemoryBarrier{
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .image            = image->handle(),
+            .subresourceRange = {
+                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel   = image->miplevel_count() - 1,
+                .levelCount     = 1,
+                .baseArrayLayer = 0,
+                .layerCount     = image->layer_count(),
+            },
+        },
+    };
+
+    cmd.pipeline_barrier(PipelineBarrierArgs{
+        .src_stage_mask        = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .dst_stage_mask        = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        .image_memory_barriers = barriers,
+    });
+}
+
+std::unique_ptr<Image> Image::load_png(CommandBuffer& cmd, const char* path, u32 mip_levels) {
     auto core = cmd.core();
 
     int tex_width, tex_height, tex_channels;
@@ -41,10 +154,11 @@ std::unique_ptr<Image> Image::load_png(CommandBuffer& cmd, const char* path) {
     auto image = Image::buffer_to_image(cmd, stencil.get(),
         ImageArgs{
             .format      = VK_FORMAT_R8G8B8A8_SRGB,
-            .usage_flags = VK_IMAGE_USAGE_SAMPLED_BIT,
+            .usage_flags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
             .width       = static_cast<u32>(tex_width),
             .height      = static_cast<u32>(tex_height),
             .layers      = 1,
+            .mip_levels  = mip_levels,
         });
 
     cmd.add_execution_dependency(std::move(stencil));

@@ -18,6 +18,7 @@ struct ImageArgs {
     u32 width;
     u32 height;
     u32 layers        = 1;
+    u32 mip_levels    = 1;
     bool host_visible = false;
 };
 
@@ -32,13 +33,15 @@ public:
 
     static std::unique_ptr<Image> buffer_to_image(CommandBuffer& cmd, IBufferSpan* buffer, const ImageArgs& args);
     // image_load.cpp
-    static std::unique_ptr<Image> load_png(CommandBuffer& cmd, const char* path);
+    static std::unique_ptr<Image> load_png(CommandBuffer& cmd, const char* path, u32 mip_levels = 1);
 
     // blocking
     void save_as_png(const char* path);
 
     u32 width() const { return m_width; }
     u32 height() const { return m_height; }
+    u32 layer_count() const { return m_num_layers; }
+    u32 miplevel_count() const { return m_num_mipmaps; }
 
 private:
     VkImage m_image;
@@ -47,7 +50,7 @@ private:
     VmaAllocation m_allocation;
     void* m_mapped_data = nullptr;
 
-    u32 m_width, m_height;
+    u32 m_width, m_height, m_num_layers, m_num_mipmaps;
 };
 
 } // namespace vke
