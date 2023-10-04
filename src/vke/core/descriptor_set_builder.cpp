@@ -27,9 +27,9 @@ DescriptorSetBuilder& DescriptorSetBuilder::add_buffers(std::span<IBufferSpan*> 
     return *this;
 }
 
-DescriptorSetBuilder& DescriptorSetBuilder::add_images(std::span<Image*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage, VkDescriptorType type) {
+DescriptorSetBuilder& DescriptorSetBuilder::add_images(std::span<IImageView*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage, VkDescriptorType type) {
     m_image_bindings.push_back(ImageBinding{
-        .image_infos = map_vec(images, [&](Image* image) {
+        .image_infos = map_vec(images, [&](IImageView* image) {
             return VkDescriptorImageInfo{
                 .sampler     = sampler,
                 .imageView   = image->view(),
@@ -77,4 +77,10 @@ VkDescriptorSet DescriptorSetBuilder::build(DescriptorPool* pool, VkDescriptorSe
     return set;
 }
 
+DescriptorSetBuilder& DescriptorSetBuilder::add_image_samplers(std::span<Image*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage) {
+
+    auto span = MAP_VEC_ALLOCA(images, [](Image* image) { return static_cast<IImageView*>(image); }); 
+
+    return add_images(span, layout, sampler, stage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+}
 } // namespace vke
