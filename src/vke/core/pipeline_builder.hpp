@@ -63,6 +63,9 @@ public:
     PipelineBuilderBase(Core* core);
     ~PipelineBuilderBase();
 
+    // only works when compiling glsl
+    void set_shader_compile_defines(std::span<const std::pair<std::string, std::string>> defines){m_defines = defines;}
+
     // 0 is for auto
     void add_shader_stage(u32* spirv_code, usize spirv_len, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0);
     void add_shader_stage(std::span<u8> span, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0) {
@@ -77,6 +80,7 @@ public:
     const PipelineReflection* get_reflection() const { return m_reflection.get(); };
 
 protected:
+    std::span<const std::pair<std::string, std::string>> m_defines;
     std::unique_ptr<PipelineReflection> m_reflection;
 
     struct ShaderDetails {

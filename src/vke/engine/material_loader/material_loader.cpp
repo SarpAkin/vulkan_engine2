@@ -19,6 +19,10 @@ namespace vke {
 void MaterialLoader::load_shader(const ShaderDescription& description) {
     GPipelineBuilder builder(core());
 
+    if (description.defines) {
+        builder.set_shader_compile_defines(description.defines.value());
+    }
+
     for (auto& path : description.shader_paths) {
         builder.add_shader_stage(path);
     }

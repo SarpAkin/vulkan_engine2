@@ -19,10 +19,11 @@ struct ShaderDescription {
     std::optional<u32> material_set_index;
     std::optional<u32> debug_buffer;
     std::optional<std::string> polygon_mode;
+    std::optional<std::vector<std::pair<std::string, std::string>>> defines;
 
     std::optional<std::string> cull;
 
-    AUTO_SERIALIZATON(ShaderDescription, name, render_target, vertex_input, shader_paths, material_set_index, debug_buffer, cull,polygon_mode);
+    AUTO_SERIALIZATON(ShaderDescription, name, render_target, vertex_input, shader_paths, material_set_index, debug_buffer, cull, polygon_mode,defines);
 };
 
 struct MaterialDescription {

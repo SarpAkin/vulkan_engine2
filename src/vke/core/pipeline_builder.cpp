@@ -240,7 +240,11 @@ void PipelineBuilderBase::add_shader_stage(std::string_view spirv_path) {
     std::filesystem::path p = spirv_path;
 
     if (p.extension() != ".spv") {
-        auto binary = compile_glsl_file(&m_arena, spirv_path.begin());
+        ShaderCompileOptions options{
+            .defines = m_defines,
+        };
+
+        auto binary = compile_glsl_file(&m_arena, spirv_path.begin(), &options);
         this->add_shader_stage(binary);
 
     } else {
