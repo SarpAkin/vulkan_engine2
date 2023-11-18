@@ -5,20 +5,24 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 
+#include "../util.hpp"
 #include "buffer.hpp"
 #include "commandbuffer.hpp"
 #include "core.hpp"
 #include "vk_resource.hpp"
 #include "vkutil.hpp"
 
+#include "image_view.hpp"
+
 namespace vke {
 
 Image::Image(const ImageArgs& args) : Resource(args.core) {
-    m_width  = args.width;
-    m_height = args.height;
-    m_format = args.format;
-    m_num_layers = args.layers;
+    m_width       = args.width;
+    m_height      = args.height;
+    m_format      = args.format;
+    m_num_layers  = args.layers;
     m_num_mipmaps = args.mip_levels;
+    m_aspects     = is_depth_format(args.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
     VkImageCreateInfo ic_info{
         .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -44,14 +48,16 @@ Image::Image(const ImageArgs& args) : Resource(args.core) {
 
     // VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT
 
+    m_view_type = args.layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
     VkImageViewCreateInfo ivc_info = {
         .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image    = m_image,
-        .viewType = args.layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+        .viewType = m_view_type,
         .format   = args.format,
 
         .subresourceRange = {
-            .aspectMask     = is_depth_format(args.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask     = aspects(),
             .baseMipLevel   = 0,
             .levelCount     = 1,
             .baseArrayLayer = 0,
@@ -92,63 +98,96 @@ std::unique_ptr<Image> Image::buffer_to_image(CommandBuffer& cmd, IBufferSpan* b
     args.core  = cmd.core();
     auto image = std::make_unique<Image>(args);
 
-    VkImageMemoryBarrier image_transfer_barrier = {
-        .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        .srcAccessMask       = 0,
-        .dstAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT,
-        .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
-        .newLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        .srcQueueFamilyIndex = cmd.core()->queue_family(),
-        .dstQueueFamilyIndex = cmd.core()->queue_family(),
-        .image               = image->handle(),
-        .subresourceRange    = VkImageSubresourceRange{
-               .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-               .baseMipLevel   = 0,
-               .levelCount     = 1,
-               .baseArrayLayer = 0,
-               .layerCount     = 1,
-        },
-    };
-
-    cmd.pipeline_barrier(PipelineBarrierArgs{
-        .src_stage_mask        = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        .dst_stage_mask        = VK_PIPELINE_STAGE_TRANSFER_BIT,
-        .image_memory_barriers = std::span(&image_transfer_barrier, 1),
-    });
-
-    VkBufferImageCopy copy_region = {
-        .bufferOffset      = 0,
-        .bufferRowLength   = 0,
-        .bufferImageHeight = 0,
-        .imageSubresource  = VkImageSubresourceLayers{
-             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-             .mipLevel       = 0,
-             .baseArrayLayer = 0,
-             .layerCount     = 1,
-        },
-        .imageExtent = VkExtent3D{
-            .width  = static_cast<u32>(args.width),
-            .height = static_cast<u32>(args.height),
-            .depth  = 1,
-        },
-    };
-
-    // copy the buffer into the image
-    vkCmdCopyBufferToImage(cmd.handle(), buffer->handle(), image->handle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
-
-    VkImageMemoryBarrier image_readable_barrier = image_transfer_barrier;
-    image_readable_barrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    image_readable_barrier.newLayout            = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    image_readable_barrier.srcAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
-    image_readable_barrier.dstAccessMask        = VK_ACCESS_SHADER_READ_BIT;
-
-    cmd.pipeline_barrier(PipelineBarrierArgs{
-        .src_stage_mask        = VK_PIPELINE_STAGE_TRANSFER_BIT,
-        .dst_stage_mask        = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        .image_memory_barriers = std::span(&image_readable_barrier, 1),
-    });
+    image->copy_from_buffer(cmd,
+        CopyFromBufferArgs{
+            .buffer = buffer,
+        });
 
     return image;
 }
 
+void Image::copy_from_buffer(CommandBuffer& cmd, std::span<const CopyFromBufferArgs> vargs) {
+    auto barriers = MAP_VEC_ALLOCA(vargs, [&](const CopyFromBufferArgs& args) {
+        return VkImageMemoryBarrier{
+            .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask       = 0,
+            .dstAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .oldLayout           = args.initial_layout,
+            .newLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .srcQueueFamilyIndex = core()->queue_family(),
+            .dstQueueFamilyIndex = core()->queue_family(),
+            .image               = handle(),
+            .subresourceRange    = VkImageSubresourceRange{
+                   .aspectMask     = aspects(),
+                   .baseMipLevel   = 0,
+                   .levelCount     = 1,
+                   .baseArrayLayer = args.layer,
+                   .layerCount     = args.layer_count,
+            },
+        };
+    });
+
+    cmd.pipeline_barrier(PipelineBarrierArgs{
+        .src_stage_mask        = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        .dst_stage_mask        = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .image_memory_barriers = barriers,
+    });
+
+    for (auto& args : vargs) {
+        VkBufferImageCopy copy_region = {
+            .bufferOffset      = args.buffer->byte_offset(),
+            .bufferRowLength   = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource  = VkImageSubresourceLayers{
+                 .aspectMask     = aspects(),
+                 .mipLevel       = 0,
+                 .baseArrayLayer = 0,
+                 .layerCount     = 1,
+            },
+            .imageExtent = VkExtent3D{
+                .width  = static_cast<u32>(width()),
+                .height = static_cast<u32>(height()),
+                .depth  = 1,
+            },
+        };
+
+        // copy the buffer into the image
+        vkCmdCopyBufferToImage(cmd.handle(), args.buffer->handle(), handle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
+    }
+
+    // reuse barriers array
+    for (int i = 0; i < vargs.size(); i++) {
+        auto& barrier = barriers[i];
+        auto& args    = vargs[i];
+
+        barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout     = args.final_layout;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    }
+
+    cmd.pipeline_barrier(PipelineBarrierArgs{
+        .src_stage_mask        = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .dst_stage_mask        = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        .image_memory_barriers = barriers,
+    });
+}
+
+std::unique_ptr<IImageView> Image::create_subview(const SubViewArgs& args) {
+    VkImageViewCreateInfo ivc_info = {
+        .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image            = m_image,
+        .viewType         = args.view_type,
+        .format           = format(),
+        .subresourceRange = {
+            .aspectMask     = aspects(),
+            .baseMipLevel   = args.base_miplevel,
+            .levelCount     = args.miplevel_count == UINT32_MAX ? miplevel_count() - args.base_miplevel : args.base_miplevel,
+            .baseArrayLayer = args.base_layer,
+            .layerCount     = args.layer_count,
+        },
+    };
+
+    return std::make_unique<ImageView>(this, ivc_info);
+}
 } // namespace vke

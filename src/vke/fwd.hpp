@@ -27,6 +27,7 @@ class RenderEngine;
 class MaterialManager;
 class Material;
 
+class IImageView;
 class IRenderTarget;
 class IStencilBuffer;
 

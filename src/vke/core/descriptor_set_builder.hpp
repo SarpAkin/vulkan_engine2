@@ -18,17 +18,19 @@ public:
 
     inline DescriptorSetBuilder& add_ssbo(std::span<IBufferSpan*> buffers, VkShaderStageFlags stage) { return add_buffers(buffers, stage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER); }
 
-    inline DescriptorSetBuilder& add_image_sampler(Image* image, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage) {
-        Image* images[] = {image};
+    inline DescriptorSetBuilder& add_image_sampler(IImageView* image, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage) {
+        IImageView* images[] = {image};
         return add_images(images, layout, sampler, stage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     }
 
-    inline DescriptorSetBuilder& add_image_samplers(std::span<Image*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage) {
+    DescriptorSetBuilder& add_image_samplers(std::span<Image*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage);
+
+    inline DescriptorSetBuilder& add_image_samplers(std::span<IImageView*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage) {
         return add_images(images, layout, sampler, stage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     }
 
-    inline DescriptorSetBuilder& add_storage_image(Image* image, VkImageLayout layout, VkShaderStageFlags stage) {
-        Image* images[] = {image};
+    inline DescriptorSetBuilder& add_storage_image(IImageView* image, VkImageLayout layout, VkShaderStageFlags stage) {
+        IImageView* images[] = {image};
         return add_images(images, layout, nullptr, stage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     }
 
@@ -41,7 +43,7 @@ private:
     }
 
     DescriptorSetBuilder& add_buffers(std::span<IBufferSpan*> buffers, VkShaderStageFlags stage, VkDescriptorType type);
-    DescriptorSetBuilder& add_images(std::span<Image*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage, VkDescriptorType type);
+    DescriptorSetBuilder& add_images(std::span<IImageView*> images, VkImageLayout layout, VkSampler sampler, VkShaderStageFlags stage, VkDescriptorType type);
 
 private:
     struct ImageBinding {
