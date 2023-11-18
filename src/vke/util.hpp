@@ -81,6 +81,7 @@ std::vector<u8> read_file_binary(const char* name);
 std::span<u8> read_file_binary(vke::ArenaAllocator* arena, const char* name);
 
 std::string read_file(const char* name);
+std::string_view read_file(vke::ArenaAllocator* arena, const char* name);
 
 std::span<u32> cast_u8_to_span_u32(std::span<u8> span);
 

@@ -4,8 +4,8 @@
 
 #include <fmt/format.h>
 
-#include <vulkan/vulkan_core.h>
 #include <span>
+#include <vulkan/vulkan_core.h>
 
 #include "../common.hpp"
 #include "../fwd.hpp"
@@ -15,8 +15,11 @@ const char* vk_result_string(VkResult res);
 
 bool is_depth_format(VkFormat format);
 
-std::span<u32> compile_glsl_file(ArenaAllocator* alloc,const char* path);
+struct ShaderCompileOptions {
+    std::span<const std::pair<std::string, std::string>> defines;
+};
 
+std::span<u32> compile_glsl_file(ArenaAllocator* alloc, const char* path, ShaderCompileOptions* options = nullptr);
 
 } // namespace vke
 

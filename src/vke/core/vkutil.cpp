@@ -35,33 +35,41 @@ bool is_depth_format(VkFormat format) {
     return false;
 }
 
-std::string resolve_includes(std::string& glsl, fs::path path) {
-    path = path.parent_path();
-
-    std::string final;
-
-    std::regex pattern("(#include\\s+\"([^\"]+)\")");
-    std::smatch match;
-
-    auto it  = glsl.cbegin();
-    auto end = glsl.cend();
-    while (std::regex_search(it, end, match, pattern)) {
-        final += std::string_view(it, match[0].first);
-        auto header_path = path / match[2].str();
-    
-        auto header      = read_file(header_path.c_str());
-        final += resolve_includes(header, header_path);
-        it = match[0].second;
+class ShadercIncluder : public shaderc::CompileOptions::IncluderInterface {
+public:
+    ShadercIncluder(ArenaAllocator* _arena){
+        arena = _arena;
     }
 
-    final += std::string_view(it, end);
+    ArenaAllocator* arena;
 
-    return final;
-}
+    shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth) override {
+        if (type == shaderc_include_type_standard) return nullptr;
 
-std::span<u32> compile_glsl_file(ArenaAllocator* alloc, const char* path) {
-    auto glsl = read_file(path);
-    glsl      = resolve_includes(glsl, path);
+        fs::path path = fs::path(requesting_source).parent_path() / requested_source;
+
+        auto content = read_file(arena, path.c_str());
+
+        usize pathc_len;
+        const char* pathc = arena->create_str_copy(path.c_str(), &pathc_len);
+
+        return arena->create_copy(shaderc_include_result{
+            .source_name        = pathc,
+            .source_name_length = pathc_len,
+            .content            = content.begin(),
+            .content_length     = content.size(),
+        });
+    }
+
+    void ReleaseInclude(shaderc_include_result* data) override {
+    }
+};
+
+std::span<u32> compile_glsl_file(ArenaAllocator* alloc, const char* path, ShaderCompileOptions* options) {
+    ArenaAllocator scratch;
+
+    auto glsl = read_file(&scratch, path);
+    // glsl      = resolve_includes(glsl, path);
 
     shaderc_shader_kind kind = shaderc_glsl_infer_from_source;
     auto ext                 = fs::path(path).extension().string();
@@ -70,10 +78,18 @@ std::span<u32> compile_glsl_file(ArenaAllocator* alloc, const char* path) {
     if (ext == ".vert") kind = shaderc_glsl_vertex_shader;
     if (ext == ".frag") kind = shaderc_glsl_fragment_shader;
 
-    shaderc::CompileOptions options;
+    shaderc::CompileOptions shaderc_options;
+    shaderc_options.SetOptimizationLevel(shaderc_optimization_level_performance);
+    shaderc_options.SetIncluder(std::make_unique<ShadercIncluder>(&scratch));
+
+    if (options) {
+        for (const auto& [d, v] : options->defines) {
+            shaderc_options.AddMacroDefinition(d, v);
+        }
+    }
 
     shaderc::Compiler compiler;
-    auto result = compiler.CompileGlslToSpv(glsl, kind, path);
+    auto result = compiler.CompileGlslToSpv(glsl.begin(),glsl.size(), kind, path, shaderc_options);
 
     auto status = result.GetCompilationStatus();
     if (status != shaderc_compilation_status_success) {
