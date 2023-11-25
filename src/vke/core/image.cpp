@@ -24,8 +24,9 @@ Image::Image(const ImageArgs& args) : Resource(args.core) {
     m_num_mipmaps = args.mip_levels;
     m_aspects     = is_depth_format(args.format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
-    VkImageCreateInfo ic_info{
+    VkImageCreateInfo ic_info {
         .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .flags         = args.create_flags,
         .imageType     = VK_IMAGE_TYPE_2D,
         .format        = args.format,
         .extent        = {.width = args.width, .height = args.height, .depth = 1},
@@ -84,6 +85,10 @@ std::unique_ptr<Image> Core::create_image(ImageArgs args) {
 Image::~Image() {
 #ifndef NDEBUG
     core()->image_counter--;
+
+    if (m_image_view_counter != 0) {
+        fprintf(stderr, "alive image views exist to the image being destroyed. counter: %d", (int)m_image_view_counter);
+    }
 #endif
 
     if (m_mapped_data) vmaUnmapMemory(core()->gpu_allocator(), m_allocation);
@@ -190,4 +195,7 @@ std::unique_ptr<IImageView> Image::create_subview(const SubViewArgs& args) {
 
     return std::make_unique<ImageView>(this, ivc_info);
 }
+
+VkFormat IImageView::format() { return vke_image()->format(); }
+Core* IImageView::core() { return vke_image()->core(); }
 } // namespace vke
