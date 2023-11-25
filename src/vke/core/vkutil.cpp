@@ -79,7 +79,7 @@ std::span<u32> compile_glsl_file(ArenaAllocator* alloc, const char* path, Shader
     if (ext == ".frag") kind = shaderc_glsl_fragment_shader;
 
     shaderc::CompileOptions shaderc_options;
-    shaderc_options.SetOptimizationLevel(shaderc_optimization_level_performance);
+    // shaderc_options.SetOptimizationLevel(shaderc_optimization_level_performance);
     shaderc_options.SetIncluder(std::make_unique<ShadercIncluder>(&scratch));
 
     if (options) {
