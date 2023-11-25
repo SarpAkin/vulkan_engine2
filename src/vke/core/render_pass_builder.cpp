@@ -1,6 +1,7 @@
 #include "render_pass_builder.hpp"
 
 #include "core.hpp"
+#include "image.hpp"
 #include "multi_pass_renderpass.hpp"
 #include "renderpass.hpp"
 #include "vkutil.hpp"
@@ -25,6 +26,28 @@ u32 RenderPassBuilder::add_attachment(VkFormat format, std::optional<VkClearValu
         },
         .name       = name,
         .is_sampled = is_sampled,
+    });
+
+    m_clear_values.push_back(clear_value.value_or(VkClearValue{}));
+
+    return m_attachment_infos.size() - 1;
+}
+
+u32 RenderPassBuilder::add_attachment(std::unique_ptr<vke::IImageView> view, std::optional<VkClearValue> clear_value, bool is_sampled, const char* name) {
+    m_attachment_infos.push_back(AttachmentInfo{
+        .description = VkAttachmentDescription{
+            .format         = view->format(),
+            .samples        = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp         = clear_value ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
+            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout    = is_sampled ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : (is_depth_format(view->format()) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL),
+        },
+        .name       = name,
+        .is_sampled = is_sampled,
+        .view = std::move(view),
     });
 
     m_clear_values.push_back(clear_value.value_or(VkClearValue{}));

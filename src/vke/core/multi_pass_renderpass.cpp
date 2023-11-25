@@ -45,8 +45,14 @@ void MultiPassRenderPass::create_attachments() {
             m_attachment_indicies[info.name] = i;
         }
 
+        if (info.view) {
+            return Attachment{
+                .image_view = info.view,
+            };
+        }
+
         return Attachment{
-            .image = core()->create_image(ImageArgs{
+            .image_view = core()->create_image(ImageArgs{
                 .format      = info.description.format,
                 .usage_flags = flags,
                 .width       = width(),
@@ -59,7 +65,7 @@ void MultiPassRenderPass::create_attachments() {
 
 void MultiPassRenderPass::create_framebuffers() {
     auto attachment_views = MAP_VEC_ALLOCA(m_attachments, [](const Attachment& att) {
-        return att.image != nullptr ? att.image->view() : nullptr;
+        return att.image_view != nullptr ? att.image_view->view() : nullptr;
     });
 
     VkFramebufferCreateInfo fb_info = {
@@ -114,9 +120,9 @@ void MultiPassRenderPass::begin(CommandBuffer& cmd) {
     Renderpass::begin(cmd);
 }
 
-vke::Image* MultiPassRenderPass::get_attachment_image(const char* attachment_name) {
+vke::IImageView* MultiPassRenderPass::get_attachment_image_view(const char* attachment_name) {
     if (auto it = m_attachment_indicies.find(attachment_name); it != m_attachment_indicies.end()) {
-        return m_attachments[it->second].image.get();
+        return m_attachments[it->second].image_view.get();
     } else {
         return nullptr;
     }
@@ -134,9 +140,9 @@ void MultiPassRenderPass::barrier_sampled_attachments(CommandBuffer& cmd) {
             .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
             .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .image            = attachment.image->handle(),
+            .image            = attachment.image_view->vke_image()->handle(),
             .subresourceRange = VkImageSubresourceRange{
-                .aspectMask     = is_depth_format(attachment.image->format()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT,
+                .aspectMask     = is_depth_format(attachment.image_view->vke_image()->format()) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT,
                 .baseMipLevel   = 0,
                 .levelCount     = 1,
                 .baseArrayLayer = 0,
@@ -157,9 +163,8 @@ void MultiPassRenderPass::end(CommandBuffer& cmd) {
     barrier_sampled_attachments(cmd);
 }
 
-
 void MultiPassRenderPass::resize(int width, int height) {
-    m_width = width;
+    m_width  = width;
     m_height = height;
 
     destroy_framebuffers();
