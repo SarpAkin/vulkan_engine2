@@ -75,7 +75,9 @@ void FreeMoveCamera::update() {
     calculate_proj_view();
 }
 
-FreeMoveCamera::FreeMoveCamera(vke::RenderEngine* _engine) : PerspectiveCamera(_engine) {
+FreeMoveCamera::FreeMoveCamera(vke::RenderEngine* _engine,bool set_keybinds) : PerspectiveCamera(_engine) {
+    if(!set_keybinds) return;
+
     engine()->window()->on_key_down(SDLK_u, [_engine] {
         if (!mouse_on_ui) {
             _engine->window()->unlock_mouse();

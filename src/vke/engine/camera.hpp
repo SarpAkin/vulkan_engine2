@@ -41,7 +41,7 @@ public:
 
 class FreeMoveCamera : public PerspectiveCamera {
 public:
-    FreeMoveCamera(vke::RenderEngine* engine);
+    FreeMoveCamera(vke::RenderEngine* engine,bool set_keybinds = true);
 
     // moved pixel * sensivity = rotation in radians
     float sensivity_x = -0.01, sensivity_y = 0.01;
