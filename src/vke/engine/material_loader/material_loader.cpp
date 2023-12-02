@@ -38,6 +38,13 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
 
     VkCullModeFlagBits cull_mode = VK_CULL_MODE_NONE;
     VkPolygonMode polygon_mode   = VK_POLYGON_MODE_FILL;
+    VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    if(description.topology){
+        if (description.topology == "LINE_LIST") {
+            topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        }
+    }
 
     if (description.cull) {
         if (description.cull == "back") {
@@ -54,6 +61,7 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
     }
 
     builder.set_rasterization(polygon_mode, cull_mode);
+    builder.set_topology(topology);
 
     m_material_manager->register_shader(std::make_unique<Shader>(Shader{
         .pipeline           = builder.build(),
