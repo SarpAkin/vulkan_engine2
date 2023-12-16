@@ -37,11 +37,13 @@ public:
     float fov          = 90.0; // degrees
     float aspect_ratio = 16.f / 9.f;
     float zfar = 1000.0, znear = 0.1;
+
+    bool flip_x = false, flip_y = true;
 };
 
 class FreeMoveCamera : public PerspectiveCamera {
 public:
-    FreeMoveCamera(vke::RenderEngine* engine,bool set_keybinds = true);
+    FreeMoveCamera(vke::RenderEngine* engine, bool set_keybinds = true);
 
     // moved pixel * sensivity = rotation in radians
     float sensivity_x = -0.01, sensivity_y = 0.01;
