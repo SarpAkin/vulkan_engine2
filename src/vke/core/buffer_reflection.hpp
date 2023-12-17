@@ -8,6 +8,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 
 #include "../common.hpp"
 
@@ -41,6 +42,7 @@ public:
             IVEC4       = 24,
             BLOCK       = 100,
             BLOCK_ARRAY = 101,
+            MAT4 = 200,
         };
 
         Type type;
@@ -112,6 +114,11 @@ public:
     void operator=(const glm::vec<N, f32>& val) {
         assert(m_field_data.type == (FType::VEC_BASE + N));
         m_span.mapped_data<glm::vec<N, f32>>()[0] = val;
+    }
+
+    void operator=(const glm::mat4& val){
+        assert(m_field_data.type == (FType::MAT4));
+        m_span.mapped_data<glm::mat4>()[0] = val;
     }
 
 private:
