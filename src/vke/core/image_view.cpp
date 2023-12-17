@@ -9,9 +9,17 @@ ImageView::ImageView(Image* image, const VkImageViewCreateInfo& c_info) : Resour
     m_view_type         = c_info.viewType;
 
     vkCreateImageView(device(), &c_info, nullptr, &m_view);
+
+#ifndef NDEBUG
+    m_vke_image->m_image_view_counter++;
+#endif // !NDEBUG
 }
 
 ImageView::~ImageView() {
     vkDestroyImageView(device(), m_view, nullptr);
+
+#ifndef NDEBUG
+    m_vke_image->m_image_view_counter--;
+#endif // !NDEBUG
 }
 } // namespace vke

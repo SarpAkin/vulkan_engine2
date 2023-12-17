@@ -2,9 +2,8 @@
 
 #include "../common.hpp"
 
-#include <span>
 #include <cstring>
-
+#include <span>
 
 namespace vke {
 class ArenaAllocator {
@@ -21,14 +20,14 @@ public:
     std::span<T> create_copy(std::span<const T> src) {
         T* dst = alloc<T>(src.size());
         memcpy(dst, src.data(), src.size_bytes());
-        return std::span<T>(dst,src.size());
+        return std::span<T>(dst, src.size());
     }
 
     template <typename T>
     std::span<T> create_copy(std::span<T> src) {
         T* dst = alloc<T>(src.size());
         memcpy(dst, src.data(), src.size_bytes());
-        return std::span<T>(dst,src.size());
+        return std::span<T>(dst, src.size());
     }
 
     template <typename T>
@@ -37,6 +36,8 @@ public:
         memcpy(dst, &src, sizeof(T));
         return dst;
     }
+
+    const char* create_str_copy(const char* str, usize* out_len = nullptr);
 
     ArenaAllocator(const ArenaAllocator&)            = delete;
     ArenaAllocator& operator=(const ArenaAllocator&) = delete;
@@ -47,9 +48,7 @@ private:
     u8* m_cap;
 };
 
-class ArenaGen{
-
+class ArenaGen {
 };
-
 
 } // namespace vke

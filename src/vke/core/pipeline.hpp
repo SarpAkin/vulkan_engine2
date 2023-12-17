@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -11,6 +12,7 @@ namespace vke {
 
 class GPipelineBuilder;
 class CPipelineBuilder;
+class PipelineReflection;
 
 class Pipeline : public Resource {
     friend GPipelineBuilder;
@@ -22,11 +24,7 @@ public:
         std::vector<VkDescriptorSetLayout> dset_layouts;
     };
 
-    Pipeline(Core* core, VkPipeline pipeline, VkPipelineLayout layout, VkPipelineBindPoint bindpoint) : Resource(core) {
-        m_pipeline  = pipeline;
-        m_layout    = layout;
-        m_bindpoint = bindpoint;
-    }
+    Pipeline(Core* core, VkPipeline pipeline, VkPipelineLayout layout, VkPipelineBindPoint bindpoint);
     ~Pipeline();
 
     VkPipeline handle() const { return m_pipeline; }
@@ -36,11 +34,14 @@ public:
     const PipelineData& data() const { return m_data; }
     VkDescriptorSetLayout get_descriptor_layout(u32 index) const { return m_data.dset_layouts[index]; }
 
+    const PipelineReflection* get_reflection() const { return m_reflection.get(); }
+
 private:
     VkPipeline m_pipeline;
     VkPipelineLayout m_layout;
     VkPipelineBindPoint m_bindpoint;
     PipelineData m_data;
+    std::unique_ptr<PipelineReflection> m_reflection;
 };
 
 } // namespace vke

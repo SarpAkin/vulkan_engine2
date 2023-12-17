@@ -14,15 +14,17 @@ Camera::Camera(vke::RenderEngine* engine) {
     m_engine = engine;
 }
 
-void Camera::calculate_proj_view() {
+void PerspectiveCamera::calculate_proj_view() {
     if (m_engine) {
         aspect_ratio = (float)m_engine->window()->width() / (float)m_engine->window()->height();
     }
 
-    glm::mat4 proj = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 1000.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(fov), aspect_ratio, znear, zfar);
     glm::mat4 view = glm::lookAt(pos, pos + dir, up);
 
-    proj[1][1] *= -1.0;
+    if (flip_y) proj[1][1] *= -1.0;
+    if (flip_x) proj[0][0] *= -1.0;
+
     proj_view = proj * view;
 }
 
@@ -75,7 +77,9 @@ void FreeMoveCamera::update() {
     calculate_proj_view();
 }
 
-FreeMoveCamera::FreeMoveCamera(vke::RenderEngine* _engine) : Camera(_engine) {
+FreeMoveCamera::FreeMoveCamera(vke::RenderEngine* _engine, bool set_keybinds) : PerspectiveCamera(_engine) {
+    if (!set_keybinds) return;
+
     engine()->window()->on_key_down(SDLK_u, [_engine] {
         if (!mouse_on_ui) {
             _engine->window()->unlock_mouse();

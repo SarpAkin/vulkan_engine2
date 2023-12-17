@@ -36,4 +36,6 @@ class ArenaAllocator;
 template <class... TArgs>
 class EventManager;
 
+class BufferReflection;
+
 } // namespace vke

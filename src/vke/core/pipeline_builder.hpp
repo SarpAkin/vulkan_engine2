@@ -20,6 +20,8 @@ struct SpvReflectBlockVariable;
 
 namespace vke {
 
+class PipelineReflection;
+
 class PipelineLayoutBuilder {
 public:
     template <typename T>
@@ -56,47 +58,13 @@ private:
     std::vector<VkDescriptorSetLayout> m_set_layouts;
 };
 
-class BufferRefletion {
-public:
-    BufferRefletion(SpvReflectBlockVariable* block);
-
-    struct Field {
-        enum Type : u32 {
-            NONE        = 0,
-            UINT        = 1,
-            INT         = 2,
-            FLOAT       = 3,
-            BOOL        = 4,
-            VEC_BASE    = 10,
-            VEC2        = 12,
-            VEC3        = 13,
-            VEC4        = 14,
-            IVEC_BASE   = 20,
-            IVEC2       = 22,
-            IVEC3       = 23,
-            IVEC4       = 24,
-            BLOCK       = 100,
-            BLOCK_ARRAY = 101,
-        };
-
-        Type type;
-        u32 offset;
-    };
-
-public:
-    const auto& get_fields() const { return m_fields; }
-    usize get_buffer_size()const{return m_buffer_size;}
-private:
-
-private:
-    usize m_buffer_size;
-    std::unordered_map<std::string, Field> m_fields;
-};
-
 class PipelineBuilderBase : protected Resource {
 public:
-    PipelineBuilderBase(Core* core) : Resource(core) {}
+    PipelineBuilderBase(Core* core);
     ~PipelineBuilderBase();
+
+    // only works when compiling glsl
+    void set_shader_compile_defines(std::span<const std::pair<std::string, std::string>> defines){m_defines = defines;}
 
     // 0 is for auto
     void add_shader_stage(u32* spirv_code, usize spirv_len, VkShaderStageFlagBits stage = (VkShaderStageFlagBits)0);
@@ -109,16 +77,11 @@ public:
     void set_layout_builder(PipelineLayoutBuilder* builder) { m_layout_builder = builder; }
     void set_pipeline_cache(VkPipelineCache cache) { m_pipeline_cache = cache; }
 
-    std::optional<BufferRefletion> reflect_buffer(u32 set, u32 binding);
+    const PipelineReflection* get_reflection() const { return m_reflection.get(); };
 
 protected:
-    struct LayoutBuild {
-        VkPipelineLayout layout;
-        std::vector<VkDescriptorSetLayout> dset_layouts;
-        VkShaderStageFlagBits push_stages;
-    };
-
-    LayoutBuild build_layout_and_shaders();
+    std::span<const std::pair<std::string, std::string>> m_defines;
+    std::unique_ptr<PipelineReflection> m_reflection;
 
     struct ShaderDetails {
         u32* spirv_code;
@@ -159,7 +122,7 @@ private:
     const VertexInputDescriptionBuilder* m_input_description_builder = nullptr;
     Renderpass* m_renderpass                                         = nullptr;
     u32 m_subpass_index                                              = 0;
-    bool default_depth = true;
+    bool default_depth                                               = true;
 
     VkPipelineDepthStencilStateCreateInfo m_depth_stencil                      = {};
     VkPipelineVertexInputStateCreateInfo m_vertex_input_info                   = {};

@@ -21,7 +21,7 @@ public:
     MultiPassRenderPass(Core* core, RenderPassBuilder* builder, u32 width, u32 height);
     ~MultiPassRenderPass();
 
-    vke::Image* get_attachment_image(const char* attachment_name) override;
+    vke::IImageView* get_attachment_image_view(const char* attachment_name) override;
 
     VkFramebuffer next_framebuffer() override;
 
@@ -39,7 +39,7 @@ private:
 
 private:
     struct Attachment {
-        std::unique_ptr<Image> image;
+        std::shared_ptr<IImageView> image_view;
     };
 
     Window* m_window               = nullptr;

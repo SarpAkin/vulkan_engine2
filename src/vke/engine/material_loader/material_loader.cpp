@@ -3,8 +3,10 @@
 #include <exception>
 #include <filesystem>
 
+#include "../../core/buffer_reflection.hpp"
 #include "../../core/image.hpp"
 #include "../../core/pipeline_builder.hpp"
+#include "../../core/pipeline_reflection.hpp"
 #include "../../core/renderpass.hpp"
 #include "../../util.hpp"
 
@@ -16,6 +18,10 @@ namespace vke {
 
 void MaterialLoader::load_shader(const ShaderDescription& description) {
     GPipelineBuilder builder(core());
+
+    if (description.defines) {
+        builder.set_shader_compile_defines(description.defines.value());
+    }
 
     for (auto& path : description.shader_paths) {
         builder.add_shader_stage(path);
@@ -30,9 +36,37 @@ void MaterialLoader::load_shader(const ShaderDescription& description) {
         builder.set_vertex_input(m_material_manager->get_vertex_input(*description.vertex_input));
     }
 
+    VkCullModeFlagBits cull_mode = VK_CULL_MODE_NONE;
+    VkPolygonMode polygon_mode   = VK_POLYGON_MODE_FILL;
+    VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    if(description.topology){
+        if (description.topology == "LINE_LIST") {
+            topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        }
+    }
+
+    if (description.cull) {
+        if (description.cull == "back") {
+            cull_mode = VK_CULL_MODE_BACK_BIT;
+        } else if (description.cull == "front") {
+            cull_mode = VK_CULL_MODE_FRONT_BIT;
+        }
+    }
+
+    if (description.polygon_mode) {
+        if (description.polygon_mode == "LINE") {
+            polygon_mode = VK_POLYGON_MODE_LINE;
+        }
+    }
+
+    builder.set_rasterization(polygon_mode, cull_mode);
+    builder.set_topology(topology);
+
     m_material_manager->register_shader(std::make_unique<Shader>(Shader{
         .pipeline           = builder.build(),
         .material_set_index = description.material_set_index,
+        .debug_buffer_index = description.debug_buffer,
         .name               = description.name,
     }));
 }

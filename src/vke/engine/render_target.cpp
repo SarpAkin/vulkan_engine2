@@ -11,9 +11,10 @@ struct RPRenderTargetFramelyData {
     std::unique_ptr<vke::CommandBuffer> compute_cmd;
 };
 
-RPRenderTarget::RPRenderTarget(RenderEngine* engine, Renderpass* rp, u32 subpass_index) : vke::System<struct RPRenderTargetFramelyData>(engine) {
+RPRenderTarget::RPRenderTarget(RenderEngine* engine, Renderpass* rp, u32 subpass_index,RenderTargetType type) : vke::System<struct RPRenderTargetFramelyData>(engine) {
     m_render_pass = rp;
     m_subpass_index = subpass_index;
+    m_type = type;
 
     init_frame_datas([&](u32) {
         return RPRenderTargetFramelyData{

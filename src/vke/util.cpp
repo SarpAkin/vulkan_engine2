@@ -54,3 +54,17 @@ std::span<u8> read_file_binary(vke::ArenaAllocator* arena, const char* name) {
     file.read(reinterpret_cast<char*>(data), fileSize);
     return std::span(data, fileSize);
 }
+
+std::string_view read_file(vke::ArenaAllocator* arena, const char* name) {
+    std::ifstream file(name, std::ios::ate);
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open file");
+    }
+    size_t filesize = static_cast<size_t>(file.tellg());
+    char* data      = arena->alloc<char>(filesize + 1);
+    data[filesize] = '\0';
+
+    file.seekg(0);
+    file.read(reinterpret_cast<char*>(data), filesize);
+    return std::string_view(data, filesize);
+}

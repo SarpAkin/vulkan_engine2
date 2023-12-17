@@ -17,6 +17,9 @@ class Shader {
 public:
     std::unique_ptr<Pipeline> pipeline;
     std::optional<u32> material_set_index;
+    std::optional<u32> debug_buffer_index;
+    std::shared_ptr<Buffer> debug_ubo  = nullptr;
+    std::unique_ptr<BufferReflection> debug_ubo_reflection;
     std::string name;
 
 private:
@@ -68,6 +71,8 @@ public:
     void register_render_target(std::string name, Renderpass* renderpass, u32 subpass_index);
     void register_vertex_input(std::string name, VertexInputDescriptionBuilder vertex_input);
 
+    void debug_gui();
+
 private:
     std::unique_ptr<DescriptorPool> m_pool;
 
@@ -75,6 +80,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Material>> m_materials;
     std::unordered_map<std::string, const SubpassDetails*> m_render_targets;
     std::unordered_map<std::string, std::unique_ptr<VertexInputDescriptionBuilder>> m_vertex_inputs;
+
 };
 
 } // namespace vke

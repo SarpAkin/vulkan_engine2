@@ -29,7 +29,7 @@ public: // getters
 public: // methods
     virtual void set_states(CommandBuffer& cmd);
 
-    virtual vke::Image* get_attachment_image(const char* attachment_name) = 0;
+    virtual vke::IImageView* get_attachment_image_view(const char* attachment_name) = 0;
 
     virtual void resize(int width, int height) { abort(); }
 
@@ -68,7 +68,7 @@ public:
 
     bool has_depth(u32 subpass) override { return m_depth != nullptr; }
 
-    vke::Image* get_attachment_image(const char* attachment_name) override { return nullptr; }
+    vke::IImageView* get_attachment_image_view(const char* attachment_name) override { return nullptr; }
 
 private:
     void create_depth_image();

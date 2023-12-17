@@ -109,6 +109,14 @@ protected:
         end_array();
     }
 
+    template <typename T1, typename T2>
+    void _push(const std::pair<T1, T2>& item) {
+        start_array();
+        push(item.first);
+        push(item.second);
+        end_array();
+    }
+
 private:
 };
 
@@ -161,6 +169,15 @@ protected:
         for (auto& e : container) {
             pull(e);
         }
+        end_array();
+    }
+
+    template <typename T1, typename T2>
+    void _pull(std::pair<T1, T2>& pair) {
+        usize size = start_array();
+        if (size < 2) throw FieldNotFoundException("<pair is empty>"); // TODO better error
+        pull(pair.first);
+        pull(pair.second);
         end_array();
     }
 

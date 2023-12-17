@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <span>
 #include <vulkan/vulkan_core.h>
@@ -16,6 +17,7 @@ struct ImageArgs {
     Core* core = nullptr;
     VkFormat format;
     VkImageUsageFlags usage_flags;
+    VkImageCreateFlags create_flags;
     u32 width;
     u32 height;
     u32 layers        = 1; // 1
@@ -35,7 +37,7 @@ struct CopyFromBufferArgs {
 
 struct SubViewArgs {
     u32 base_layer;
-    u32 layer_count;
+    u32 layer_count = 1;
     u32 base_miplevel  = 0;
     u32 miplevel_count = UINT_MAX; // by default same as images miplevel count
     VkImageViewType view_type;
@@ -45,6 +47,8 @@ class IImageView {
 public:
     virtual VkImageView view() const = 0;
     virtual Image* vke_image()       = 0;
+    VkFormat format();
+    Core* core();
 
     virtual u32 base_layer() const     = 0;
     virtual u32 layer_count() const    = 0;
@@ -59,6 +63,8 @@ public:
 class ImageView;
 
 class Image : public Resource, public IImageView {
+    friend ImageView;
+
 public:
     Image(const ImageArgs& args);
     ~Image();
@@ -68,6 +74,7 @@ public: // getters
     VkImageView view() const override { return m_view; }
     VkFormat format() const { return m_format; }
     VkImageAspectFlags aspects() { return m_aspects; }
+    Core* core() const { return Resource::core(); } // override due to IImageView
 
     u32 width() const { return m_width; }
     u32 height() const { return m_height; }
@@ -105,6 +112,8 @@ private: // private fields
     VkFormat m_format;
     VkImageAspectFlags m_aspects;
     VkImageViewType m_view_type;
+
+    std::atomic<i32> m_image_view_counter = 0;
 
     u32 m_width, m_height, m_num_layers, m_num_mipmaps;
 };

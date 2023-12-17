@@ -33,6 +33,17 @@ void* ArenaAllocator::alloc(usize size) {
     return allocated_memory;
 }
 
+const char* ArenaAllocator::create_str_copy(const char* str, usize* out_len) {
+    size_t len = strlen(str);
+
+    if (out_len) {
+        *out_len = len;
+    }
+
+    char* copy = alloc<char>(len);
+    memcpy(copy, str, len);
+    return copy;
+}
 } // namespace vke
 
 // m_base = reinterpret_cast<u8*>(mmap(nullptr, HEAP_SIZE, 0, MAP_ANON, 0, 0));

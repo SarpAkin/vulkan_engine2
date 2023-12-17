@@ -17,6 +17,7 @@ struct AttachmentInfo {
     bool is_sampled;
     bool is_input_attachment   = false;
     bool is_surface_attachment = false;
+    std::shared_ptr<vke::IImageView> view;
 };
 
 struct SubpassInfo {
@@ -26,6 +27,8 @@ struct SubpassInfo {
 };
 } // namespace impl
 
+const VkClearValue DEPTH_CLEAR_VALUE{.depthStencil = {.depth = 1.0}};
+
 class MultiPassRenderPass;
 
 class RenderPassBuilder {
@@ -33,6 +36,8 @@ class RenderPassBuilder {
 
 public:
     u32 add_attachment(VkFormat format, std::optional<VkClearValue> clear_value, bool is_sampled = false, const char* name = nullptr);
+    u32 add_attachment(std::unique_ptr<vke::IImageView> view, std::optional<VkClearValue> clear_value, bool is_sampled = false, const char* name = nullptr);
+
     void add_subpass(const std::initializer_list<u32>& color_attachments, const std::optional<u32>& depth_attachment, const std::initializer_list<u32>& input_attachments);
 
     std::unique_ptr<Renderpass> build(Core* core, u32 width, u32 height);
