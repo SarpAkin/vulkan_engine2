@@ -11,7 +11,7 @@
 #include "../fwd.hpp"
 
 namespace vke {
-const char* vk_result_string(VkResult res);
+std::string vk_result_string(VkResult res);
 
 bool is_depth_format(VkFormat format);
 

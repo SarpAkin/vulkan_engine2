@@ -4,20 +4,21 @@
 
 #include "../util/arena_alloc.hpp"
 
-#include <vulkan/vk_enum_string_helper.h>
-
 #include <filesystem>
 #include <iostream>
 #include <regex>
 #include <vector>
+
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_to_string.hpp>
 
 #include <shaderc/shaderc.hpp>
 
 namespace vke {
 namespace fs = std::filesystem;
 
-const char* vk_result_string(VkResult res) {
-    return string_VkResult(res);
+std::string vk_result_string(VkResult res) {
+    return vk::to_string(vk::Result(res));
 }
 
 bool is_depth_format(VkFormat format) {
