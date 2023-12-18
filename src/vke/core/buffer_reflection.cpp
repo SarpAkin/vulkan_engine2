@@ -45,7 +45,7 @@ BufferReflection::BufferReflection(SpvReflectBlockVariable* block, VkShaderStage
         case (SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT):
             type = Type(Type::VEC_BASE + member.type_description->traits.numeric.vector.component_count);
             break;
-        case (SPV_REFLECT_TYPE_FLAG_MATRIX | SPV_REFLECT_TYPE_FLAG_FLOAT):
+        case (SPV_REFLECT_TYPE_FLAG_MATRIX | SPV_REFLECT_TYPE_FLAG_FLOAT | SPV_REFLECT_TYPE_FLAG_VECTOR):
             type = Field::MAT4;
             break;
         }
