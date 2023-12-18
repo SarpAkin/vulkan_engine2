@@ -95,7 +95,7 @@ public: // util
     void save_as_png(const char* path);
 
 public: // static methods
-    static std::unique_ptr<Image> buffer_to_image(CommandBuffer& cmd, IBufferSpan* buffer, const ImageArgs& args);
+    static std::unique_ptr<Image> buffer_to_image(CommandBuffer& cmd, IBufferSpan* buffer, const ImageArgs& args,VkImageLayout final_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     static std::unique_ptr<Image> load_png(CommandBuffer& cmd, const char* path, u32 mip_levels = 1); // image_load.cpp
 
 private: // hide unnecessary methods from interface IImageView

@@ -60,7 +60,7 @@ Image::Image(const ImageArgs& args) : Resource(args.core) {
         .subresourceRange = {
             .aspectMask     = aspects(),
             .baseMipLevel   = 0,
-            .levelCount     = 1,
+            .levelCount     = args.mip_levels,
             .baseArrayLayer = 0,
             .layerCount     = args.layers,
         },
@@ -97,7 +97,7 @@ Image::~Image() {
     vmaDestroyImage(core()->gpu_allocator(), m_image, m_allocation);
 }
 
-std::unique_ptr<Image> Image::buffer_to_image(CommandBuffer& cmd, IBufferSpan* buffer, const ImageArgs& _args) {
+std::unique_ptr<Image> Image::buffer_to_image(CommandBuffer& cmd, IBufferSpan* buffer, const ImageArgs& _args, VkImageLayout final_layout) {
     ImageArgs args = _args;
     args.usage_flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     args.core  = cmd.core();
@@ -105,7 +105,8 @@ std::unique_ptr<Image> Image::buffer_to_image(CommandBuffer& cmd, IBufferSpan* b
 
     image->copy_from_buffer(cmd,
         CopyFromBufferArgs{
-            .buffer = buffer,
+            .buffer       = buffer,
+            .final_layout = final_layout,
         });
 
     return image;

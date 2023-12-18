@@ -29,7 +29,7 @@ static void generate_miplevels(CommandBuffer& cmd, vke::Image* image) {
                 .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
                 .dstAccessMask    = VK_ACCESS_TRANSFER_READ_BIT,
-                .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 .image            = image->handle(),
                 .subresourceRange = {
@@ -44,7 +44,7 @@ static void generate_miplevels(CommandBuffer& cmd, vke::Image* image) {
                 .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
                 .dstAccessMask    = VK_ACCESS_TRANSFER_READ_BIT,
-                .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
                 .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 .image            = image->handle(),
                 .subresourceRange = {
@@ -159,9 +159,13 @@ std::unique_ptr<Image> Image::load_png(CommandBuffer& cmd, const char* path, u32
             .height      = static_cast<u32>(tex_height),
             .layers      = 1,
             .mip_levels  = mip_levels,
-        });
+
+        },
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     cmd.add_execution_dependency(std::move(stencil));
+
+    generate_miplevels(cmd, image.get());
 
     return image;
 }
