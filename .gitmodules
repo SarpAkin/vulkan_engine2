@@ -1,0 +1,3 @@
+[submodule "submodules/vke"]
+	path = submodules/vke_core
+	url = https://github.com/SarpAkin/vulkan_engine2_core
