@@ -10,6 +10,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # Set the library name and source files
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")
 
+
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
+
 find_package(Vulkan REQUIRED)
 
 # Create the shared library
@@ -25,5 +29,6 @@ include_directories(src/)
 target_link_libraries("1.out"
     ${Vulkan_LIBRARIES} 
     vke
+    ${SDL2_LIBRARIES}
 )
 
