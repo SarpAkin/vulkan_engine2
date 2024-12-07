@@ -21,7 +21,10 @@ add_executable("1.out" ${SRC_FILES})
 
 add_subdirectory(submodules/vke_core)
 
-include_directories(src/)
+include_directories(
+    src/
+    submodules/glm
+)
 
 # Optionally, specify additional linker options or dependencies
 # target_link_libraries(${LIBRARY_NAME} <dependency>)
