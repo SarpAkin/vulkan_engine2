@@ -1,0 +1,21 @@
+{
+  "pipelines": [
+    {
+      "name": "vke::default",
+      "renderpass": "vke::default_forward",
+      "vertex_input": "vke::default_mesh",
+      "depth_test": true,
+      "depth_write": true,
+      "polygon_mode": "FILL",
+      "topology_mode": "TRIANGLE_LIST",
+      "cull_mode": "NONE",
+      "depth_op": "LESS_OR_EQUAL",
+      "compiler_definitions": {
+      },
+      "shader_files": [
+        "default.vert",
+        "default.frag"
+      ]
+    }
+  ]
+}
