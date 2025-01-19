@@ -15,7 +15,6 @@ void Camera::set_world_pos(const glm::dvec3& wpos) {
 void Camera::update() {
     m_proj = glm::perspective(fov_deg, aspect_ratio, z_near, z_far);
 
-    
     float yaw_sin   = std::sin(glm::radians(yaw));
     float yaw_cos   = std::cos(glm::radians(yaw));
     float pitch_sin = std::sin(glm::radians(pitch));
@@ -37,22 +36,24 @@ void Camera::update() {
     m_proj_view = m_proj * m_view;
 }
 
-
-
-void Camera::move_freecam(Window* window,float delta_time) {
-    const float sensivity_x = 0.05;
-    const float sensivity_y = 0.05;
-    const float speed = 5.0;
+void Camera::move_freecam(Window* window, float delta_time) {
+    const float sensivity_x    = 0.5;
+    const float sensivity_y    = 0.5;
+    const float speed          = 0.5f;
     const float speed_vertical = 2;
+
+    // printf("mouse delta: (%.2f,%.2f)\n", window->get_mouse_input().delta_x, window->get_mouse_input().delta_y);
+    // printf("pitch,yaw: (%.1f,%.1f)\n",pitch,yaw);
+    // printf("camera world position: (%.1f,%.1f,%.1f)\n", world_position.x, world_position.y, world_position.z);
 
     yaw += window->get_mouse_input().delta_x * sensivity_x;
     pitch += window->get_mouse_input().delta_y * sensivity_y;
-    pitch = std::clamp(pitch, -M_PIf / 2 + 0.001f, M_PIf / 2 - 0.001f);
+    pitch = std::clamp(pitch, -89.9f, 89.9f);
 
-    float yaw_sin   = std::sin(yaw);
-    float yaw_cos   = std::cos(yaw);
-    float pitch_sin = std::sin(pitch);
-    float pitch_cos = std::cos(pitch);
+    float yaw_sin   = std::sin(glm::radians(yaw));
+    float yaw_cos   = std::cos(glm::radians(yaw));
+    float pitch_sin = std::sin(glm::radians(pitch));
+    float pitch_cos = std::cos(glm::radians(pitch));
 
     // z+ forward on yaw 0
     forward = glm::vec3(
@@ -62,7 +63,7 @@ void Camera::move_freecam(Window* window,float delta_time) {
     );
 
     int z_axis_move = (int)window->is_key_pressed('w') - (int)window->is_key_pressed('s');
-    int x_axis_move = (int)window->is_key_pressed('a') - (int)window->is_key_pressed('d');
+    int x_axis_move = (int)window->is_key_pressed('d') - (int)window->is_key_pressed('a');
     int y_axis_move = (int)window->is_key_pressed(' ') - (int)window->is_key_pressed('c');
 
     glm::vec3 z_axis = forward;
@@ -73,10 +74,11 @@ void Camera::move_freecam(Window* window,float delta_time) {
     total_move += z_axis * float(z_axis_move) * speed;
     total_move += x_axis * float(x_axis_move) * speed;
     total_move += y_axis * float(y_axis_move) * speed_vertical;
+    // printf("camera move: (%.1f,%.1f,%.1f)\n", total_move.x, total_move.y, total_move.z);
+    // printf("delta time %.2f\n",delta_time);
     total_move *= delta_time;
 
     world_position += total_move;
 }
-
 
 } // namespace vke
