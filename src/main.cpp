@@ -6,7 +6,7 @@
 #include "window/window_sdl.hpp"
 
 int main(){
-    vke::Engine engine;
+    vke::RenderServer engine;
     engine.init();
 
     engine.run();

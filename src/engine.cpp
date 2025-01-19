@@ -15,7 +15,7 @@
 
 namespace vke {
 
-void Engine::init() {
+void RenderServer::init() {
     vke::ContextConfig config{
         .app_name = "app0",
     };
@@ -50,7 +50,7 @@ void Engine::init() {
     populate_entities();
 }
 
-void Engine::run() {
+void RenderServer::run() {
     auto prev_time = std::chrono::system_clock::now();
 
     while (m_running && m_window->is_open()) {
@@ -124,7 +124,7 @@ void Engine::run() {
     }
 }
 
-void Engine::render(vke::CommandBuffer& cmd) {
+void RenderServer::render(vke::CommandBuffer& cmd) {
     // printf("rendereed!\n");
 
     m_camera->aspect_ratio = static_cast<float>(m_window->width()) / m_window->height(); 
@@ -153,10 +153,10 @@ void Engine::render(vke::CommandBuffer& cmd) {
         cmd.draw_indexed(m_cube_mesh->index_count, 1, 0, 0, 0);
     }
 }
-Engine::~Engine() {}
-Engine::Engine() {}
+RenderServer::~RenderServer() {}
+RenderServer::RenderServer() {}
 
-void Engine::populate_entities() {
+void RenderServer::populate_entities() {
     m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 5}));
 
     m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 0}));
