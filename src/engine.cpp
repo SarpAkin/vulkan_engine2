@@ -2,6 +2,7 @@
 
 #include "mesh/mesh_renderer.hpp"
 #include "mesh/mesh_util.hpp"
+#include "mesh/shapes.hpp"
 #include "scene/camera.hpp"
 #include "scene/scene_data.hpp"
 #include "window/window_sdl.hpp"
@@ -9,6 +10,8 @@
 #include <vke/pipeline_loader.hpp>
 #include <vke/util.hpp>
 #include <vke/vke.hpp>
+
+#include <chrono>
 
 namespace vke {
 
@@ -43,9 +46,13 @@ void Engine::init() {
             .fence = std::make_unique<vke::Fence>(true),
         });
     }
+
+    populate_entities();
 }
 
 void Engine::run() {
+    auto prev_time = std::chrono::system_clock::now();
+
     while (m_running && m_window->is_open()) {
         m_window->poll_events();
 
@@ -54,6 +61,10 @@ void Engine::run() {
         VkFence fence = framely_data.fence->handle();
         VK_CHECK(vkWaitForFences(device(), 1, &fence, true, 1E9));
         VK_CHECK(vkResetFences(device(), 1, &fence));
+
+        auto now     = std::chrono::system_clock::now();
+        m_delta_time = static_cast<std::chrono::duration<double>>((now - prev_time)).count();
+        prev_time = now;
 
         if (!m_window->surface()->prepare(1E9)) {
             VK_CHECK(vkDeviceWaitIdle(device()));
@@ -114,8 +125,43 @@ void Engine::run() {
 }
 
 void Engine::render(vke::CommandBuffer& cmd) {
-    printf("rendereed!\n");
+    // printf("rendereed!\n");
+
+    m_camera->aspect_ratio = static_cast<float>(m_window->width()) / m_window->height(); 
+
+    m_camera->move_freecam(m_window.get(), m_delta_time);
+    m_camera->update();
+
+
+    auto proj_view = m_camera->proj_view();
+
+    struct Push {
+        glm::mat4 mvp;
+    };
+
+    cmd.bind_pipeline(m_mesh_renderer->m_default_pipeline.get());
+
+    for (auto& e : m_entities) {
+        Push p{
+            .mvp = proj_view * glm::translate(glm::mat4(1), e->position),
+        };
+
+        cmd.push_constant(&p);
+        cmd.bind_index_buffer(m_cube_mesh->index_buffer.get(),m_cube_mesh->index_type);
+        cmd.bind_vertex_buffer({m_cube_mesh->vertex_buffer.get()});
+
+        cmd.draw_indexed(m_cube_mesh->index_count, 1, 0, 0, 0);
+    }
 }
 Engine::~Engine() {}
 Engine::Engine() {}
+
+void Engine::populate_entities() {
+    m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 5}));
+
+    m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 0}));
+
+
+    m_cube_mesh = vke::make_cube();
+}
 } // namespace vke

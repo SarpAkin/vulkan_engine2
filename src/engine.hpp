@@ -5,6 +5,7 @@
 #include <vke/fwd.hpp>
 #include <vke/vke.hpp>
 
+#include "entity/Entity.hpp"
 #include "fwd.hpp"
 
 #include "common.hpp" // IWYU pragma: export
@@ -34,6 +35,7 @@ private:
 
     bool m_running = true;
     int m_frame_index = 0;
+    float m_delta_time = NAN;
 
     struct FramelyData{
         std::unique_ptr<vke::CommandBuffer> cmd;
@@ -41,6 +43,13 @@ private:
     };
 
     std::vector<FramelyData> m_framely_data;
+
+private://tmp stuff
+    void populate_entities();
+
+private:
+    std::vector<std::unique_ptr<Entity>> m_entities;
+    std::unique_ptr<Mesh> m_cube_mesh;
 };
 
 } // namespace vke

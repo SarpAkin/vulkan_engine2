@@ -10,7 +10,7 @@ namespace vke {
 
 class Engine;
 
-class MeshRenderer {
+class  MeshRenderer {
 public:
     MeshRenderer(Engine* engine);
 
@@ -18,9 +18,9 @@ public:
 
     void render_mesh(vke::CommandBuffer& cmd,Mesh* mesh, glm::mat4& transform);
 
+    std::unique_ptr<vke::IPipeline> m_default_pipeline;
 private:
     Engine* m_engine;
-    std::unique_ptr<vke::IPipeline> m_default_pipeline;
 };
 
 } // namespace vke
