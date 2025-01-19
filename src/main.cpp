@@ -2,8 +2,8 @@
 
 #include <vke/vke.hpp>
 
-#include "engine.hpp"
-#include "window/window_sdl.hpp"
+#include "render/render_server.hpp"
+#include "render/window/window_sdl.hpp"
 
 int main(){
     vke::RenderServer engine;
