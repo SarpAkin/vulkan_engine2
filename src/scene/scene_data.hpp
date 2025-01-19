@@ -11,7 +11,7 @@ namespace vke {
 
 class SceneData {
 public:
-    SceneData(Engine* engine);
+    SceneData(RenderServer* engine);
     ~SceneData();
 
     Camera* camera;
@@ -21,7 +21,7 @@ public:
     VkDescriptorSetLayout get_scene_set_layout() const { return m_descriptor_set_layout; }
 
 private:
-    Engine* m_engine;
+    RenderServer* m_engine;
     std::unique_ptr<vke::Buffer> m_scene_ubo;
     VkDescriptorSet m_descriptor_set              = nullptr;
     VkDescriptorSetLayout m_descriptor_set_layout = nullptr;

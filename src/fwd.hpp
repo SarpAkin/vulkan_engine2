@@ -3,7 +3,7 @@
 namespace vke{
 
 class Camera;
-class Engine;
+class RenderServer;
 class Mesh;
 class MeshRenderer;
 class SceneData;

@@ -1,6 +1,6 @@
 #include "mesh_renderer.hpp"
 
-#include "engine.hpp"
+#include "render/render_server.hpp"
 
 #include <vke/pipeline_loader.hpp>
 
@@ -8,7 +8,7 @@
 
 namespace vke {
 
-MeshRenderer::MeshRenderer(Engine* engine) : m_engine(engine) {
+MeshRenderer::MeshRenderer(RenderServer* engine) : m_engine(engine) {
     auto pl = engine->get_pipeline_loader();
 
     m_default_pipeline = pl->load("vke::default");

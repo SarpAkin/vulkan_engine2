@@ -11,10 +11,10 @@
 #include "common.hpp" // IWYU pragma: export
 
 namespace vke {
-class Engine : protected vke::DeviceGetter {
+class RenderServer : protected vke::DeviceGetter {
 public:
-    Engine();
-    ~Engine();
+    RenderServer();
+    ~RenderServer();
 
     void init();
     void run();

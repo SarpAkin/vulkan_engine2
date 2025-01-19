@@ -5,7 +5,7 @@
 
 namespace vke {
 
-SceneData::SceneData(Engine* engine) {
+SceneData::SceneData(RenderServer* engine) {
     vke::DescriptorSetLayoutBuilder builder;
     
     builder.add_binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL, 1);
