@@ -3,7 +3,9 @@
 #include "mesh/mesh_renderer.hpp"
 #include "mesh/mesh_util.hpp"
 #include "mesh/shapes.hpp"
+#include "render/object_renderer.hpp"
 #include "scene/camera.hpp"
+#include "scene/components/transform.hpp"
 #include "scene/scene_data.hpp"
 #include "window/window_sdl.hpp"
 
@@ -47,6 +49,13 @@ void RenderServer::init() {
         });
     }
 
+    m_object_renderer = std::make_unique<ObjectRenderer>();
+    m_object_renderer->set_render_server(this);
+    m_object_renderer->set_entt_registery(&m_registry);
+    auto materialID = m_object_renderer->create_material("vke::default",{},"vke::default_material");
+    auto meshID = m_object_renderer->create_mesh(std::move(*vke::make_cube()));
+    m_cube_mesh_id = m_object_renderer->create_model(meshID, materialID);
+
     populate_entities();
 }
 
@@ -64,7 +73,7 @@ void RenderServer::run() {
 
         auto now     = std::chrono::system_clock::now();
         m_delta_time = static_cast<std::chrono::duration<double>>((now - prev_time)).count();
-        prev_time = now;
+        prev_time    = now;
 
         if (!m_window->surface()->prepare(1E9)) {
             VK_CHECK(vkDeviceWaitIdle(device()));
@@ -127,41 +136,34 @@ void RenderServer::run() {
 void RenderServer::render(vke::CommandBuffer& cmd) {
     // printf("rendereed!\n");
 
-    m_camera->aspect_ratio = static_cast<float>(m_window->width()) / m_window->height(); 
+    m_camera->aspect_ratio = static_cast<float>(m_window->width()) / m_window->height();
 
     m_camera->move_freecam(m_window.get(), m_delta_time);
     m_camera->update();
 
-
     auto proj_view = m_camera->proj_view();
 
-    struct Push {
-        glm::mat4 mvp;
-    };
-
-    cmd.bind_pipeline(m_mesh_renderer->m_default_pipeline.get());
-
-    for (auto& e : m_entities) {
-        Push p{
-            .mvp = proj_view * glm::translate(glm::mat4(1), e->position),
-        };
-
-        cmd.push_constant(&p);
-        cmd.bind_index_buffer(m_cube_mesh->index_buffer.get(),m_cube_mesh->index_type);
-        cmd.bind_vertex_buffer({m_cube_mesh->vertex_buffer.get()});
-
-        cmd.draw_indexed(m_cube_mesh->index_count, 1, 0, 0, 0);
-    }
+    m_object_renderer->set_camera(m_camera.get());
+    m_object_renderer->render(cmd);
 }
 RenderServer::~RenderServer() {}
 RenderServer::RenderServer() {}
 
 void RenderServer::populate_entities() {
-    m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 5}));
+    // m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 5}));
 
-    m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 0}));
+    // m_entities.push_back(std::make_unique<Entity>(glm::vec3{0, 0, 0}));
 
+    // m_cube_mesh = vke::make_cube();
 
-    m_cube_mesh = vke::make_cube();
+    for (int i = 0; i < 10; ++i) {
+        auto entity = m_registry.create();
+        m_registry.emplace<Transform>(entity,
+            Transform{
+                .position = glm::dvec3(rand() % 20, rand() % 20, rand() % 20),
+            });
+        m_registry.emplace<Renderable>(entity, Renderable{.model_id = m_cube_mesh_id});
+    }
 }
+
 } // namespace vke

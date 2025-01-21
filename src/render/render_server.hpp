@@ -9,8 +9,13 @@
 #include "fwd.hpp"
 
 #include "common.hpp" // IWYU pragma: export
+#include "render/iobject_renderer.hpp"
+
+#include <entt/entt.hpp>
 
 namespace vke {
+class ObjectRenderer;
+
 class RenderServer : protected vke::DeviceGetter {
 public:
     RenderServer();
@@ -32,6 +37,7 @@ private:
     std::unique_ptr<vke::Camera> m_camera;
     std::unique_ptr<vke::MeshRenderer> m_mesh_renderer;
     std::unique_ptr<vke::SceneData> m_scene_data;
+    std::unique_ptr<vke::ObjectRenderer> m_object_renderer;
 
     bool m_running = true;
     int m_frame_index = 0;
@@ -48,8 +54,10 @@ private://tmp stuff
     void populate_entities();
 
 private:
-    std::vector<std::unique_ptr<Entity>> m_entities;
+    // std::vector<std::unique_ptr<Entity>> m_entities;
+    entt::registry m_registry;
     std::unique_ptr<Mesh> m_cube_mesh;
+    RenderModelID m_cube_mesh_id = 0;
 };
 
 } // namespace vke
