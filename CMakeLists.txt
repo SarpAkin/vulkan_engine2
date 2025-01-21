@@ -24,6 +24,8 @@ add_subdirectory(submodules/vke_core)
 include_directories(
     src/
     submodules/glm
+    submodules/entt/src
+
 )
 
 # Optionally, specify additional linker options or dependencies
