@@ -7,6 +7,7 @@ class RenderServer;
 class Mesh;
 class MeshRenderer;
 class SceneData;
-
+class IObjectRenderer;
+class ObjectRenderer;
 
 }
