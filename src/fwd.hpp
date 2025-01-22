@@ -9,5 +9,7 @@ class MeshRenderer;
 class SceneData;
 class IObjectRenderer;
 class ObjectRenderer;
+class Scene;
+class GameEngine;
 
 }
