@@ -7,3 +7,6 @@
 [submodule "submodules/entt"]
 	path = submodules/entt
 	url = https://github.com/skypjack/entt
+[submodule "submodules/tinygltf"]
+	path = submodules/tinygltf
+	url = https://github.com/syoyo/tinygltf

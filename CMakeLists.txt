@@ -25,7 +25,7 @@ include_directories(
     src/
     submodules/glm
     submodules/entt/src
-
+    submodules/tinygltf/
 )
 
 # Optionally, specify additional linker options or dependencies
