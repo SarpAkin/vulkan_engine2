@@ -24,11 +24,16 @@ public:
     void set_entt_registery(entt::registry* registery) override { m_registery = registery; }
     void render(vke::CommandBuffer& cmd) override;
 
-    void set_camera(Camera* camera){m_camera = camera;}
+    void set_camera(Camera* camera) { m_camera = camera; }
 
     MaterialID create_material(const std::string& pipeline_name, const std::vector<ImageID>& images = {}, const std::string& material_name = "");
     MeshID create_mesh(Mesh mesh, const std::string& name = "");
-    RenderModelID create_model(MeshID mesh, MaterialID material);
+    RenderModelID create_model(MeshID mesh, MaterialID material, const std::string& name = "");
+
+    void bind_name2model(RenderModelID id, const std::string& name);
+
+    RenderModelID get_model_id(const std::string& name) const { return m_render_model_names2model_ids.at(name); }
+
 
 private:
     struct RenderModel {
@@ -38,6 +43,7 @@ private:
         };
 
         vke::SmallVec<Part> parts;
+        std::string name;
     };
 
     struct Material {
@@ -50,10 +56,10 @@ private:
     struct RenderState {
         vke::CommandBuffer& cmd;
         MaterialID bound_material_id = 0;
-        MeshID bound_mesh_id = 0;
-        IPipeline* bound_pipeline = nullptr;
-        Mesh* mesh         = nullptr;
-        Material* material = nullptr;
+        MeshID bound_mesh_id         = 0;
+        IPipeline* bound_pipeline    = nullptr;
+        Mesh* mesh                   = nullptr;
+        Material* material           = nullptr;
     };
 
 private:
@@ -70,6 +76,7 @@ private:
 
     std::unordered_map<std::string, MaterialID> m_material_names2material_ids;
     std::unordered_map<std::string, MeshID> m_mesh_names2mesh_ids;
+    std::unordered_map<std::string, RenderModelID> m_render_model_names2model_ids;
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     VkDescriptorSetLayout m_material_set_layout;

@@ -105,13 +105,27 @@ MeshID ObjectRenderer::create_mesh(Mesh mesh, const std::string& name) {
     return id;
 }
 
-RenderModelID ObjectRenderer::create_model(MeshID mesh, MaterialID material) {
+RenderModelID ObjectRenderer::create_model(MeshID mesh, MaterialID material, const std::string& name) {
     auto id = RenderModelID(new_raw_id());
 
     m_render_models[id] = RenderModel{
         .parts = {
-            {mesh, material}}};
+            {mesh, material},
+        },
+    };
+
+    if(!name.empty()){
+        bind_name2model(id, name);
+    }
 
     return id;
 }
+
+void ObjectRenderer::bind_name2model(RenderModelID id, const std::string& name) {
+    assert(!m_render_model_names2model_ids.contains(name) && "model name is already present");
+
+    m_render_model_names2model_ids[name] = id;
+    m_render_models[id].name = name;
+}
+
 } // namespace vke
