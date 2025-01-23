@@ -114,7 +114,24 @@ RenderModelID ObjectRenderer::create_model(MeshID mesh, MaterialID material, con
         },
     };
 
-    if(!name.empty()){
+    if (!name.empty()) {
+        bind_name2model(id, name);
+    }
+
+    return id;
+}
+
+RenderModelID ObjectRenderer::create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name) {
+    auto id = RenderModelID(new_raw_id());
+
+    m_render_models[id] = RenderModel{
+        .parts = map_vec(parts, [](auto& part) {
+        auto& [mesh, mat] = part;
+        return RenderModel::Part{mesh, mat};
+    }),
+    };
+
+    if (!name.empty()) {
         bind_name2model(id, name);
     }
 
@@ -125,7 +142,7 @@ void ObjectRenderer::bind_name2model(RenderModelID id, const std::string& name) 
     assert(!m_render_model_names2model_ids.contains(name) && "model name is already present");
 
     m_render_model_names2model_ids[name] = id;
-    m_render_models[id].name = name;
+    m_render_models[id].name             = name;
 }
 
 } // namespace vke

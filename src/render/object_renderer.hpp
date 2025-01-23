@@ -29,6 +29,7 @@ public:
     MaterialID create_material(const std::string& pipeline_name, const std::vector<ImageID>& images = {}, const std::string& material_name = "");
     MeshID create_mesh(Mesh mesh, const std::string& name = "");
     RenderModelID create_model(MeshID mesh, MaterialID material, const std::string& name = "");
+    RenderModelID create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name = "");
 
     void bind_name2model(RenderModelID id, const std::string& name);
 
