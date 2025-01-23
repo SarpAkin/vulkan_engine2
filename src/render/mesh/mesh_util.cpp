@@ -7,9 +7,9 @@ namespace vke{
 std::unique_ptr<vke::VertexInputDescriptionBuilder> make_default_vertex_layout() {
     auto builder = std::make_unique<vke::VertexInputDescriptionBuilder>();
 
-    builder->push_binding<vke::Mesh::Vertex>();
+    builder->push_binding<glm::vec3>();
     builder->push_attribute<float>(3);
-    builder->push_attribute<u32>(1);
+    // builder->push_attribute<u32>(1);
 
     return builder;
 }
