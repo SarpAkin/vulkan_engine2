@@ -35,6 +35,11 @@ public:
 
     RenderModelID get_model_id(const std::string& name) const { return m_render_model_names2model_ids.at(name); }
 
+    std::optional<RenderModelID> try_get_model_id(const std::string& name) const { return at(m_render_model_names2model_ids, name); }
+    std::optional<MeshID> try_get_mesh_id(const std::string& name) const { return at(m_mesh_names2mesh_ids, name); }
+    std::optional<MaterialID> try_get_material_id(const std::string& name) const { return at(m_material_names2material_ids, name); }
+
+    
 
 private:
     struct RenderModel {
