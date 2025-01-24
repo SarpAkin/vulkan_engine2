@@ -30,6 +30,7 @@ public:
     MeshID create_mesh(Mesh mesh, const std::string& name = "");
     RenderModelID create_model(MeshID mesh, MaterialID material, const std::string& name = "");
     RenderModelID create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name = "");
+    ImageID create_image(std::unique_ptr<IImageView> image_view, const std::string& name = "");
 
     void bind_name2model(RenderModelID id, const std::string& name);
 
@@ -38,8 +39,6 @@ public:
     std::optional<RenderModelID> try_get_model_id(const std::string& name) const { return at(m_render_model_names2model_ids, name); }
     std::optional<MeshID> try_get_mesh_id(const std::string& name) const { return at(m_mesh_names2mesh_ids, name); }
     std::optional<MaterialID> try_get_material_id(const std::string& name) const { return at(m_material_names2material_ids, name); }
-
-    
 
 private:
     struct RenderModel {
@@ -57,6 +56,7 @@ private:
         VkDescriptorSet material_set;
         vke::SmallVec<ImageID> images;
         std::string name;
+        
     };
 
     struct RenderState {
@@ -83,6 +83,7 @@ private:
     std::unordered_map<std::string, MaterialID> m_material_names2material_ids;
     std::unordered_map<std::string, MeshID> m_mesh_names2mesh_ids;
     std::unordered_map<std::string, RenderModelID> m_render_model_names2model_ids;
+    std::unordered_map<std::string, ImageID> m_image_names2image_ids;
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     VkDescriptorSetLayout m_material_set_layout;

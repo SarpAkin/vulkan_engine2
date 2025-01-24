@@ -145,4 +145,16 @@ void ObjectRenderer::bind_name2model(RenderModelID id, const std::string& name) 
     m_render_models[id].name             = name;
 }
 
+ImageID ObjectRenderer::create_image(std::unique_ptr<IImageView> image_view, const std::string& name) {
+    auto id = ImageID(new_raw_id());
+
+    m_images[id] = std::move(image_view);
+
+    if(!name.empty()){
+        m_image_names2image_ids[name] = id;
+    }
+
+    return id;
+}
+
 } // namespace vke
