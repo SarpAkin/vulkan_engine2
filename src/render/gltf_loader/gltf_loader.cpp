@@ -93,7 +93,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
 
     auto default_id   = renderer->try_get_material_id("vke::default_material").value();
     auto material_ids = vke::map_vec(model.materials, [&](const tg::Material& material) {
-        int pbr_texture_index = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+        int pbr_texture_index = material.pbrMetallicRoughness.baseColorTexture.index;
         if (pbr_texture_index == -1) return default_id;
 
         return renderer->create_material("vke::default", {get_image(pbr_texture_index)});
