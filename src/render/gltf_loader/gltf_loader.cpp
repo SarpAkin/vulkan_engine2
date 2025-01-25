@@ -14,8 +14,7 @@ namespace tg = tinygltf;
 template <class T>
 struct Type {};
 
-void load_gltf_file(entt::registry* registry, ObjectRenderer* renderer, const std::string& file_path) {
-    tg::Model model;
+static bool load_gltf_into_model(tg::Model& model, const std::string& file_path) {
     tg::TinyGLTF loader;
     std::string err;
     std::string warn;
@@ -25,18 +24,25 @@ void load_gltf_file(entt::registry* registry, ObjectRenderer* renderer, const st
 
     if (!warn.empty()) {
         LOG_WARNING("Warn: %s\n", warn.c_str());
-        return;
+        return false;
     }
 
     if (!err.empty()) {
         LOG_ERROR("Err: %s\n", err.c_str());
-        return;
+        return false;
     }
 
     if (!ret) {
         LOG_ERROR("Failed to parse glTF\n");
-        return;
+        return false;
     }
+
+    return true;
+}
+
+void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer* renderer, const std::string& file_path) {
+    tg::Model model;
+    if (!load_gltf_into_model(model, file_path)) return;
 
     std::string registered_name_prefix = file_path + "$";
 
@@ -58,9 +64,39 @@ void load_gltf_file(entt::registry* registry, ObjectRenderer* renderer, const st
         return get_buffer_view(t, accesor.bufferView, accesor.byteOffset).subspan(0, accesor.count);
     };
 
+    // model.textures[0].source
+    // model.images[0].bufferView
+
+    auto images = vke::map_vec(model.images, [&](const tg::Image& image) {
+        if (!(image.bits == 8 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE && image.component == 4)) {
+            // handle unspported formats
+            TODO();
+        }
+
+        auto vke_image = Image::image_from_bytes(cmd, std::span(image.image),
+            vke::ImageArgs{
+                .format      = VK_FORMAT_R8G8B8A8_SRGB,
+                .usage_flags = VK_IMAGE_USAGE_SAMPLED_BIT,
+                .width       = static_cast<u32>(image.width),
+                .height      = static_cast<u32>(image.height),
+                .layers      = 1,
+            });
+
+        return renderer->create_image(std::move(vke_image));
+    });
+
+    auto get_image = [&](int texture_index){
+        auto& texture = model.textures[texture_index];
+        
+        return images[texture.source];
+    };
+
     auto default_id   = renderer->try_get_material_id("vke::default_material").value();
     auto material_ids = vke::map_vec(model.materials, [&](const tg::Material& material) {
-        return default_id;
+        int pbr_texture_index = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+        if (pbr_texture_index == -1) return default_id;
+
+        return renderer->create_material("vke::default", {get_image(pbr_texture_index)});
     });
 
     auto set_indicies = [&](MeshBuilder& builder, int ib_accesor_index) {
@@ -86,9 +122,12 @@ void load_gltf_file(entt::registry* registry, ObjectRenderer* renderer, const st
         // auto& position_accesor = model.accessors[primative.attributes.at("POSITION")];
 
         auto position_view = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("POSITION"));
+        auto texture_coords_view = get_buffer_view_from_accesor(Type<glm::vec2>(), primative.attributes.at("TEXCOORD_0"));
+
 
         MeshBuilder builder;
         builder.set_positions(position_view);
+        builder.set_texture_coords(texture_coords_view);
 
         set_indicies(builder, primative.indices);
 

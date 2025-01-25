@@ -6,5 +6,5 @@
 
 namespace vke{
 
-void load_gltf_file(entt::registry* registery,ObjectRenderer* renderer, const std::string& file_path);
+void load_gltf_file(vke::CommandBuffer& cmd,entt::registry* registery,ObjectRenderer* renderer, const std::string& file_path);
 }
