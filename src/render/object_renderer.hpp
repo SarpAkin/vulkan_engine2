@@ -80,6 +80,8 @@ private:
 
     IImageView* get_image(ImageID id);
 
+    RCResource<vke::IPipeline> load_pipeline_cached(const std::string& name);
+
 private:
     std::unordered_map<ImageID, std::unique_ptr<IImageView>> m_images;
     std::unordered_map<MaterialID, Material> m_materials;
@@ -90,6 +92,8 @@ private:
     std::unordered_map<std::string, MeshID> m_mesh_names2mesh_ids;
     std::unordered_map<std::string, RenderModelID> m_render_model_names2model_ids;
     std::unordered_map<std::string, ImageID> m_image_names2image_ids;
+
+    std::unordered_map<std::string, vke::RCResource<vke::IPipeline>> m_cached_pipelines;
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     VkDescriptorSetLayout m_material_set_layout;

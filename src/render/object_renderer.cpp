@@ -113,7 +113,7 @@ MaterialID ObjectRenderer::create_material(const std::string& pipeline_name, std
     images.resize(4, m_null_texture_id);
 
     Material m{
-        .pipeline     = m_render_server->get_pipeline_loader()->load(pipeline_name.c_str()),
+        .pipeline     = load_pipeline_cached(pipeline_name),
         .material_set = VK_NULL_HANDLE,
         .images       = images,
         .name         = material_name,
@@ -260,5 +260,15 @@ IImageView* ObjectRenderer::get_image(ImageID id) {
     } else {
         return m_null_texture;
     }
+}
+
+RCResource<vke::IPipeline> ObjectRenderer::load_pipeline_cached(const std::string& name) {
+    auto val = vke::at(m_cached_pipelines, name);
+    if(val.has_value()) return val.value();
+
+    RCResource<IPipeline> pipeline = m_render_server->get_pipeline_loader()->load(name.c_str());
+    m_cached_pipelines[name] = pipeline;
+
+    return pipeline;
 }
 } // namespace vke
