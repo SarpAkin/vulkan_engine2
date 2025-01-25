@@ -13,20 +13,22 @@
 
 namespace vke {
 
-class ObjectRenderer final : public IObjectRenderer {
+class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
 public:
     constexpr static int MATERIAL_SET = 0;
+    constexpr static int MATERIAL_SET_IMAGE_COUNT = 4; 
 
 public:
-    ObjectRenderer() {}
+    ObjectRenderer();
+    ~ObjectRenderer();
 
-    void set_render_server(RenderServer* render_server) override { m_render_server = render_server; };
+    void set_render_server(RenderServer* render_server) override;
     void set_entt_registery(entt::registry* registery) override { m_registery = registery; }
     void render(vke::CommandBuffer& cmd) override;
 
     void set_camera(Camera* camera) { m_camera = camera; }
 
-    MaterialID create_material(const std::string& pipeline_name, const std::vector<ImageID>& images = {}, const std::string& material_name = "");
+    MaterialID create_material(const std::string& pipeline_name, std::vector<ImageID> images = {}, const std::string& material_name = "");
     MeshID create_mesh(Mesh mesh, const std::string& name = "");
     RenderModelID create_model(MeshID mesh, MaterialID material, const std::string& name = "");
     RenderModelID create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name = "");
@@ -56,7 +58,7 @@ private:
         VkDescriptorSet material_set;
         vke::SmallVec<ImageID> images;
         std::string name;
-        
+
     };
 
     struct RenderState {
@@ -74,6 +76,10 @@ private:
     bool bind_mesh(RenderState& state, MeshID id);
     bool bind_material(RenderState& state, MaterialID id);
 
+    void create_null_texture(int size);
+
+    IImageView* get_image(ImageID id);
+
 private:
     std::unordered_map<ImageID, std::unique_ptr<IImageView>> m_images;
     std::unordered_map<MaterialID, Material> m_materials;
@@ -87,14 +93,16 @@ private:
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     VkDescriptorSetLayout m_material_set_layout;
+    VkSampler m_nearest_sampler;
 
     vke::RenderServer* m_render_server;
     entt::registry* m_registery;
     Camera* m_camera;
+    IImageView* m_null_texture;
+
+    ImageID m_null_texture_id;
 
     uint32_t m_id_counter = 1; // 0 is null
-
-    RenderModelID m_cube_model = 0;
 };
 
 } // namespace vke
