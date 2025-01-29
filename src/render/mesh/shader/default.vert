@@ -1,5 +1,7 @@
 #version 460
 
+#include "scene_set.glsl"
+
 layout(location = 0) in vec3 v_pos;
 layout(location = 1) in vec2 v_texture_coords;
 
@@ -15,8 +17,10 @@ layout(push_constant) uniform PC {
 
 void main() {
     gl_Position = mvp * vec4(v_pos, 1.0);
+    // gl_Position.x = -gl_Position.x;
 
     f_uvs = v_texture_coords;
+    // f_uvs.x = 1.0 - f_uvs.x;
     fcolor = vec3(1.0);
 
     // fcolor = unpackUnorm4x8(v_color).rgb;

@@ -6,24 +6,32 @@
 #include <vulkan/vulkan.h>
 
 #include "../fwd.hpp"
+#include "common.hpp"
 
 namespace vke {
 
-class SceneData {
+class SceneSet {
 public:
-    SceneData(RenderServer* engine);
-    ~SceneData();
+    SceneSet(RenderServer* engine);
+    ~SceneSet();
 
     Camera* camera;
+    Scene* scene;
 
 public:
-    VkDescriptorSet get_scene_set() const { return m_descriptor_set; }
+    void update_scene_set();
+    VkDescriptorSet get_scene_set() const;
     VkDescriptorSetLayout get_scene_set_layout() const { return m_descriptor_set_layout; }
 
 private:
-    RenderServer* m_engine;
-    std::unique_ptr<vke::Buffer> m_scene_ubo;
-    VkDescriptorSet m_descriptor_set              = nullptr;
+    struct FramelyData {
+        std::unique_ptr<vke::Buffer> scene_ubo;
+        VkDescriptorSet set = nullptr;
+    };
+
+private:
+    FramelyData m_framely_datas[FRAME_OVERLAP];
+    RenderServer* m_render_server;
     VkDescriptorSetLayout m_descriptor_set_layout = nullptr;
 };
 

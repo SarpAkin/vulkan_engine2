@@ -3,13 +3,16 @@
 #include "render_server.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/transform.hpp"
+#include "scene/scene.hpp"
+#include "scene_set.hpp"
 
 #include <vke/pipeline_loader.hpp>
 #include <vke/vke_builders.hpp>
 
 namespace vke {
 
-ObjectRenderer::ObjectRenderer() {
+ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
+    m_render_server   = render_server;
     m_descriptor_pool = std::make_unique<DescriptorPool>();
 
     vke::DescriptorSetLayoutBuilder layout_builder;
@@ -29,14 +32,13 @@ ObjectRenderer::ObjectRenderer() {
     VK_CHECK(vkCreateSampler(device(), &sampler_info, nullptr, &m_nearest_sampler));
 
     create_null_texture(16);
-}
 
-void ObjectRenderer::set_render_server(RenderServer* render_server) {
-    m_render_server  = render_server;
     auto pg_provider = m_render_server->get_pipeline_loader()->get_pipeline_globals_provider();
 
     pg_provider->set_layouts["vke::object_renderer::material_set"];
-};
+
+    m_scene_set = std::make_unique<SceneSet>(render_server);
+}
 
 ObjectRenderer::~ObjectRenderer() {
     vkDestroyDescriptorSetLayout(device(), m_material_set_layout, nullptr);
@@ -47,6 +49,9 @@ void ObjectRenderer::render(vke::CommandBuffer& cmd) {
     auto view = m_registery->view<Renderable, Transform>();
 
     RenderState state = {.cmd = cmd};
+
+    m_scene_set->update_scene_set();    
+    cmd.bind_descriptor_set(SCENE_SET, m_scene_set->get_scene_set());
 
     for (auto& e : view) {
         auto [r, t] = view.get(e);
@@ -231,18 +236,17 @@ void ObjectRenderer::create_null_texture(int size) {
     VulkanContext::get_context()->immediate_submit([&](CommandBuffer& cmd) {
         VkImageMemoryBarrier barriers[] = {
             VkImageMemoryBarrier{
-                .sType         = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                .srcAccessMask = VK_ACCESS_HOST_WRITE_BIT,
-                .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-                .oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED,
-                .newLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                .image         = m_null_texture->vke_image()->handle(),
+                .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                .srcAccessMask    = VK_ACCESS_HOST_WRITE_BIT,
+                .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+                .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .image            = m_null_texture->vke_image()->handle(),
                 .subresourceRange = {
                     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                     .levelCount = 1,
                     .layerCount = 1,
-                }
-            },
+                }},
         };
 
         cmd.pipeline_barrier(PipelineBarrierArgs{
@@ -264,11 +268,16 @@ IImageView* ObjectRenderer::get_image(ImageID id) {
 
 RCResource<vke::IPipeline> ObjectRenderer::load_pipeline_cached(const std::string& name) {
     auto val = vke::at(m_cached_pipelines, name);
-    if(val.has_value()) return val.value();
+    if (val.has_value()) return val.value();
 
     RCResource<IPipeline> pipeline = m_render_server->get_pipeline_loader()->load(name.c_str());
-    m_cached_pipelines[name] = pipeline;
+    m_cached_pipelines[name]       = pipeline;
 
     return pipeline;
+}
+
+void ObjectRenderer::set_scene(Scene* scene) {
+    m_scene_set->scene = scene;
+    m_scene_set->camera = scene->get_camera();
 }
 } // namespace vke
