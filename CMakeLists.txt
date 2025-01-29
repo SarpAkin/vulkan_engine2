@@ -25,7 +25,6 @@ include_directories(
     src/
     submodules/glm
     submodules/entt/src
-
 )
 
 # Optionally, specify additional linker options or dependencies
