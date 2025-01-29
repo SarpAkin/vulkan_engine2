@@ -33,6 +33,7 @@ Mesh MeshBuilder::build(vke::CommandBuffer* buffer) const {
 
     add_buffer(m_positions);
     add_buffer(m_texture_coords);
+    add_buffer(m_normals);
 
     if (m_indicies_in_bytes.size() > 0) {
         auto ib = std::make_unique<vke::Buffer>(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, m_indicies_in_bytes.size_bytes(), true);
