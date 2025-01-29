@@ -15,6 +15,7 @@ GameEngine::GameEngine(bool headless) {
 
         m_render_server->get_object_renderer()->set_entt_registery(m_scene->get_registery());
         m_render_server->get_object_renderer()->set_camera(m_scene->get_camera());
+        m_render_server->get_object_renderer()->set_scene(m_scene.get());
     }
 }
 

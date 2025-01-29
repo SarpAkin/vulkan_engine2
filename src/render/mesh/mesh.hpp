@@ -33,6 +33,7 @@ class MeshBuilder {
 public:
     void set_positions(std::span<glm::vec3> span) { m_positions = span; }
     void set_texture_coords(std::span<glm::vec2> span) { m_texture_coords = span; }
+    void set_normals(std::span<glm::vec3> span) { m_normals = span; }
 
     void set_indicies(std::span<uint16_t> span);
     void set_indicies(std::span<uint32_t> span);

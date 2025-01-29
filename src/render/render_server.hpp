@@ -31,13 +31,17 @@ public:
     void frame(std::function<void(vke::CommandBuffer& cmd)> render_function);
     bool is_running() { return m_running && m_window->is_open(); }
 
-private:
+    int get_frame_index() const { return m_frame_index; }
 
+    DescriptorPool* get_descriptor_pool(){return m_descriptor_pool.get();}
+
+private:
 private:
     std::unique_ptr<vke::Window> m_window;
     std::unique_ptr<vke::Renderpass> m_window_renderpass;
     std::unique_ptr<vke::IPipelineLoader> m_pipeline_loader;
     std::unique_ptr<vke::ObjectRenderer> m_object_renderer;
+    std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
 
     bool m_running    = true;
     int m_frame_index = 0;
@@ -48,7 +52,6 @@ private:
     };
 
     std::vector<FramelyData> m_framely_data;
-
 };
 
 } // namespace vke

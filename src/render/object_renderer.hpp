@@ -15,15 +15,16 @@ namespace vke {
 
 class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
 public:
-    constexpr static int MATERIAL_SET = 0;
-    constexpr static int MATERIAL_SET_IMAGE_COUNT = 4; 
+    constexpr static int SCENE_SET                = 0;
+    constexpr static int MATERIAL_SET             = 1;
+    constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;
 
 public:
-    ObjectRenderer();
+    ObjectRenderer(RenderServer* render_server);
     ~ObjectRenderer();
 
-    void set_render_server(RenderServer* render_server) override;
     void set_entt_registery(entt::registry* registery) override { m_registery = registery; }
+    void set_scene(Scene* scene);
     void render(vke::CommandBuffer& cmd) override;
 
     void set_camera(Camera* camera) { m_camera = camera; }
@@ -58,7 +59,6 @@ private:
         VkDescriptorSet material_set;
         vke::SmallVec<ImageID> images;
         std::string name;
-
     };
 
     struct RenderState {
@@ -96,13 +96,14 @@ private:
     std::unordered_map<std::string, vke::RCResource<vke::IPipeline>> m_cached_pipelines;
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
+    std::unique_ptr<SceneSet> m_scene_set = nullptr;
     VkDescriptorSetLayout m_material_set_layout;
     VkSampler m_nearest_sampler;
 
-    vke::RenderServer* m_render_server;
-    entt::registry* m_registery;
-    Camera* m_camera;
-    IImageView* m_null_texture;
+    vke::RenderServer* m_render_server = nullptr;
+    entt::registry* m_registery        = nullptr;
+    Camera* m_camera                   = nullptr;
+    IImageView* m_null_texture         = nullptr;
 
     ImageID m_null_texture_id;
 
