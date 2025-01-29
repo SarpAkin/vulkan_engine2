@@ -123,11 +123,12 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
 
         auto position_view = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("POSITION"));
         auto texture_coords_view = get_buffer_view_from_accesor(Type<glm::vec2>(), primative.attributes.at("TEXCOORD_0"));
-
+        auto normals_view = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("NORMAL"));
 
         MeshBuilder builder;
         builder.set_positions(position_view);
         builder.set_texture_coords(texture_coords_view);
+        builder.set_normals(normals_view);
 
         set_indicies(builder, primative.indices);
 

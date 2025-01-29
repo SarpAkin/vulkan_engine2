@@ -1,12 +1,10 @@
 #include "render_server.hpp"
 
-#include "mesh/mesh_renderer.hpp"
 #include "mesh/mesh_util.hpp"
 #include "mesh/shapes.hpp"
 #include "render/object_renderer.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/transform.hpp"
-#include "scene/scene_data.hpp"
 #include "window/window_sdl.hpp"
 
 #include <vke/pipeline_loader.hpp>
@@ -20,9 +18,19 @@ namespace vke {
 void RenderServer::init() {
     vke::ContextConfig config{
         .app_name = "app0",
+        .features1_0 = {
+            .shaderFloat64 = true,
+            .shaderInt64 = true,
+            .shaderInt16 = true,
+        },
+        .features1_2 = {
+            .shaderInt8 = true,
+        },
     };
 
     vke::VulkanContext::init(config);
+
+    m_descriptor_pool = std::make_unique<DescriptorPool>();
 
     m_window = std::make_unique<WindowSDL>();
     m_window->init_surface();
@@ -44,13 +52,11 @@ void RenderServer::init() {
         });
     }
 
-    m_object_renderer = std::make_unique<ObjectRenderer>();
-    m_object_renderer->set_render_server(this);
-    
+    m_object_renderer = std::make_unique<ObjectRenderer>(this);
     //Creating a cube model
     auto materialID = m_object_renderer->create_material("vke::default", {}, "vke::default_material");
-    auto meshID     = m_object_renderer->create_mesh(std::move(*vke::make_cube()));
-    m_object_renderer->create_model(meshID, materialID,"cube");
+    // auto meshID     = m_object_renderer->create_mesh(std::move(*vke::make_cube()));
+    // m_object_renderer->create_model(meshID, materialID,"cube");
 }
 
 void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_function) {

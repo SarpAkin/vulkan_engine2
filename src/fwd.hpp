@@ -6,7 +6,7 @@ class Camera;
 class RenderServer;
 class Mesh;
 class MeshRenderer;
-class SceneData;
+class SceneSet;
 class IObjectRenderer;
 class ObjectRenderer;
 class Scene;

@@ -44,7 +44,6 @@ class RenderServer;
 //  It is not CONCURRENT
 class IObjectRenderer {
 public:
-    virtual void set_render_server(RenderServer* render_server) = 0;
     virtual void set_entt_registery(entt::registry* registery)  = 0;
     virtual void render(vke::CommandBuffer& cmd)                = 0;
 

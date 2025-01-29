@@ -37,7 +37,9 @@ std::unique_ptr<Mesh> make_cube(float size) {
     indicies.insert(indicies.end(), {1, 3, 5});
     indicies.insert(indicies.end(), {3, 5, 7});
 
-    return Mesh::make_mesh(verticies, indicies);
+    return nullptr;
+
+    // return Mesh::make_mesh(verticies, indicies);
 }
 
 } // namespace vke
