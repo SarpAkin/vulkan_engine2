@@ -66,7 +66,6 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
 
     VkFence fence = framely_data.fence->handle();
     VK_CHECK(vkWaitForFences(device(), 1, &fence, true, 1E9));
-    VK_CHECK(vkResetFences(device(), 1, &fence));
 
     if (!m_window->surface()->prepare(1E9)) {
         VK_CHECK(vkDeviceWaitIdle(device()));
@@ -74,6 +73,8 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
         LOG_WARNING("failed to prepare window surface. skipping rendering");
         return;
     }
+
+    VK_CHECK(vkResetFences(device(), 1, &fence));
 
     auto& cmd = *framely_data.cmd;
     cmd.reset();
