@@ -1,6 +1,5 @@
 #include "window_sdl.hpp"
 
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
@@ -19,13 +18,13 @@ static void init_sdl() {
     atexit(+[] { SDL_Quit(); });
 }
 
-WindowSDL::WindowSDL(int width,int height,const char* title) {
-    m_width = width;
+WindowSDL::WindowSDL(int width, int height, const char* title) {
+    m_width  = width;
     m_height = height;
 
     init_sdl();
 
-    m_window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, m_width, m_height, (SDL_WindowFlags)(SDL_WINDOW_VULKAN));
+    m_window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, m_width, m_height, (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE));
 }
 
 void WindowSDL::init_surface() {
@@ -47,7 +46,15 @@ void WindowSDL::poll_events() {
         // }
 
         switch (e.type) {
-            // case SDL_WINDOWEVENT_CLOSE:
+        case SDL_WINDOWEVENT:
+            switch (e.window.event) {
+            case SDL_WINDOWEVENT_RESIZED:
+                m_width  = e.window.data1;
+                m_height = e.window.data2;
+                printf("window resized to (%d,%d)\n", m_width, m_height);
+                break;
+            }
+            break;
 
         case SDL_QUIT:
             m_is_open = false;
