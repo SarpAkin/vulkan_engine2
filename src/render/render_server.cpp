@@ -71,6 +71,8 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
     if (!m_window->surface()->prepare(1E9)) {
         VK_CHECK(vkDeviceWaitIdle(device()));
         m_window->surface()->recrate_swapchain();
+        LOG_WARNING("failed to prepare window surface. skipping rendering");
+        return;
     }
 
     auto& cmd = *framely_data.cmd;
