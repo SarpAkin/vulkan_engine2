@@ -4,6 +4,8 @@
 
 #include <vke/vke.hpp>
 
+#include <SDL2/SDL_keycode.h>
+
 namespace vke {
 
 void Camera::set_world_pos(const glm::dvec3& wpos) {
@@ -39,9 +41,9 @@ void Camera::update() {
 void Camera::move_freecam(Window* window, float delta_time) {
     const float sensivity_x    = 0.5;
     const float sensivity_y    = 0.5;
-    const float speed          = 3.5f;
-    const float speed_vertical = 2;
-    const float sprint_mul     = 2.5f;
+    const float speed          = 35.f;
+    const float speed_vertical = 20;
+    const float sprint_mul     = 15.f;
 
     if (window->is_key_pressed('1')) {
         window->lock_mouse();
@@ -83,7 +85,7 @@ void Camera::move_freecam(Window* window, float delta_time) {
     total_move += z_axis * float(z_axis_move) * speed;
     total_move += x_axis * float(x_axis_move) * speed;
     total_move += y_axis * float(y_axis_move) * speed_vertical;
-    if(window->is_key_pressed(16)){
+    if(window->is_key_pressed(SDLK_LSHIFT)){
         total_move *= sprint_mul;
     }
     // printf("camera move: (%.1f,%.1f,%.1f)\n", total_move.x, total_move.y, total_move.z);
