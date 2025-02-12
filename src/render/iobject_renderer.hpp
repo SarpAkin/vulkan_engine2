@@ -1,5 +1,6 @@
 #pragma once
 
+#include "glm/ext/vector_float3.hpp"
 #include <entt/fwd.hpp>
 #include <vke/fwd.hpp>
 
@@ -32,6 +33,16 @@ using RenderPassID  = impl::GenericID<vke::ISubpass>;
 // Component for rendering
 struct Renderable {
     RenderModelID model_id;
+};
+
+struct CPointLight{
+    glm::vec3 color;
+    float range;
+};
+
+struct CDirectionalLight{
+    glm::vec3 direction;
+    glm::vec3 color;
 };
 
 class RenderServer;

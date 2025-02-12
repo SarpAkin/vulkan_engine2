@@ -13,7 +13,8 @@
       "compiler_definitions": {},
       "set_layouts": {
         "vke::scene_set": 0,
-        "vke::object_renderer::material_set": 1
+        "vke::object_renderer::material_set": 1,
+        "vke::object_renderer::light_set": 2
       },
       "shader_files": [
         "default.vert",

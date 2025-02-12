@@ -6,6 +6,7 @@
 #include <vke/util.hpp>
 #include <vke/vke.hpp>
 
+#include "common.hpp"
 #include "iobject_renderer.hpp"
 #include "mesh/mesh.hpp"
 
@@ -15,8 +16,10 @@ namespace vke {
 
 class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
 public:
-    constexpr static int SCENE_SET                = 0;
-    constexpr static int MATERIAL_SET             = 1;
+    constexpr static int SCENE_SET    = 0;
+    constexpr static int MATERIAL_SET = 1;
+    constexpr static int LIGHT_SET    = 2;
+
     constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;
 
 public:
@@ -70,6 +73,11 @@ private:
         Material* material           = nullptr;
     };
 
+    struct FramelyData {
+        std::unique_ptr<vke::Buffer> light_buffer;
+        VkDescriptorSet scene_light_set;
+    };
+
 private:
     uint32_t new_raw_id() { return m_id_counter++; }
 
@@ -81,6 +89,16 @@ private:
     IImageView* get_image(ImageID id);
 
     RCResource<vke::IPipeline> load_pipeline_cached(const std::string& name);
+
+    FramelyData& get_framely();
+
+private: // rendering
+    void update_lights();
+
+private:
+    FramelyData m_framely_data[FRAME_OVERLAP];
+    VkDescriptorSetLayout m_scene_light_set_layout;
+    std::unique_ptr<SceneSet> m_scene_set;
 
 private:
     std::unordered_map<ImageID, std::unique_ptr<IImageView>> m_images;
@@ -96,7 +114,6 @@ private:
     std::unordered_map<std::string, vke::RCResource<vke::IPipeline>> m_cached_pipelines;
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
-    std::unique_ptr<SceneSet> m_scene_set = nullptr;
     VkDescriptorSetLayout m_material_set_layout;
     VkSampler m_nearest_sampler;
 
