@@ -88,7 +88,7 @@ void main() {
     o_color = vec4(albedo, 1);
     // o_color = vec4(1);
 
-    vec3 light = calculate_total_light(view_pos, f_normal, view_dir);
+    vec3 light = calculate_total_light(f_position, f_normal, view_dir);
 
     o_color = vec4(albedo * light, 1.0);
 
