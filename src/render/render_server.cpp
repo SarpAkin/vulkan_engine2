@@ -122,6 +122,7 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
 
 
 RenderServer::~RenderServer() {
+    VK_CHECK(vkDeviceWaitIdle(device()));
     // Wait for fences in order to ensure proper cleanup
     for (auto& framely : m_framely_data) {
         VkFence fence = framely.fence->handle();
