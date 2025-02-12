@@ -1,6 +1,7 @@
 #include "gltf_loader.hpp"
 
 #include <entt/entt.hpp>
+#include <filesystem>
 
 #include "glm/ext/matrix_float4x4.hpp"
 #include "tiny_gltf.h"
@@ -19,7 +20,19 @@ static bool load_gltf_into_model(tg::Model& model, const std::string& file_path)
     std::string err;
     std::string warn;
 
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
+    fs::path path = file_path;
+    fs::path ext  = path.extension();
+
+    bool ret;
+    if (ext == ".gltf") {
+        ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
+    }else if(ext == ".glb"){
+        ret = loader.LoadBinaryFromFile(&model, &err, &warn, file_path);
+    }else{
+        LOG_ERROR("unknown extension: %s",ext.c_str());
+        return false;
+    }
+
     // bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb)
 
     if (!warn.empty()) {
@@ -85,9 +98,9 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         return renderer->create_image(std::move(vke_image));
     });
 
-    auto get_image = [&](int texture_index){
+    auto get_image = [&](int texture_index) {
         auto& texture = model.textures[texture_index];
-        
+
         return images[texture.source];
     };
 
@@ -121,9 +134,9 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         //"TEXCOORD_0" "NORMAL" "POSITION"
         // auto& position_accesor = model.accessors[primative.attributes.at("POSITION")];
 
-        auto position_view = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("POSITION"));
+        auto position_view       = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("POSITION"));
         auto texture_coords_view = get_buffer_view_from_accesor(Type<glm::vec2>(), primative.attributes.at("TEXCOORD_0"));
-        auto normals_view = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("NORMAL"));
+        auto normals_view        = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("NORMAL"));
 
         MeshBuilder builder;
         builder.set_positions(position_view);
