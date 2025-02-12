@@ -29,7 +29,7 @@ glm::quat random_quaternion() {
 class Game1 : public vke::GameEngine {
 public:
     void populate_scene() {
-        auto* registry    = get_scene()->get_registery();
+        auto* registry = get_scene()->get_registery();
         // auto cube_mesh_id = get_render_server()->get_object_renderer()->get_model_id("cube");
 
         // for (int i = 0; i < 30; ++i) {
@@ -46,6 +46,18 @@ public:
         vke::VulkanContext::get_context()->immediate_submit([&](vke::CommandBuffer& cmd) {
             vke::load_gltf_file(cmd, registry, get_render_server()->get_object_renderer(), ".misc/gltf_models/scene.gltf");
         });
+    }
+
+    void on_update() override {
+        auto* registry = get_scene()->get_registery();
+        auto* window   = get_render_server()->get_window();
+        auto* player   = get_scene()->get_camera();
+
+        if (window->is_key_pressed('g')) {
+            auto entity = registry->create();
+            registry->emplace<vke::Transform>(entity, vke::Transform{.position = player->world_position});
+            registry->emplace<vke::CPointLight>(entity, vke::CPointLight{.color = glm::vec3(1.0, 1.0, 1.0), .range = 10.f});
+        }
     }
 
 private:
