@@ -39,7 +39,7 @@ void RenderServer::init() {
     m_window_renderpass = vke::make_simple_windowed_renderpass(m_window.get(), true);
 
     m_imgui_manager = std::make_unique<ImguiManager>(m_window.get(),m_window_renderpass.get(),0);
-    
+    dynamic_cast<WindowSDL*>(m_window.get())->set_imgui_manager(m_imgui_manager.get());
 
     m_pipeline_loader = vke::IPipelineLoader::make_debug_loader("src/");
 
