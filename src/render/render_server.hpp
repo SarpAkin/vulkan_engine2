@@ -15,6 +15,7 @@
 
 namespace vke {
 class ObjectRenderer;
+class ImguiManager;
 
 class RenderServer : protected vke::DeviceGetter {
 public:
@@ -42,6 +43,7 @@ private:
     std::unique_ptr<vke::IPipelineLoader> m_pipeline_loader;
     std::unique_ptr<vke::ObjectRenderer> m_object_renderer;
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
+    std::unique_ptr<vke::ImguiManager> m_imgui_manager;
 
     bool m_running    = true;
     int m_frame_index = 0;

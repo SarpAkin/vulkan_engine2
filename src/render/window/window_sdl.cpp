@@ -1,4 +1,5 @@
 #include "window_sdl.hpp"
+#include "render/imgui/imgui_manager.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
@@ -41,9 +42,9 @@ void WindowSDL::poll_events() {
     m_mouse_input.delta_y = 0;
 
     while (SDL_PollEvent(&e)) {
-        // if (m_imgui_manager) {
-        //     m_imgui_manager->process_sdl_event(e);
-        // }
+        if (m_imgui_manager) {
+            m_imgui_manager->process_sdl_event(e);
+        }
 
         switch (e.type) {
         case SDL_WINDOWEVENT:

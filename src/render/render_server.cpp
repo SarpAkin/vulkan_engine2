@@ -2,6 +2,7 @@
 
 #include "mesh/mesh_util.hpp"
 #include "mesh/shapes.hpp"
+#include "render/imgui/imgui_manager.hpp"
 #include "render/object_renderer.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/transform.hpp"
@@ -37,13 +38,16 @@ void RenderServer::init() {
 
     m_window_renderpass = vke::make_simple_windowed_renderpass(m_window.get(), true);
 
+    m_imgui_manager = std::make_unique<ImguiManager>(m_window.get(),m_window_renderpass.get(),0);
+    
+
     m_pipeline_loader = vke::IPipelineLoader::make_debug_loader("src/");
 
-    auto pgprovider = std::make_unique<vke::PipelineGlobalsProvider>();
-    pgprovider->subpasses.emplace("vke::default_forward", std::make_unique<SubpassDetails>(*m_window_renderpass->get_subpass(0)));
-    pgprovider->vertex_input_descriptions.emplace("vke::default_mesh", vke::make_default_vertex_layout());
+    auto pg_provider = std::make_unique<vke::PipelineGlobalsProvider>();
+    pg_provider->subpasses.emplace("vke::default_forward", std::make_unique<SubpassDetails>(*m_window_renderpass->get_subpass(0)));
+    pg_provider->vertex_input_descriptions.emplace("vke::default_mesh", vke::make_default_vertex_layout());
 
-    m_pipeline_loader->set_pipeline_globals_provider(std::move(pgprovider));
+    m_pipeline_loader->set_pipeline_globals_provider(std::move(pg_provider));
 
     for (int i = 0; i < FRAME_OVERLAP; i++) {
         m_framely_data.push_back({
@@ -74,6 +78,7 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
         return;
     }
 
+    m_imgui_manager->new_frame();
     VK_CHECK(vkResetFences(device(), 1, &fence));
 
     auto& cmd = *framely_data.cmd;
@@ -83,6 +88,7 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
     m_window_renderpass->begin(cmd);
 
     render_function(cmd);
+    m_imgui_manager->flush_frame(cmd); 
 
     m_window_renderpass->end(cmd);
 
