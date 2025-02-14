@@ -7,4 +7,6 @@
 [submodule "submodules/entt"]
 	path = submodules/entt
 	url = https://github.com/skypjack/entt
-
+[submodule "submodules/imgui"]
+	path = submodules/imgui
+	url = https://github.com/ocornut/imgui
