@@ -114,7 +114,7 @@ bool ObjectRenderer::bind_mesh(RenderState& state, MeshID id) {
     }
 
     state.cmd.bind_index_buffer(state.mesh->index_buffer.get(), state.mesh->index_type);
-    auto vbs = map_vec(state.mesh->vertex_buffers, [&](const auto& b) -> const IBufferSpan* { return b.get(); });
+    auto vbs = map_vec2small_vec<6>(state.mesh->vertex_buffers, [&](const auto& b) -> const IBufferSpan* { return b.get(); });
     state.cmd.bind_vertex_buffer(std::span(vbs));
 
     return true;
