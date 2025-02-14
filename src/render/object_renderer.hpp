@@ -96,7 +96,7 @@ private:
     std::unordered_map<std::string, vke::RCResource<vke::IPipeline>> m_cached_pipelines;
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
-    std::unique_ptr<SceneSet> m_scene_set = nullptr;
+    std::unique_ptr<SceneSet> m_scene_set;
     VkDescriptorSetLayout m_material_set_layout;
     VkSampler m_nearest_sampler;
 
