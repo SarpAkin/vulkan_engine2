@@ -26,7 +26,7 @@ public:
     ObjectRenderer(RenderServer* render_server);
     ~ObjectRenderer();
 
-    void set_entt_registery(entt::registry* registery) override { m_registery = registery; }
+    void set_entt_registery(entt::registry* registery) override { m_registry = registery; }
     void set_scene(Scene* scene);
     void render(vke::CommandBuffer& cmd) override;
 
@@ -118,7 +118,7 @@ private:
     VkSampler m_nearest_sampler;
 
     vke::RenderServer* m_render_server = nullptr;
-    entt::registry* m_registery        = nullptr;
+    entt::registry* m_registry        = nullptr;
     Camera* m_camera                   = nullptr;
     IImageView* m_null_texture         = nullptr;
 

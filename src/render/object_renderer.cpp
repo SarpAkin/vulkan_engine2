@@ -3,6 +3,7 @@
 #include "render/mesh/shader/scene_data.h"
 #include "render_server.hpp"
 #include "scene/camera.hpp"
+#include "scene/components/components.hpp"
 #include "scene/components/transform.hpp"
 #include "scene/scene.hpp"
 #include "scene_set.hpp"
@@ -50,7 +51,7 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     m_scene_set = std::make_unique<SceneSet>(render_server);
 
     for (auto& framely : m_framely_data) {
-        framely.light_buffer = std::make_unique<Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,sizeof(SceneLightData), true);
+        framely.light_buffer = std::make_unique<Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(SceneLightData), true);
         vke::DescriptorSetBuilder builder;
         builder.add_ssbo(framely.light_buffer.get(), VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
         framely.scene_light_set = builder.build(m_descriptor_pool.get(), m_scene_light_set_layout);
@@ -63,7 +64,7 @@ ObjectRenderer::~ObjectRenderer() {
 }
 
 void ObjectRenderer::render(vke::CommandBuffer& cmd) {
-    auto view = m_registery->view<Renderable, Transform>();
+    auto view = m_registry->view<Renderable, Transform>();
 
     RenderState state = {.cmd = cmd};
 
@@ -73,17 +74,32 @@ void ObjectRenderer::render(vke::CommandBuffer& cmd) {
     cmd.bind_descriptor_set(SCENE_SET, m_scene_set->get_scene_set());
     cmd.bind_descriptor_set(LIGHT_SET, get_framely().scene_light_set);
 
+    auto transform_view = m_registry->view<Transform>();
+    auto parent_view    = m_registry->view<CParent>();
+
+    auto get_model_matrix = vke::make_y_combinator([&](auto&& self, entt::entity e) -> glm::mat4 {
+        glm::mat4 model_mat = transform_view->get(e).local_model_matrix();
+
+        if (parent_view.contains(e)) {
+            auto parent = parent_view->get(e).parent;
+
+            model_mat = self(parent) * model_mat;
+        }
+
+        return model_mat;
+    });
+
     for (auto& e : view) {
         auto [r, t] = view.get(e);
+
+        glm::mat4 model_mat = get_model_matrix(e);
 
         auto& model = m_render_models[r.model_id];
 
         struct Push {
             glm::mat4 model_matrix;
-            glm::mat4x3 normal_matrix;
+            glm::mat4 normal_matrix;
         };
-
-        auto model_mat = t.local_model_matrix();
 
         Push push{
             .model_matrix  = model_mat,
@@ -307,7 +323,7 @@ void ObjectRenderer::set_scene(Scene* scene) {
 }
 
 void ObjectRenderer::update_lights() {
-    auto view         = m_registery->view<Transform, CPointLight>();
+    auto view         = m_registry->view<Transform, CPointLight>();
     auto point_lights = vke::map_vec(view, [&](const entt::entity& e) {
         auto [t, light] = view.get(e);
         return PointLight{

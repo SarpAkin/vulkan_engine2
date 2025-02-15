@@ -16,7 +16,7 @@ layout(location = 3) out vec3 f_position;
 
 layout(push_constant) uniform PC {
     mat4 model_matrix;
-    mat4x3 normal_matrix;
+    mat4 normal_matrix;
 };
 
 void main() {
