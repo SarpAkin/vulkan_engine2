@@ -1,5 +1,7 @@
 #include <cstdlib>
 
+#include <imgui.h>
+
 #include <vke/vke.hpp>
 
 #include "game_engine.hpp"
@@ -8,6 +10,7 @@
 #include "render/render_server.hpp"
 
 #include "scene/components/transform.hpp"
+#include "scene/components/util.hpp"
 #include "scene/scene.hpp"
 
 glm::quat random_quaternion() {
@@ -32,35 +35,106 @@ public:
         auto* registry = get_scene()->get_registery();
         // auto cube_mesh_id = get_render_server()->get_object_renderer()->get_model_id("cube");
 
-        // for (int i = 0; i < 30; ++i) {
-        //     auto entity = registry->create();
-        //     registry->emplace<vke::Transform>(entity,
-        //         vke::Transform{
-        //             .position = glm::dvec3(rand() % 20, rand() % 20, rand() % 20),
-        //             .rotation = random_quaternion(),
-        //             .scale = glm::vec3(1),
-        //         });
-        //     registry->emplace<vke::Renderable>(entity, vke::Renderable{.model_id = cube_mesh_id});
-        // }
-
         vke::VulkanContext::get_context()->immediate_submit([&](vke::CommandBuffer& cmd) {
-            vke::load_gltf_file(cmd, registry, get_render_server()->get_object_renderer(), ".misc/gltf_models/scene.gltf");
+            vke::load_gltf_file(cmd, &m_prefabs["city"], get_render_server()->get_object_renderer(), ".misc/gltf_models/scene.gltf");
+            vke::load_gltf_file(cmd, &m_prefabs["cube"], get_render_server()->get_object_renderer(), ".misc/gltf_models/block.glb");
         });
+
+        vke::instantiate_prefab(*registry, m_prefabs["cube"],
+            vke::Transform{
+                .position = {0, 0, 0},
+                .scale    = {1, 1, 1},
+            });
+
+        for (int i = 0; i < 30; ++i) {
+            vke::instantiate_prefab(*registry, m_prefabs["cube"],
+                vke::Transform{
+                    .position = glm::dvec3(rand() % 20, rand() % 20, rand() % 20),
+                    .rotation = random_quaternion(),
+                    .scale    = glm::vec3(1),
+                });
+        }
     }
 
     void on_update() override {
+    }
+
+    void on_render(vke::CommandBuffer& cmd) override {
+        default_render(cmd);
+
+        instantiate_menu();
+    }
+
+    void instantiate_menu() {
         auto* registry = get_scene()->get_registery();
         auto* window   = get_render_server()->get_window();
         auto* player   = get_scene()->get_camera();
 
-        if (window->is_key_pressed('g')) {
-            auto entity = registry->create();
-            registry->emplace<vke::Transform>(entity, vke::Transform{.position = player->world_position});
-            registry->emplace<vke::CPointLight>(entity, vke::CPointLight{.color = glm::vec3(1.0, 1.0, 1.0), .range = 10.f});
+        ImGui::Begin("instantiate");
+
+        if (ImGui::CollapsingHeader("Light")) {
+            static float range    = 5.f;
+            const float min_range = 0.1f, max_range = 100.f;
+            ImGui::SliderFloat("range", &range, min_range, max_range);
+            static float color[4] = {};
+            if (ImGui::CollapsingHeader("color")) {
+                ImGui::ColorPicker3("color", color);
+            }
+
+            if (ImGui::Button("add light")) {
+                auto entity = registry->create();
+                registry->emplace<vke::Transform>(entity, vke::Transform{.position = player->world_position});
+                registry->emplace<vke::CPointLight>(entity, vke::CPointLight{.color = glm::vec3(color[0], color[1], color[2]), .range = range});
+            }
         }
+
+        if (ImGui::CollapsingHeader("prefab")) {
+            static std::string selectedPrefab;
+
+            if (ImGui::BeginListBox("Prefab Selection")) {
+                for (const auto& [prefab_name, prefab] : m_prefabs) {
+                    bool isSelected = (prefab_name == selectedPrefab);
+                    if (ImGui::Selectable(prefab_name.c_str(), isSelected)) {
+                        selectedPrefab = prefab_name;
+                    }
+                }
+                ImGui::EndListBox();
+            }
+
+            static char buffer[64] = "r(0,0,0)";
+            ImGui::InputText("coordinate", buffer, vke::array_len(buffer));
+
+            double x = 0, y = 0, z = 0, sx = 1.0, sy = 1.0, sz = 1.0;
+            char c = '\0';
+            if (int count = sscanf(buffer, "%c(%lf,%lf,%lf) (%lf,%lf,%lf)", &c, &x, &y, &z,&sx,&sy,&sz);count >= 4) {
+                vke::Transform t{
+                    .position = {x, y, z},
+                    .rotation = {},
+                    .scale    = glm::vec3(1),
+                };
+
+                if (c == 'r') {
+                    t.position += player->world_position;
+                }
+
+                if(count >= 7){
+                    t.scale = {sx,sy,sz};
+                }
+
+                if (ImGui::Button("spawn")) {
+                    vke::instantiate_prefab(*registry, m_prefabs[selectedPrefab], t);
+                }
+
+            } else {
+                ImGui::Text("invalid coordinate");
+            }
+        }
+
+        ImGui::End();
     }
 
 private:
+    std::unordered_map<std::string, entt::registry> m_prefabs;
 };
 
 int main() {
