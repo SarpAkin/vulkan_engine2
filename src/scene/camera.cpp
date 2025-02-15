@@ -56,7 +56,7 @@ void Camera::move_freecam(Window* window, float delta_time) {
     ImGui::End();
 
 
-    if (window->is_key_pressed('1')) {
+    if (window->is_key_pressed('"')) {
         window->lock_mouse();
         focused = true;
     }
@@ -66,15 +66,15 @@ void Camera::move_freecam(Window* window, float delta_time) {
         focused = false;
     }
 
+    if(!focused) return;
+
     // printf("mouse delta: (%.2f,%.2f)\n", window->get_mouse_input().delta_x, window->get_mouse_input().delta_y);
     // printf("pitch,yaw: (%.1f,%.1f)\n",pitch,yaw);
     // printf("camera world position: (%.1f,%.1f,%.1f)\n", world_position.x, world_position.y, world_position.z);
 
-    if (focused) {
-        yaw += window->get_mouse_input().delta_x * sensitivity_x;
-        pitch += window->get_mouse_input().delta_y * sensitivity_y;
-        pitch = std::clamp(pitch, -89.9f, 89.9f);
-    }
+    yaw += window->get_mouse_input().delta_x * sensitivity_x;
+    pitch += window->get_mouse_input().delta_y * sensitivity_y;
+    pitch = std::clamp(pitch, -89.9f, 89.9f);
 
     float yaw_sin   = std::sin(glm::radians(yaw));
     float yaw_cos   = std::cos(glm::radians(yaw));
