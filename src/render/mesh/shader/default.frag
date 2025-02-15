@@ -41,14 +41,17 @@ vec3 calculate_total_light(vec3 world_pos, vec3 normal, vec3 view_dir) {
         vec3 light_dir = world_pos - p.pos;
         float d        = length(light_dir);
         light_dir /= d;
-        //if light is in range calculate it and add it to toal
+        //if light is in range calculate it and add it to total
         if (d < p.range) {
             float strength = calculate_light_strength(light_dir, normal, view_dir);
-            float mul      = 1.0 - d / p.range;
-            mul *= mul;
-            strength *= mul;
+            float mul      = 1.0 - (d / p.range);
+            strength *= mul * mul;
             total_light += p.color.xyz * strength;
+
+            // total_light += normalize(light_dir);
         }
+
+        
     }
 
     //calculate directional light
@@ -66,17 +69,14 @@ vec3 calculate_total_light(vec3 world_pos, vec3 normal, vec3 view_dir) {
 
 // light_dir is from light to surface
 float calculate_light_strength(vec3 light_dir, vec3 normal, vec3 view_dir) {
-    float diffue  = clamp(dot(normal, light_dir), 0.05, 1.0);
-    diffue *= 0.7;
-    // diffue        = 0.0;
+    float diffuse  = clamp(dot(normal, -light_dir), 0.05, 1.0);
+    diffuse *= 0.9;
 
     vec3 reflect_dir = reflect(-light_dir, normal);
-    float specular   = pow(max(dot(view_dir, reflect_dir), 0.0), 16);
-    specular *= 0.5;
-    // return 0;
-    // float specular =
+    float specular   = pow(max(dot(view_dir, reflect_dir), 0.0), 3);
+    // specular *= 0.0;
 
-    return diffue + specular;
+    return diffuse + specular;
 }
 
 void main() {
@@ -92,8 +92,13 @@ void main() {
 
     o_color = vec4(albedo * light, 1.0);
 
-    // o_color = vec4(normal * 0.5 + 0.5, 1) * vec4(0,1,0,1);
+    // o_color = vec4(f_normal * 0.5 + 0.5, 1) * vec4(0,1,0,1);
     // o_color.y = step(0.6,o_color.y);
-    // o_color = vec4(normal * 0.5 + 0.5, 1);
+    // o_color = vec4(f_normal * 0.5 + 0.5, 1);
+    // o_color = vec4(f_normal , 1);
+    // o_color = vec4(light ,1.0);
+
+    // o_color = vec4(vec3(dot(f_normal,-light)),1.0);
+
     // o_color = vec4(view_dir * 0.5 + 0.5,1.0);
 }
