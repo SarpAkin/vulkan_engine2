@@ -73,9 +73,11 @@ public:
         ImGui::Begin("instantiate");
 
         if (ImGui::CollapsingHeader("Light")) {
-            static float range    = 5.f;
+            static float range    = 5.f,strength = 2.f;
             const float min_range = 0.1f, max_range = 100.f;
             ImGui::SliderFloat("range", &range, min_range, max_range);
+            ImGui::SliderFloat("strength", &strength, 0.1f, 20.f);
+
             static float color[4] = {};
             if (ImGui::CollapsingHeader("color")) {
                 ImGui::ColorPicker3("color", color);
@@ -84,7 +86,7 @@ public:
             if (ImGui::Button("add light")) {
                 auto entity = registry->create();
                 registry->emplace<vke::Transform>(entity, vke::Transform{.position = player->world_position});
-                registry->emplace<vke::CPointLight>(entity, vke::CPointLight{.color = glm::vec3(color[0], color[1], color[2]), .range = range});
+                registry->emplace<vke::CPointLight>(entity, vke::CPointLight{.color = glm::vec3(color[0], color[1], color[2]) * strength, .range = range});
             }
         }
 
