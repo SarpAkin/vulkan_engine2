@@ -6,6 +6,8 @@
 
 #include <SDL2/SDL_keycode.h>
 
+#include <imgui.h>
+
 namespace vke {
 
 void Camera::set_world_pos(const glm::dvec3& wpos) {
@@ -39,27 +41,40 @@ void Camera::update() {
 }
 
 void Camera::move_freecam(Window* window, float delta_time) {
-    const float sensivity_x    = 0.5;
-    const float sensivity_y    = 0.5;
-    const float speed          = 35.f;
-    const float speed_vertical = 20;
-    const float sprint_mul     = 15.f;
+    static bool focused = false;
+
+    static float sensitivity_x    = 0.5;
+    static float sensitivity_y    = 0.5;
+    static float speed          = 35.f;
+    static float speed_vertical = 20;
+    static float sprint_mul     = 15.f;
+
+    ImGui::Begin("FreeCam");
+    ImGui::SliderFloat("speed", &speed, 1.f, 100.f);
+    ImGui::SliderFloat("vertical speed", &speed_vertical, 1.f, 100.f);
+    ImGui::SliderFloat("speed multiplier", &sprint_mul, 1.f, 100.f);
+    ImGui::End();
+
 
     if (window->is_key_pressed('1')) {
         window->lock_mouse();
+        focused = true;
     }
 
     if (window->is_key_pressed(27)) {
         window->unlock_mouse();
+        focused = false;
     }
 
     // printf("mouse delta: (%.2f,%.2f)\n", window->get_mouse_input().delta_x, window->get_mouse_input().delta_y);
     // printf("pitch,yaw: (%.1f,%.1f)\n",pitch,yaw);
     // printf("camera world position: (%.1f,%.1f,%.1f)\n", world_position.x, world_position.y, world_position.z);
 
-    yaw += window->get_mouse_input().delta_x * sensivity_x;
-    pitch += window->get_mouse_input().delta_y * sensivity_y;
-    pitch = std::clamp(pitch, -89.9f, 89.9f);
+    if (focused) {
+        yaw += window->get_mouse_input().delta_x * sensitivity_x;
+        pitch += window->get_mouse_input().delta_y * sensitivity_y;
+        pitch = std::clamp(pitch, -89.9f, 89.9f);
+    }
 
     float yaw_sin   = std::sin(glm::radians(yaw));
     float yaw_cos   = std::cos(glm::radians(yaw));
@@ -85,7 +100,7 @@ void Camera::move_freecam(Window* window, float delta_time) {
     total_move += z_axis * float(z_axis_move) * speed;
     total_move += x_axis * float(x_axis_move) * speed;
     total_move += y_axis * float(y_axis_move) * speed_vertical;
-    if(window->is_key_pressed(SDLK_LSHIFT)){
+    if (window->is_key_pressed(SDLK_LSHIFT)) {
         total_move *= sprint_mul;
     }
     // printf("camera move: (%.1f,%.1f,%.1f)\n", total_move.x, total_move.y, total_move.z);

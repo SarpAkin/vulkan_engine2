@@ -1,4 +1,7 @@
 .cache
 build/
 .code
+.vscode/
 .misc
+perf*
+imgui.*

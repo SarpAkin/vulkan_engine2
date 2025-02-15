@@ -1,5 +1,6 @@
 #include "game_engine.hpp"
 
+#include "imgui.h"
 #include "render/object_renderer.hpp"
 #include "render/render_server.hpp"
 #include "scene/scene.hpp"
@@ -22,9 +23,29 @@ GameEngine::GameEngine(bool headless) {
 void GameEngine::run() {
     auto prev_time = std::chrono::system_clock::now();
 
+    double time_counter       = 0.0;
+    double total_time_counter = 0.0;
+    double longest_frame_time = 0.0;
+
+    double fps = 0.0, fps_low = 0.0;
+
+    int frame_counter = 0;
     while (m_running) {
-        auto now     = std::chrono::system_clock::now();
-        m_delta_time = static_cast<std::chrono::duration<double>>((now - prev_time)).count();
+        auto now          = std::chrono::system_clock::now();
+        double frame_time = static_cast<std::chrono::duration<double>>((now - prev_time)).count();
+        total_time_counter += frame_time;
+        time_counter += frame_time;
+        longest_frame_time = std::max(frame_time, longest_frame_time);
+
+        if (time_counter > 1.0) {
+            fps                = static_cast<double>(frame_counter) / time_counter;
+            fps_low            = 1 / longest_frame_time;
+            time_counter       = 0.0;
+            frame_counter      = 0;
+            longest_frame_time = 0.0;
+        }
+
+        m_delta_time = frame_time;
         prev_time    = now;
 
         on_update();
@@ -33,9 +54,19 @@ void GameEngine::run() {
             if (!m_render_server->is_running()) break;
 
             m_render_server->frame([&](vke::CommandBuffer& cmd) {
+                static bool window_opened = false;
+                if (window_opened) {
+                    ImGui::Begin("Stats", &window_opened);
+                    ImGui::Text("FPS: %.1f", fps);
+                    ImGui::Text("FPS Low: %.1f", fps_low);
+                    ImGui::End();
+                }
+
                 on_render(cmd);
             });
         }
+
+        frame_counter++;
     }
 }
 
