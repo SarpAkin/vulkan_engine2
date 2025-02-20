@@ -6,7 +6,6 @@
 #include "scene/components/components.hpp"
 #include "scene/components/transform.hpp"
 #include "scene/scene.hpp"
-#include "scene_set.hpp"
 
 #include <vke/pipeline_loader.hpp>
 #include <vke/vke_builders.hpp>
