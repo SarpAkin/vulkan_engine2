@@ -71,10 +71,10 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         return vke::span_cast<T>(std::span(buffer.data).subspan(view.byteOffset + byte_offset, view.byteLength));
     };
 
-    auto get_buffer_view_from_accesor = [&]<typename T>(Type<T> t, int accesor_index) {
-        auto& accesor = model.accessors[accesor_index];
+    auto get_buffer_view_from_accessor = [&]<typename T>(Type<T> t, int accessor_index) {
+        auto& accessor = model.accessors[accessor_index];
 
-        return get_buffer_view(t, accesor.bufferView, accesor.byteOffset).subspan(0, accesor.count);
+        return get_buffer_view(t, accessor.bufferView, accessor.byteOffset).subspan(0, accessor.count);
     };
 
     // model.textures[0].source
@@ -82,7 +82,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
 
     auto images = vke::map_vec(model.images, [&](const tg::Image& image) {
         if (!(image.bits == 8 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE && image.component == 4)) {
-            // handle unspported formats
+            // handle unsupported formats
             TODO();
         }
 
@@ -114,45 +114,45 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         return renderer->create_material(ObjectRenderer::pbr_pipeline_name, {get_image(pbr_texture_index)});
     });
 
-    auto set_indicies = [&](MeshBuilder& builder, int ib_accesor_index) {
-        if (ib_accesor_index == -1) return;
+    auto set_indicies = [&](MeshBuilder& builder, int ib_accessor_index) {
+        if (ib_accessor_index == -1) return;
 
-        auto& index_accesor = model.accessors[ib_accesor_index];
+        auto& index_accessor = model.accessors[ib_accessor_index];
 
-        if (index_accesor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-            builder.set_indicies(get_buffer_view_from_accesor(Type<uint16_t>(), ib_accesor_index));
+        if (index_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+            builder.set_indicies(get_buffer_view_from_accessor(Type<uint16_t>(), ib_accessor_index));
             return;
         }
 
-        if (index_accesor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-            builder.set_indicies(get_buffer_view_from_accesor(Type<uint32_t>(), ib_accesor_index));
+        if (index_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+            builder.set_indicies(get_buffer_view_from_accessor(Type<uint32_t>(), ib_accessor_index));
             return;
         }
 
         TODO();
     };
 
-    auto create_mesh_from_primative = [&](const tg::Primitive& primative) {
+    auto create_mesh_from_primitive = [&](const tg::Primitive& primitive) {
         //"TEXCOORD_0" "NORMAL" "POSITION"
-        // auto& position_accesor = model.accessors[primative.attributes.at("POSITION")];
+        // auto& position_accessor = model.accessors[primitive.attributes.at("POSITION")];
 
-        auto position_view       = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("POSITION"));
-        auto texture_coords_view = get_buffer_view_from_accesor(Type<glm::vec2>(), primative.attributes.at("TEXCOORD_0"));
-        auto normals_view        = get_buffer_view_from_accesor(Type<glm::vec3>(), primative.attributes.at("NORMAL"));
+        auto position_view       = get_buffer_view_from_accessor(Type<glm::vec3>(), primitive.attributes.at("POSITION"));
+        auto texture_coords_view = get_buffer_view_from_accessor(Type<glm::vec2>(), primitive.attributes.at("TEXCOORD_0"));
+        auto normals_view        = get_buffer_view_from_accessor(Type<glm::vec3>(), primitive.attributes.at("NORMAL"));
 
         MeshBuilder builder;
         builder.set_positions(position_view);
         builder.set_texture_coords(texture_coords_view);
         builder.set_normals(normals_view);
 
-        set_indicies(builder, primative.indices);
+        set_indicies(builder, primitive.indices);
 
         return renderer->create_mesh(builder.build());
     };
 
     auto model_ids = vke::map_vec(model.meshes, [&](const tg::Mesh& mesh) {
-        auto parts = vke::map_vec(mesh.primitives, [&](const tg::Primitive& primative) {
-            return std::pair(create_mesh_from_primative(primative), material_ids[primative.material]);
+        auto parts = vke::map_vec(mesh.primitives, [&](const tg::Primitive& primitive) {
+            return std::pair(create_mesh_from_primitive(primitive), material_ids[primitive.material]);
         });
 
         return renderer->create_model(parts, make_name(mesh.name));

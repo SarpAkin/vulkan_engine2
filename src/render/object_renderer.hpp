@@ -38,7 +38,7 @@ public:
     constexpr static const char* pbr_pipeline_name = "vke::object_renderer::pbr_pipeline";
     void create_default_pbr_pipeline();
 
-    void set_entt_registery(entt::registry* registry) override { m_registry = registry; }
+    void set_entt_registry(entt::registry* registry) override { m_registry = registry; }
     void render(const RenderArguments& args) override;
 
     void set_camera(const std::string& render_target, Camera* camera) { m_render_targets.at(render_target).camera = camera; }
