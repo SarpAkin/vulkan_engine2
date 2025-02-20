@@ -26,10 +26,10 @@ static bool load_gltf_into_model(tg::Model& model, const std::string& file_path)
     bool ret;
     if (ext == ".gltf") {
         ret = loader.LoadASCIIFromFile(&model, &err, &warn, file_path);
-    }else if(ext == ".glb"){
+    } else if (ext == ".glb") {
         ret = loader.LoadBinaryFromFile(&model, &err, &warn, file_path);
-    }else{
-        LOG_ERROR("unknown extension: %s",ext.c_str());
+    } else {
+        LOG_ERROR("unknown extension: %s", ext.c_str());
         return false;
     }
 
@@ -104,12 +104,14 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         return images[texture.source];
     };
 
-    auto default_id   = renderer->try_get_material_id("vke::default_material").value();
+    auto default_id   = renderer->create_material(ObjectRenderer::pbr_pipeline_name, {});
     auto material_ids = vke::map_vec(model.materials, [&](const tg::Material& material) {
         int pbr_texture_index = material.pbrMetallicRoughness.baseColorTexture.index;
-        if (pbr_texture_index == -1) return default_id;
+        if (pbr_texture_index == -1) {
+            return default_id;
+        }
 
-        return renderer->create_material("vke::default", {get_image(pbr_texture_index)});
+        return renderer->create_material(ObjectRenderer::pbr_pipeline_name, {get_image(pbr_texture_index)});
     });
 
     auto set_indicies = [&](MeshBuilder& builder, int ib_accesor_index) {

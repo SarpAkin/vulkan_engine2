@@ -1,6 +1,7 @@
 #version 450
 
 #include "scene_set.glsl"
+#include "material_set.glsl"
 
 layout(location = 0) in vec3 f_color;
 layout(location = 1) in vec2 f_texture_coord;
@@ -9,17 +10,15 @@ layout(location = 3) in vec3 f_position;
 
 layout(location = 0) out vec4 o_color;
 
-#define MATERIAL_SET 1
 
-layout(set = MATERIAL_SET, binding = 0) uniform sampler2D textures[4];
 
 #define LIGHT
 #ifdef LIGHT
 #define LIGHT_SET 2
 
-layout(set = LIGHT_SET, binding = 0, std430) readonly buffer Lights {
-    SceneLightData lights;
-};
+// layout(set = LIGHT_SET, binding = 0, std430) readonly buffer Lights {
+//     SceneLightData lights;
+// };
 
 // struct Tile {
 //     uint light_count;
@@ -80,7 +79,7 @@ float calculate_light_strength(vec3 light_dir, vec3 normal, vec3 view_dir) {
 }
 
 void main() {
-    vec3 view_pos = vec3(scene.view_world_pos.xyz);
+    vec3 view_pos = vec3(scene_view.view_world_pos.xyz);
     vec3 view_dir = normalize(f_position - view_pos);
 
     vec3 albedo = texture(textures[0], f_texture_coord).xyz;

@@ -17,22 +17,40 @@ namespace vke {
 class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
 public:
     constexpr static int SCENE_SET    = 0;
-    constexpr static int MATERIAL_SET = 1;
-    constexpr static int LIGHT_SET    = 2;
+    constexpr static int VIEW_SET     = 1;
+    constexpr static int MATERIAL_SET = 2;
+    constexpr static int LIGHT_SET    = -1;
 
     constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;
+
+    enum class MaterialSubpassType {
+        NONE = 0,
+        FORWARD,
+        DEFERRED_PBR,
+        SHADOW,
+        CUSTOM,
+    };
 
 public:
     ObjectRenderer(RenderServer* render_server);
     ~ObjectRenderer();
 
-    void set_entt_registery(entt::registry* registery) override { m_registry = registery; }
-    void set_scene(Scene* scene);
-    void render(vke::CommandBuffer& cmd) override;
+    constexpr static const char* pbr_pipeline_name = "vke::object_renderer::pbr_pipeline";
+    void create_default_pbr_pipeline();
 
-    void set_camera(Camera* camera) { m_camera = camera; }
+    void set_entt_registery(entt::registry* registry) override { m_registry = registry; }
+    void render(const RenderArguments& args) override;
 
-    MaterialID create_material(const std::string& pipeline_name, std::vector<ImageID> images = {}, const std::string& material_name = "");
+    void set_camera(const std::string& render_target, Camera* camera) { m_render_targets.at(render_target).camera = camera; }
+
+    void set_subpass_type(const std::string& subpass_name, MaterialSubpassType type) { m_subpass_types[subpass_name] = type; }
+    MaterialSubpassType get_subpass_type(const std::string& name) const { return vke::at(m_subpass_types, name).value_or(MaterialSubpassType::NONE); }
+
+    void create_render_target(const std::string& name, const std::string& subpass_name);
+
+    void create_multi_target_pipeline(const std::string& name, std::span<const std::string> pipelines);
+
+    MaterialID create_material(const std::string& multi_pipeline_name, std::vector<ImageID> images = {}, const std::string& material_name = "");
     MeshID create_mesh(Mesh mesh, const std::string& name = "");
     RenderModelID create_model(MeshID mesh, MaterialID material, const std::string& name = "");
     RenderModelID create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name = "");
@@ -57,25 +75,42 @@ private:
         std::string name;
     };
 
+    struct MultiPipeline {
+        RCResource<IPipeline> deferred_pipeline;
+        RCResource<IPipeline> forward_pipeline;
+        RCResource<IPipeline> shadow_pipeline;
+    };
+
     struct Material {
-        vke::RCResource<vke::IPipeline> pipeline;
+        MultiPipeline* multi_pipeline;
         VkDescriptorSet material_set;
         vke::SmallVec<ImageID> images;
         std::string name;
     };
 
+    struct RenderTarget {
+        std::string renderpass_name;
+        MaterialSubpassType subpass_type = MaterialSubpassType::NONE;
+        vke::Camera* camera              = nullptr;
+
+        VkDescriptorSet view_sets[FRAME_OVERLAP];
+        std::unique_ptr<vke::Buffer> view_buffers[FRAME_OVERLAP];
+    };
+
     struct RenderState {
         vke::CommandBuffer& cmd;
+        vke::CommandBuffer& compute_cmd;
         MaterialID bound_material_id = 0;
         MeshID bound_mesh_id         = 0;
         IPipeline* bound_pipeline    = nullptr;
         Mesh* mesh                   = nullptr;
         Material* material           = nullptr;
+        RenderTarget* render_target  = nullptr;
     };
 
     struct FramelyData {
         std::unique_ptr<vke::Buffer> light_buffer;
-        VkDescriptorSet scene_light_set;
+        VkDescriptorSet scene_set;
     };
 
 private:
@@ -92,13 +127,17 @@ private:
 
     FramelyData& get_framely();
 
+    static IPipeline* get_pipeline(MultiPipeline* mp, RenderTarget* target);
+
+    void update_view_set(RenderTarget* target);
+
+
 private: // rendering
     void update_lights();
 
 private:
     FramelyData m_framely_data[FRAME_OVERLAP];
-    VkDescriptorSetLayout m_scene_light_set_layout;
-    std::unique_ptr<SceneSet> m_scene_set;
+    VkDescriptorSetLayout m_scene_set_layout, m_view_set_layout;
 
 private:
     std::unordered_map<ImageID, std::unique_ptr<IImageView>> m_images;
@@ -113,13 +152,17 @@ private:
 
     std::unordered_map<std::string, vke::RCResource<vke::IPipeline>> m_cached_pipelines;
 
+    std::unordered_map<std::string, RenderTarget> m_render_targets;
+    std::unordered_map<std::string, MaterialSubpassType> m_subpass_types;
+    // pointer stability is required since there are pointers to values of this container
+    std::unordered_map<std::string, MultiPipeline> m_multi_pipelines;
+
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     VkDescriptorSetLayout m_material_set_layout;
     VkSampler m_nearest_sampler;
 
     vke::RenderServer* m_render_server = nullptr;
-    entt::registry* m_registry        = nullptr;
-    Camera* m_camera                   = nullptr;
+    entt::registry* m_registry         = nullptr;
     IImageView* m_null_texture         = nullptr;
 
     ImageID m_null_texture_id;

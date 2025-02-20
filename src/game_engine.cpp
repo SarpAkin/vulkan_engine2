@@ -14,9 +14,15 @@ GameEngine::GameEngine(bool headless) {
         m_render_server = std::make_unique<RenderServer>();
         m_render_server->init();
 
-        m_render_server->get_object_renderer()->set_entt_registery(m_scene->get_registery());
-        m_render_server->get_object_renderer()->set_camera(m_scene->get_camera());
-        m_render_server->get_object_renderer()->set_scene(m_scene.get());
+        const std::string render_target_name = "default";
+
+        auto obj_renderer = m_render_server->get_object_renderer();
+
+        obj_renderer->set_entt_registery(m_scene->get_registery());
+        
+        obj_renderer->create_render_target(render_target_name, "vke::default_forward");
+        obj_renderer->set_camera(render_target_name,m_scene->get_camera());
+
     }
 }
 
@@ -78,6 +84,9 @@ void GameEngine::default_render(vke::CommandBuffer& cmd) {
     cam->move_freecam(window, get_delta_time());
     cam->update();
 
-    m_render_server->get_object_renderer()->render(cmd);
+    m_render_server->get_object_renderer()->render({
+        .subpass_cmd = &cmd,
+        .render_target_name = "default",
+    });
 }
 } // namespace vke

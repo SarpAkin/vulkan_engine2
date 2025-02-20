@@ -21,7 +21,7 @@ layout(push_constant) uniform PC {
 
 void main() {
     vec4 world_position = model_matrix * vec4(v_pos, 1.0);
-    gl_Position = scene.proj_view * vec4(world_position);
+    gl_Position = scene_view.proj_view * vec4(world_position);
     f_position = world_position.xyz / world_position.w;
     // gl_Position.x = -gl_Position.x;
 

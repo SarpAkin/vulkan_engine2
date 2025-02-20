@@ -73,7 +73,7 @@ public:
         ImGui::Begin("instantiate");
 
         if (ImGui::CollapsingHeader("Light")) {
-            static float range    = 5.f,strength = 2.f;
+            static float range = 5.f, strength = 2.f;
             const float min_range = 0.1f, max_range = 100.f;
             ImGui::SliderFloat("range", &range, min_range, max_range);
             ImGui::SliderFloat("strength", &strength, 0.1f, 20.f);
@@ -108,7 +108,7 @@ public:
 
             double x = 0, y = 0, z = 0, sx = 1.0, sy = 1.0, sz = 1.0;
             char c = '\0';
-            if (int count = sscanf(buffer, "%c(%lf,%lf,%lf) (%lf,%lf,%lf)", &c, &x, &y, &z,&sx,&sy,&sz);count >= 4) {
+            if (int count = sscanf(buffer, "%c(%lf,%lf,%lf) (%lf,%lf,%lf)", &c, &x, &y, &z, &sx, &sy, &sz); count >= 4) {
                 vke::Transform t{
                     .position = {x, y, z},
                     .rotation = {},
@@ -119,8 +119,8 @@ public:
                     t.position += player->world_position;
                 }
 
-                if(count >= 7){
-                    t.scale = {sx,sy,sz};
+                if (count >= 7) {
+                    t.scale = {sx, sy, sz};
                 }
 
                 if (ImGui::Button("spawn")) {

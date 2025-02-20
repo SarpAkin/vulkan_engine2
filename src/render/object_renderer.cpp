@@ -27,7 +27,13 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     {
         vke::DescriptorSetLayoutBuilder layout_builder;
         layout_builder.add_ssbo(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT, 1);
-        m_scene_light_set_layout = layout_builder.build();
+        m_scene_set_layout = layout_builder.build();
+    }
+
+    {
+        vke::DescriptorSetLayoutBuilder layout_builder;
+        layout_builder.add_ubo(VK_SHADER_STAGE_ALL, 1);
+        m_view_set_layout = layout_builder.build();
     }
 
     VkSamplerCreateInfo sampler_info{
@@ -46,15 +52,14 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     auto pg_provider = m_render_server->get_pipeline_loader()->get_pipeline_globals_provider();
 
     pg_provider->set_layouts["vke::object_renderer::material_set"] = m_material_set_layout;
-    pg_provider->set_layouts["vke::object_renderer::light_set"]    = m_scene_light_set_layout;
-
-    m_scene_set = std::make_unique<SceneSet>(render_server);
+    pg_provider->set_layouts["vke::object_renderer::scene_set"]    = m_scene_set_layout;
+    pg_provider->set_layouts["vke::object_renderer::view_set"]     = m_view_set_layout;
 
     for (auto& framely : m_framely_data) {
         framely.light_buffer = std::make_unique<Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(SceneLightData), true);
         vke::DescriptorSetBuilder builder;
         builder.add_ssbo(framely.light_buffer.get(), VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
-        framely.scene_light_set = builder.build(m_descriptor_pool.get(), m_scene_light_set_layout);
+        framely.scene_set = builder.build(m_descriptor_pool.get(), m_scene_set_layout);
     }
 }
 
@@ -63,16 +68,20 @@ ObjectRenderer::~ObjectRenderer() {
     vkDestroySampler(device(), m_nearest_sampler, nullptr);
 }
 
-void ObjectRenderer::render(vke::CommandBuffer& cmd) {
+void ObjectRenderer::render(const RenderArguments& args) {
     auto view = m_registry->view<Renderable, Transform>();
 
-    RenderState state = {.cmd = cmd};
+    RenderState rs = {
+        .cmd           = *args.subpass_cmd,
+        .compute_cmd   = *args.compute_cmd,
+        .render_target = &m_render_targets.at(args.render_target_name),
+    };
 
-    m_scene_set->update_scene_set();
+    update_view_set(rs.render_target);
     update_lights();
 
-    cmd.bind_descriptor_set(SCENE_SET, m_scene_set->get_scene_set());
-    cmd.bind_descriptor_set(LIGHT_SET, get_framely().scene_light_set);
+    rs.cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
+    rs.cmd.bind_descriptor_set(VIEW_SET, rs.render_target->view_sets[m_render_server->get_frame_index()]);
 
     auto transform_view = m_registry->view<Transform>();
     auto parent_view    = m_registry->view<CParent>();
@@ -108,16 +117,18 @@ void ObjectRenderer::render(vke::CommandBuffer& cmd) {
         };
 
         for (auto& part : model.parts) {
-            if (!bind_material(state, part.material_id)) continue;
-            if (!bind_mesh(state, part.mesh_id)) continue;
+            if (!bind_material(rs, part.material_id)) continue;
+            if (!bind_mesh(rs, part.mesh_id)) continue;
 
-            auto* mesh = state.mesh;
+            auto* mesh = rs.mesh;
 
-            cmd.push_constant(&push);
-            cmd.draw_indexed(mesh->index_count, 1, 0, 0, 0);
+            rs.cmd.push_constant(&push);
+            rs.cmd.draw_indexed(mesh->index_count, 1, 0, 0, 0);
         }
     }
 }
+
+#pragma mark binds
 
 bool ObjectRenderer::bind_mesh(RenderState& state, MeshID id) {
     if (state.bound_mesh_id == id) return true;
@@ -136,6 +147,23 @@ bool ObjectRenderer::bind_mesh(RenderState& state, MeshID id) {
     return true;
 }
 
+IPipeline* ObjectRenderer::get_pipeline(MultiPipeline* mp, RenderTarget* target) {
+    switch (target->subpass_type) {
+    case MaterialSubpassType::NONE:
+        THROW_ERROR("Material Subpass Type: NONE isn't supported");
+    case MaterialSubpassType::FORWARD:
+        return mp->forward_pipeline.get();
+    case MaterialSubpassType::DEFERRED_PBR:
+        return mp->deferred_pipeline.get();
+    case MaterialSubpassType::SHADOW:
+        return mp->shadow_pipeline.get();
+    case MaterialSubpassType::CUSTOM:
+        THROW_ERROR("Material Subpass Type: CUSTOM isn't supported");
+    }
+
+    return nullptr;
+}
+
 bool ObjectRenderer::bind_material(RenderState& state, MaterialID id) {
     if (state.bound_material_id == id) return true;
 
@@ -146,8 +174,10 @@ bool ObjectRenderer::bind_material(RenderState& state, MaterialID id) {
         return false;
     }
 
-    if (state.bound_pipeline != state.material->pipeline.get()) {
-        state.bound_pipeline = state.material->pipeline.get();
+    auto pipeline = get_pipeline(state.material->multi_pipeline, state.render_target);
+
+    if (state.bound_pipeline != pipeline) {
+        state.bound_pipeline = pipeline;
         state.cmd.bind_pipeline(state.bound_pipeline);
     }
     state.cmd.bind_descriptor_set(MATERIAL_SET, state.material->material_set);
@@ -155,14 +185,60 @@ bool ObjectRenderer::bind_material(RenderState& state, MaterialID id) {
     return true;
 }
 
+#pragma mark creates
+
+void ObjectRenderer::create_render_target(const std::string& name, const std::string& subpass_name) {
+    RenderTarget target = {
+        .renderpass_name = subpass_name,
+        .subpass_type    = get_subpass_type(subpass_name),
+        .camera          = nullptr,
+    };
+
+    for (int i = 0; i < FRAME_OVERLAP; i++) {
+        target.view_buffers[i] = std::make_unique<vke::Buffer>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(ViewData), true);
+
+        vke::DescriptorSetBuilder builder;
+        builder.add_ubo(target.view_buffers[i].get(), VK_SHADER_STAGE_ALL);
+        target.view_sets[i] = builder.build(m_descriptor_pool.get(), m_view_set_layout);
+    }
+
+    m_render_targets[name] = std::move(target);
+}
+
+void ObjectRenderer::create_multi_target_pipeline(const std::string& name, std::span<const std::string> pipeline_names) {
+    MultiPipeline multi_pipeline{};
+
+    for (const auto& name : pipeline_names) {
+        auto pipeline = load_pipeline_cached(name);
+        auto type     = get_subpass_type(std::string(pipeline->subpass_name()));
+
+        switch (type) {
+        case MaterialSubpassType::NONE:
+            break;
+        case MaterialSubpassType::FORWARD:
+            multi_pipeline.forward_pipeline = std::move(pipeline);
+            break;
+        case MaterialSubpassType::DEFERRED_PBR:
+            multi_pipeline.deferred_pipeline = std::move(pipeline);
+            break;
+        case MaterialSubpassType::SHADOW:
+            multi_pipeline.shadow_pipeline = std::move(pipeline);
+            break;
+        case MaterialSubpassType::CUSTOM: break;
+        }
+    }
+
+    m_multi_pipelines[name] = std::move(multi_pipeline);
+}
+
 MaterialID ObjectRenderer::create_material(const std::string& pipeline_name, std::vector<ImageID> images, const std::string& material_name) {
     images.resize(4, m_null_texture_id);
 
     Material m{
-        .pipeline     = load_pipeline_cached(pipeline_name),
-        .material_set = VK_NULL_HANDLE,
-        .images       = images,
-        .name         = material_name,
+        .multi_pipeline = &m_multi_pipelines.at(pipeline_name),
+        .material_set   = VK_NULL_HANDLE,
+        .images         = images,
+        .name           = material_name,
     };
 
     auto views = vke::map_vec(images, [&](auto& id) {
@@ -317,11 +393,6 @@ RCResource<vke::IPipeline> ObjectRenderer::load_pipeline_cached(const std::strin
     return pipeline;
 }
 
-void ObjectRenderer::set_scene(Scene* scene) {
-    m_scene_set->scene  = scene;
-    m_scene_set->camera = scene->get_camera();
-}
-
 void ObjectRenderer::update_lights() {
     auto view         = m_registry->view<Transform, CPointLight>();
     auto point_lights = vke::map_vec(view, [&](const entt::entity& e) {
@@ -351,7 +422,22 @@ void ObjectRenderer::update_lights() {
     lights.directional_light.color = glm::vec4(0.9);
 }
 
+void ObjectRenderer::update_view_set(RenderTarget* target) {
+    assert(target->camera);
+
+    auto* ubo  = target->view_buffers[m_render_server->get_frame_index()].get();
+    auto& data = ubo->mapped_data<ViewData>()[0];
+
+    data.proj_view      = target->camera->proj_view();
+    data.inv_proj_view  = glm::inverse(data.proj_view);
+    data.view_world_pos = dvec4(target->camera->world_position, 0.0);
+}
+
 ObjectRenderer::FramelyData& ObjectRenderer::get_framely() {
     return m_framely_data[m_render_server->get_frame_index()];
+}
+void ObjectRenderer::create_default_pbr_pipeline() {
+    std::string pipelines[] = {"vke::default"};
+    create_multi_target_pipeline(pbr_pipeline_name, pipelines);
 }
 } // namespace vke

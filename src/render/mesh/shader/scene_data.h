@@ -10,19 +10,16 @@
 using namespace glm;
 #endif
 
-struct SceneData{
+struct ViewData{
     mat4 proj_view;
     mat4 inv_proj_view;
     dvec4 view_world_pos;
-    vec4 directional_light_dir;
-    vec4 directional_light_color;
-    vec4 ambient_light;
 };
 
 struct MaterialData{
     float roughness;
     float specular;
-    float metalic;
+    float metallic;
 };
 
 #define MAX_LIGHTS 15

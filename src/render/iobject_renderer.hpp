@@ -35,17 +35,25 @@ struct Renderable {
     RenderModelID model_id;
 };
 
-struct CPointLight{
+struct CPointLight {
     glm::vec3 color;
     float range;
 };
 
-struct CDirectionalLight{
+struct CDirectionalLight {
     glm::vec3 direction;
     glm::vec3 color;
 };
 
 class RenderServer;
+class Camera;
+
+struct RenderArguments {
+    vke::CommandBuffer* subpass_cmd;
+    // executed before subpass is started
+    vke::CommandBuffer* compute_cmd;
+    std::string render_target_name;
+};
 
 // This class is responsible for managing :
 //  - Meshes
@@ -55,8 +63,8 @@ class RenderServer;
 //  It is not CONCURRENT
 class IObjectRenderer {
 public:
-    virtual void set_entt_registery(entt::registry* registery)  = 0;
-    virtual void render(vke::CommandBuffer& cmd)                = 0;
+    virtual void set_entt_registery(entt::registry* registery) = 0;
+    virtual void render(const RenderArguments& cmd)            = 0;
 
 public:
     virtual ~IObjectRenderer() = default;
