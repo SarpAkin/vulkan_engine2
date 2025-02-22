@@ -6,7 +6,7 @@
 
 #include "game_engine.hpp"
 #include "render/gltf_loader/gltf_loader.hpp"
-#include "render/object_renderer.hpp"
+#include "render/object_renderer/object_renderer.hpp"
 #include "render/render_server.hpp"
 
 #include "scene/components/transform.hpp"
@@ -32,7 +32,7 @@ glm::quat random_quaternion() {
 class Game1 : public vke::GameEngine {
 public:
     void populate_scene() {
-        auto* registry = get_scene()->get_registery();
+        auto* registry = get_scene()->get_registry();
         // auto cube_mesh_id = get_render_server()->get_object_renderer()->get_model_id("cube");
 
         vke::VulkanContext::get_context()->immediate_submit([&](vke::CommandBuffer& cmd) {
@@ -66,14 +66,14 @@ public:
     }
 
     void instantiate_menu() {
-        auto* registry = get_scene()->get_registery();
+        auto* registry = get_scene()->get_registry();
         auto* window   = get_render_server()->get_window();
         auto* player   = get_scene()->get_camera();
 
         ImGui::Begin("instantiate");
 
         if (ImGui::CollapsingHeader("Light")) {
-            static float range    = 5.f,strength = 2.f;
+            static float range = 5.f, strength = 2.f;
             const float min_range = 0.1f, max_range = 100.f;
             ImGui::SliderFloat("range", &range, min_range, max_range);
             ImGui::SliderFloat("strength", &strength, 0.1f, 20.f);
@@ -108,7 +108,7 @@ public:
 
             double x = 0, y = 0, z = 0, sx = 1.0, sy = 1.0, sz = 1.0;
             char c = '\0';
-            if (int count = sscanf(buffer, "%c(%lf,%lf,%lf) (%lf,%lf,%lf)", &c, &x, &y, &z,&sx,&sy,&sz);count >= 4) {
+            if (int count = sscanf(buffer, "%c(%lf,%lf,%lf) (%lf,%lf,%lf)", &c, &x, &y, &z, &sx, &sy, &sz); count >= 4) {
                 vke::Transform t{
                     .position = {x, y, z},
                     .rotation = {},
@@ -119,8 +119,8 @@ public:
                     t.position += player->world_position;
                 }
 
-                if(count >= 7){
-                    t.scale = {sx,sy,sz};
+                if (count >= 7) {
+                    t.scale = {sx, sy, sz};
                 }
 
                 if (ImGui::Button("spawn")) {

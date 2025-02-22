@@ -10,12 +10,12 @@ public:
     Scene(){};
     ~Scene(){}
 
-    entt::registry* get_registery() { return &m_registery; }
+    entt::registry* get_registry() { return &m_registry; }
     Camera* get_camera() { return &m_camera; }
 
     
 private:
-    entt::registry m_registery;
+    entt::registry m_registry;
     Camera m_camera;
 };
 

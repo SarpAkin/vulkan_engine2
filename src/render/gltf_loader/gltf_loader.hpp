@@ -2,9 +2,9 @@
 
 #include <entt/fwd.hpp>
 
-#include "../object_renderer.hpp"
+#include "render/object_renderer/object_renderer.hpp"
 
 namespace vke{
 
-void load_gltf_file(vke::CommandBuffer& cmd,entt::registry* registery,ObjectRenderer* renderer, const std::string& file_path);
+void load_gltf_file(vke::CommandBuffer& cmd,entt::registry* registry,ObjectRenderer* renderer, const std::string& file_path);
 }

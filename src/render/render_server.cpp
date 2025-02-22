@@ -3,7 +3,8 @@
 #include "mesh/mesh_util.hpp"
 #include "mesh/shapes.hpp"
 #include "render/imgui/imgui_manager.hpp"
-#include "render/object_renderer.hpp"
+#include "render/object_renderer/object_renderer.hpp"
+#include "render/object_renderer/resource_manager.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/transform.hpp"
 #include "window/window_sdl.hpp"
@@ -18,11 +19,11 @@ namespace vke {
 
 void RenderServer::init() {
     vke::ContextConfig config{
-        .app_name = "app0",
+        .app_name    = "app0",
         .features1_0 = {
             .shaderFloat64 = true,
-            .shaderInt64 = true,
-            .shaderInt16 = true,
+            .shaderInt64   = true,
+            .shaderInt16   = true,
         },
         .features1_2 = {
             .shaderInt8 = true,
@@ -38,7 +39,7 @@ void RenderServer::init() {
 
     m_window_renderpass = vke::make_simple_windowed_renderpass(m_window.get(), true);
 
-    m_imgui_manager = std::make_unique<ImguiManager>(m_window.get(),m_window_renderpass.get(),0);
+    m_imgui_manager = std::make_unique<ImguiManager>(m_window.get(), m_window_renderpass.get(), 0);
     dynamic_cast<WindowSDL*>(m_window.get())->set_imgui_manager(m_imgui_manager.get());
 
     m_pipeline_loader = vke::IPipelineLoader::make_debug_loader("src/");
@@ -57,10 +58,13 @@ void RenderServer::init() {
     }
 
     m_object_renderer = std::make_unique<ObjectRenderer>(this);
-    //Creating a cube model
-    auto materialID = m_object_renderer->create_material("vke::default", {}, "vke::default_material");
-    // auto meshID     = m_object_renderer->create_mesh(std::move(*vke::make_cube()));
-    // m_object_renderer->create_model(meshID, materialID,"cube");
+
+    m_object_renderer->get_resource_manager()->set_subpass_type("vke::default_forward", MaterialSubpassType::FORWARD);
+    m_object_renderer->create_default_pbr_pipeline();
+    // Creating a cube model
+    //  auto materialID = m_object_renderer->create_material("vke::default", {}, "vke::default_material");
+    //  auto meshID     = m_object_renderer->create_mesh(std::move(*vke::make_cube()));
+    //  m_object_renderer->create_model(meshID, materialID,"cube");
 }
 
 void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_function) {
@@ -88,7 +92,7 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
     m_window_renderpass->begin(cmd);
 
     render_function(cmd);
-    m_imgui_manager->flush_frame(cmd); 
+    m_imgui_manager->flush_frame(cmd);
 
     m_window_renderpass->end(cmd);
 
@@ -125,7 +129,6 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
 
     m_frame_index = (m_frame_index + 1) % FRAME_OVERLAP;
 }
-
 
 RenderServer::~RenderServer() {
     VK_CHECK(vkDeviceWaitIdle(device()));

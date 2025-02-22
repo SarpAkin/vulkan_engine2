@@ -26,6 +26,7 @@ protected:
     void default_render(vke::CommandBuffer& cmd);
 
 private:
+
 private:
     std::unique_ptr<vke::Scene> m_scene;
     std::unique_ptr<vke::RenderServer> m_render_server;
