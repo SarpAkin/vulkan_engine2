@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "glm/ext/matrix_float4x4.hpp"
+#include "render/object_renderer/resource_manager.hpp"
 #include "tiny_gltf.h"
 
 #include "scene/components/transform.hpp"
@@ -57,8 +58,9 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
     tg::Model model;
     if (!load_gltf_into_model(model, file_path)) return;
 
-    std::string registered_name_prefix = file_path + "$";
+    auto* resource_manager = renderer->get_resource_manager();
 
+    std::string registered_name_prefix = file_path + "$";
     auto make_name = [&](const std::string& base_name) {
         return base_name.empty() ? std::string() : registered_name_prefix + base_name;
     };
@@ -95,7 +97,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
                 .layers      = 1,
             });
 
-        return renderer->create_image(std::move(vke_image));
+        return resource_manager->create_image(std::move(vke_image));
     });
 
     auto get_image = [&](int texture_index) {
@@ -104,14 +106,14 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         return images[texture.source];
     };
 
-    auto default_id   = renderer->create_material(ObjectRenderer::pbr_pipeline_name, {});
+    auto default_id   = resource_manager->create_material(ObjectRenderer::pbr_pipeline_name, {});
     auto material_ids = vke::map_vec(model.materials, [&](const tg::Material& material) {
         int pbr_texture_index = material.pbrMetallicRoughness.baseColorTexture.index;
         if (pbr_texture_index == -1) {
             return default_id;
         }
 
-        return renderer->create_material(ObjectRenderer::pbr_pipeline_name, {get_image(pbr_texture_index)});
+        return resource_manager->create_material(ObjectRenderer::pbr_pipeline_name, {get_image(pbr_texture_index)});
     });
 
     auto set_indicies = [&](MeshBuilder& builder, int ib_accessor_index) {
@@ -147,7 +149,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
 
         set_indicies(builder, primitive.indices);
 
-        return renderer->create_mesh(builder.build());
+        return resource_manager->create_mesh(builder.build());
     };
 
     auto model_ids = vke::map_vec(model.meshes, [&](const tg::Mesh& mesh) {
@@ -155,7 +157,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
             return std::pair(create_mesh_from_primitive(primitive), material_ids[primitive.material]);
         });
 
-        return renderer->create_model(parts, make_name(mesh.name));
+        return resource_manager->create_model(parts, make_name(mesh.name));
     });
 
     auto create_transformation_from_node = [&](tg::Node& node) {
