@@ -114,8 +114,6 @@ private:
     };
 
 private:
-    uint32_t new_raw_id() { return m_id_counter++; }
-
     bool bind_mesh(RenderState& state, MeshID id);
     bool bind_material(RenderState& state, MaterialID id);
 
@@ -145,6 +143,11 @@ private:
     std::unordered_map<RenderModelID, RenderModel> m_render_models;
     std::unordered_map<MeshID, Mesh> m_meshes;
 
+    GenericIDManager<ImageID> m_image_id_manager;
+    GenericIDManager<MaterialID> m_material_id_manager;
+    GenericIDManager<RenderModelID> m_render_model_id_manager;
+    GenericIDManager<MeshID> m_mesh_id_manager;
+
     std::unordered_map<std::string, MaterialID> m_material_names2material_ids;
     std::unordered_map<std::string, MeshID> m_mesh_names2mesh_ids;
     std::unordered_map<std::string, RenderModelID> m_render_model_names2model_ids;
@@ -166,8 +169,6 @@ private:
     IImageView* m_null_texture         = nullptr;
 
     ImageID m_null_texture_id;
-
-    uint32_t m_id_counter = 1; // 0 is null
 };
 
 } // namespace vke

@@ -248,7 +248,7 @@ MaterialID ObjectRenderer::create_material(const std::string& pipeline_name, std
     builder.add_image_samplers(views, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_SHADER_STAGE_FRAGMENT_BIT);
     m.material_set = builder.build(m_descriptor_pool.get(), m_material_set_layout);
 
-    auto id = MaterialID(new_raw_id());
+    auto id = MaterialID(m_material_id_manager.new_id());
 
     if (!material_name.empty()) {
         assert(!m_material_names2material_ids.contains(material_name) && "material name is already present");
@@ -260,7 +260,7 @@ MaterialID ObjectRenderer::create_material(const std::string& pipeline_name, std
 }
 
 MeshID ObjectRenderer::create_mesh(Mesh mesh, const std::string& name) {
-    auto id = MeshID(new_raw_id());
+    auto id = MeshID(m_mesh_id_manager.new_id());
 
     m_meshes[id] = std::move(mesh);
 
@@ -273,7 +273,7 @@ MeshID ObjectRenderer::create_mesh(Mesh mesh, const std::string& name) {
 }
 
 RenderModelID ObjectRenderer::create_model(MeshID mesh, MaterialID material, const std::string& name) {
-    auto id = RenderModelID(new_raw_id());
+    auto id = RenderModelID(m_render_model_id_manager.new_id());
 
     m_render_models[id] = RenderModel{
         .parts = {
@@ -289,7 +289,7 @@ RenderModelID ObjectRenderer::create_model(MeshID mesh, MaterialID material, con
 }
 
 RenderModelID ObjectRenderer::create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name) {
-    auto id = RenderModelID(new_raw_id());
+    auto id = RenderModelID(m_render_model_id_manager.new_id());
 
     m_render_models[id] = RenderModel{
         .parts = map_vec(parts, [](auto& part) {
@@ -313,7 +313,7 @@ void ObjectRenderer::bind_name2model(RenderModelID id, const std::string& name) 
 }
 
 ImageID ObjectRenderer::create_image(std::unique_ptr<IImageView> image_view, const std::string& name) {
-    auto id = ImageID(new_raw_id());
+    auto id = ImageID(m_image_id_manager.new_id());
 
     m_images[id] = std::move(image_view);
 

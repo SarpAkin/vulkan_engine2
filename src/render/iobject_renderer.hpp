@@ -3,6 +3,7 @@
 #include "glm/ext/vector_float3.hpp"
 #include <entt/fwd.hpp>
 #include <vke/fwd.hpp>
+#include <vke/util.hpp>
 
 #include <cstdint>
 namespace vke {
@@ -10,9 +11,11 @@ namespace vke {
 namespace impl {
 template <class Type>
 struct GenericID {
-    uint32_t id;
+    using IDIntegerType = uint32_t;
+
+    IDIntegerType id;
     GenericID() { id = 0; }
-    GenericID(uint32_t _id) : id(_id) {}
+    GenericID(IDIntegerType _id) : id(_id) {}
 
 public:
     auto operator<=>(const GenericID<Type>& other) const = default;
@@ -29,6 +32,18 @@ using MeshID        = impl::GenericID<impl::Mesh>;
 using MaterialID    = impl::GenericID<impl::Material>;
 using ImageID       = impl::GenericID<vke::Image>;
 using RenderPassID  = impl::GenericID<vke::ISubpass>;
+
+template <class T>
+class GenericIDManager {
+public:
+    using GIDType = T;
+
+    GIDType new_id() { return GIDType(id_manager.new_id()); }
+    void free_id(GIDType id) { id_manager.free_id(id.id); }
+
+public:
+    vke::IDManager<uint32_t> id_manager = vke::IDManager<uint32_t>(1);
+};
 
 // Component for rendering
 struct Renderable {
@@ -64,7 +79,7 @@ struct RenderArguments {
 class IObjectRenderer {
 public:
     virtual void set_entt_registry(entt::registry* registry) = 0;
-    virtual void render(const RenderArguments& cmd)            = 0;
+    virtual void render(const RenderArguments& cmd)          = 0;
 
 public:
     virtual ~IObjectRenderer() = default;
