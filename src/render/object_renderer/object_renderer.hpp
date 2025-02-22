@@ -7,8 +7,8 @@
 #include <vke/vke.hpp>
 
 #include "common.hpp"
-#include "iobject_renderer.hpp"
-#include "mesh/mesh.hpp"
+#include "render/iobject_renderer.hpp"
+#include "render/mesh/mesh.hpp"
 
 #include "fwd.hpp"
 

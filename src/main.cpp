@@ -6,7 +6,7 @@
 
 #include "game_engine.hpp"
 #include "render/gltf_loader/gltf_loader.hpp"
-#include "render/object_renderer.hpp"
+#include "render/object_renderer/object_renderer.hpp"
 #include "render/render_server.hpp"
 
 #include "scene/components/transform.hpp"

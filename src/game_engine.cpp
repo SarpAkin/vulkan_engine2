@@ -1,7 +1,7 @@
 #include "game_engine.hpp"
 
 #include "imgui.h"
-#include "render/object_renderer.hpp"
+#include "render/object_renderer/object_renderer.hpp"
 #include "render/render_server.hpp"
 #include "scene/scene.hpp"
 

@@ -2,7 +2,7 @@
 
 #include <entt/fwd.hpp>
 
-#include "../object_renderer.hpp"
+#include "render/object_renderer/object_renderer.hpp"
 
 namespace vke{
 

@@ -3,7 +3,7 @@
 #include "mesh/mesh_util.hpp"
 #include "mesh/shapes.hpp"
 #include "render/imgui/imgui_manager.hpp"
-#include "render/object_renderer.hpp"
+#include "render/object_renderer/object_renderer.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/transform.hpp"
 #include "window/window_sdl.hpp"
