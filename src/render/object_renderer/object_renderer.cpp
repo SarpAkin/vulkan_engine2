@@ -52,8 +52,6 @@ ObjectRenderer::~ObjectRenderer() {
 }
 
 void ObjectRenderer::render(const RenderArguments& args) {
-    auto view = m_registry->view<Renderable, Transform>();
-
     RenderState rs = {
         .cmd           = *args.subpass_cmd,
         .compute_cmd   = *args.compute_cmd,
@@ -62,6 +60,12 @@ void ObjectRenderer::render(const RenderArguments& args) {
 
     update_view_set(rs.render_target);
     update_lights();
+
+    render_direct(rs);
+}
+
+void ObjectRenderer::render_direct(RenderState& rs) {
+    auto view = m_registry->view<Renderable, Transform>();
 
     rs.cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
     rs.cmd.bind_descriptor_set(VIEW_SET, rs.render_target->view_sets[m_render_server->get_frame_index()]);
@@ -109,6 +113,12 @@ void ObjectRenderer::render(const RenderArguments& args) {
             rs.cmd.draw_indexed(mesh->index_count, 1, 0, 0, 0);
         }
     }
+}
+
+void ObjectRenderer::render_indirect(RenderState& state) {
+    
+
+
 }
 
 void ObjectRenderer::create_render_target(const std::string& name, const std::string& subpass_name) {

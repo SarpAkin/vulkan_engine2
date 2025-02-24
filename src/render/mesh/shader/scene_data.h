@@ -8,6 +8,9 @@
 #include <glm/mat4x4.hpp>
 
 using namespace glm;
+#else 
+#extension GL_ARB_gpu_shader_int64 : enable
+
 #endif
 
 struct ViewData{
@@ -17,9 +20,28 @@ struct ViewData{
 };
 
 struct MaterialData{
+    uint texture_ids[4];
     float roughness;
     float specular;
     float metallic;
+    float padd;
+};
+
+struct InstanceData{
+    dvec4 world_position;
+    vec4 size;
+    vec4 rotation;
+    uint model_id;
+    uint padd[3];
+};
+
+struct PartData{
+    uint64_t component_addresses[4];
+};
+
+struct ModelData{
+    vec4 aabb_size;
+
 };
 
 #define MAX_LIGHTS 15

@@ -45,6 +45,9 @@ public:
 
     void create_render_target(const std::string& name, const std::string& subpass_name);
 
+private:
+    struct IndirectRenderBuffers;
+
 public:
     struct RenderTarget {
         std::string renderpass_name;
@@ -53,6 +56,9 @@ public:
 
         VkDescriptorSet view_sets[FRAME_OVERLAP];
         std::unique_ptr<vke::Buffer> view_buffers[FRAME_OVERLAP];
+        // if this is null the scene should be renderer using render_direct
+        // otherwise it can be rendered using render_indirect
+        std::unique_ptr<IndirectRenderBuffers> buffers;
     };
 
 private:
@@ -61,8 +67,30 @@ private:
         VkDescriptorSet scene_set;
     };
 
+    struct IndirectRenderSceneData {
+        std::unique_ptr<vke::Buffer> model_info_buffer;
+        std::unique_ptr<vke::Buffer> material_info_buffer;
+
+        // stores instance specific data
+        std::unique_ptr<vke::Buffer> instance_buffer;
+
+        RCResource<vke::Pipeline> cull_pipeline;
+    };
+
+    struct IndirectRenderBuffers {
+        // stores indirect draw commands
+        std::unique_ptr<vke::Buffer> indirect_draw_buffer;
+        // it is a an array of uvec2. their indices correspond to their material id
+        // it stores draw offsets & draw max_counts in x & y components respectively
+        std::unique_ptr<vke::Buffer> draw_offsets_buffer[FRAME_OVERLAP];
+        std::unique_ptr<vke::Buffer> draw_count_buffer;
+    };
+
 private:
     FramelyData& get_framely();
+
+    void render_direct(RenderState& state);
+    void render_indirect(RenderState& state);
 
 private: // rendering
     void update_view_set(RenderTarget* target);
