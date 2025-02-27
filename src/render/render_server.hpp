@@ -5,7 +5,6 @@
 #include <vke/fwd.hpp>
 #include <vke/vke.hpp>
 
-#include "entity/Entity.hpp"
 #include "fwd.hpp"
 
 #include "common.hpp" // IWYU pragma: export
