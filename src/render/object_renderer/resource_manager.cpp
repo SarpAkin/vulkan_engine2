@@ -87,6 +87,7 @@ MaterialID ResourceManager::create_material(const std::string& pipeline_name, st
     }
 
     m_materials[id] = std::move(m);
+    m_updates.material_updates.push_back(id);
     return id;
 }
 
@@ -100,6 +101,7 @@ MeshID ResourceManager::create_mesh(Mesh mesh, const std::string& name) {
         m_mesh_names2mesh_ids[name] = id;
     }
 
+    m_updates.mesh_updates.push_back(id);
     return id;
 }
 
@@ -116,6 +118,7 @@ RenderModelID ResourceManager::create_model(MeshID mesh, MaterialID material, co
         bind_name2model(id, name);
     }
 
+    m_updates.model_updates.push_back(id);
     return id;
 }
 
@@ -133,6 +136,7 @@ RenderModelID ResourceManager::create_model(const std::vector<std::pair<MeshID, 
         bind_name2model(id, name);
     }
 
+    m_updates.model_updates.push_back(id);
     return id;
 }
 
@@ -152,6 +156,7 @@ ImageID ResourceManager::create_image(std::unique_ptr<IImageView> image_view, co
         m_image_names2image_ids[name] = id;
     }
 
+    m_updates.image_updates.push_back(id);
     return id;
 }
 

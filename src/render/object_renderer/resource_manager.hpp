@@ -19,6 +19,7 @@ public:
     struct MultiPipeline;
     struct Material;
     struct RenderModel;
+    struct UpdatedResources;
 
 public:
     ResourceManager(RenderServer* render_server);
@@ -26,7 +27,7 @@ public:
 
 public: // getters
     VkDescriptorSetLayout get_material_set_layout() const { return m_material_set_layout; }
-
+    UpdatedResources& get_updated_resource(){return m_updates;}
     // id getters
     RenderModelID get_model_id(const std::string& name) const { return m_render_model_names2model_ids.at(name); }
 
@@ -106,6 +107,20 @@ public:
         std::string name;
     };
 
+    struct UpdatedResources {
+        vke::SlimVec<ImageID> image_updates;
+        vke::SlimVec<MaterialID> material_updates;
+        vke::SlimVec<RenderModelID> model_updates;
+        vke::SlimVec<MeshID> mesh_updates;
+
+        void reset() {
+            image_updates.clear();
+            material_updates.clear();
+            model_updates.clear();
+            mesh_updates.clear();
+        }
+    };
+
 private:
     std::unordered_map<ImageID, std::unique_ptr<IImageView>> m_images;
     std::unordered_map<MaterialID, Material> m_materials;
@@ -139,6 +154,8 @@ private:
     ImageID m_null_texture_id;
 
     vke::RenderServer* m_render_server;
+
+    UpdatedResources m_updates;
 };
 
 } // namespace vke
