@@ -1,0 +1,32 @@
+#version 460
+
+#include "scene_data.h"
+#include "scene_set.glsl"
+
+layout(local_size_x = 128) in;
+layout(local_size_y = 1) in;
+layout(local_size_z = 1) in;
+
+layout(push_constant) uniform Push {
+    uint part_count;
+};
+
+void main() {
+    uint partID = gl_GlobalInvocationID.x;
+
+    if (partID >= part_count) return;
+
+    uint drawID = indirect_draw_locations[partID];
+
+    uvec2 instance_location = instance_draw_parameter_locations[partID];
+    uint instance_count     = min(instance_location.y, instance_counters[partID]);
+
+    uint meshID   = parts[partID].mesh_id;
+    MeshData mesh = meshes[meshID];
+
+    draw_commands[drawID].indexCount    = mesh.index_count;
+    draw_commands[drawID].instanceCount = instance_count;
+    draw_commands[drawID].firstIndex    = 0; // mesh.index_offset;
+    draw_commands[drawID].vertexOffset  = 0;
+    draw_commands[drawID].firstInstance = instance_location.x;
+}

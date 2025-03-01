@@ -1,0 +1,87 @@
+#version 450
+
+#include "scene_data.h"
+#include "scene_set.glsl"
+
+layout(local_size_x = 128) in;
+layout(local_size_y = 1) in;
+layout(local_size_z = 1) in;
+
+layout(push_constant) uniform Push {
+    uint instance_count;
+};
+
+bool is_visible(in AABB boundary) {
+    return true;
+}
+
+// translated from glm::mat3_cast
+mat3 mat3_cast(vec4 q) {
+    mat3 result = mat3(1);
+    float qxx   = q.x * q.x;
+    float qyy   = q.y * q.y;
+    float qzz   = q.z * q.z;
+    float qxz   = q.x * q.z;
+    float qxy   = q.x * q.y;
+    float qyz   = q.y * q.z;
+    float qwx   = q.w * q.x;
+    float qwy   = q.w * q.y;
+    float qwz   = q.w * q.z;
+
+    result[0][0] = 1 - 2 * (qyy + qzz);
+    result[0][1] = 2 * (qxy + qwz);
+    result[0][2] = 2 * (qxz - qwy);
+
+    result[1][0] = 2 * (qxy - qwz);
+    result[1][1] = 1 - 2 * (qxx + qzz);
+    result[1][2] = 2 * (qyz + qwx);
+
+    result[2][0] = 2 * (qxz + qwy);
+    result[2][1] = 2 * (qyz - qwx);
+    result[2][2] = 1 - 2 * (qxx + qyy);
+    return result;
+}
+
+mat4 make_model_matrix(in InstanceData instance, vec3 relative_pos) {
+    mat3 inner  = mat3(1);
+    inner[0][0] = instance.size.x;
+    inner[1][1] = instance.size.y;
+    inner[2][2] = instance.size.z;
+
+    inner = mat3_cast(instance.rotation) * inner;
+
+    mat4 result = mat4(inner);
+    result[3]   = vec4(relative_pos, 1.0);
+
+    return result;
+}
+
+void main() {
+    uint instanceID = gl_GlobalInvocationID.x;
+
+    if (instanceID >= instance_count) return;
+
+    InstanceData instance = instances[instanceID];
+    ModelData model       = models[instance.model_id];
+
+    vec3 relative_pos = vec3(instance.world_position.xyz - scene_view.view_world_pos.xyz);
+    AABB boundary;
+    boundary.start = vec4(relative_pos, 0.0);
+    boundary.size  = model.aabb_size;
+
+    if (!is_visible(boundary)) return;
+
+    mat4 model_matrix = make_model_matrix(instance, relative_pos);
+
+    for (int i = 0; i < min(MAX_PARTS, model.part_count); i++) {
+        uint partID             = model.part_index + i;
+        PartData part           = parts[partID];
+        uvec2 instance_location = instance_draw_parameter_locations[partID];
+
+        uint draw_parameterID = atomicAdd(instance_counters[partID], 1);
+        if (draw_parameterID >= instance_location.y) continue;
+        draw_parameterID += instance_location.x;
+
+        instance_draw_parameters[draw_parameterID].model_matrix = model_matrix;
+    }
+}
