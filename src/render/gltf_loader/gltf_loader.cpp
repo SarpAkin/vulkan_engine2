@@ -61,6 +61,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
     auto* resource_manager = renderer->get_resource_manager();
 
     std::string registered_name_prefix = file_path + "$";
+
     auto make_name = [&](const std::string& base_name) {
         return base_name.empty() ? std::string() : registered_name_prefix + base_name;
     };
@@ -142,10 +143,17 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         auto texture_coords_view = get_buffer_view_from_accessor(Type<glm::vec2>(), primitive.attributes.at("TEXCOORD_0"));
         auto normals_view        = get_buffer_view_from_accessor(Type<glm::vec3>(), primitive.attributes.at("NORMAL"));
 
+        auto& position_accessor = model.accessors[primitive.attributes.at("POSITION")];
+
         MeshBuilder builder;
         builder.set_positions(position_view);
         builder.set_texture_coords(texture_coords_view);
         builder.set_normals(normals_view);
+
+        builder.set_boundary(AABB{
+            .start = {position_accessor.minValues[0], position_accessor.minValues[1], position_accessor.minValues[2]},
+            .end   = {position_accessor.maxValues[0], position_accessor.maxValues[1], position_accessor.maxValues[2]},
+        });
 
         set_indicies(builder, primitive.indices);
 
@@ -182,7 +190,9 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         auto& node         = model.nodes.at(node_index);
         auto transform_mat = t * create_transformation_from_node(node);
 
-        auto transform = Transform::decompose_from_matrix(transform_mat);
+        auto transform           = Transform::decompose_from_matrix(transform_mat);
+        auto model_id            = model_ids[node.mesh];
+        // transform.aabb_half_size = resource_manager->get_model(model_id)->boundary.half_size();
 
         if(node.mesh != -1){
             auto entity = registry->create();

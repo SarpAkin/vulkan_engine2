@@ -108,8 +108,8 @@ MeshID ResourceManager::create_mesh(Mesh mesh, const std::string& name) {
 void ResourceManager::calculate_boundary(RenderModel& model) {
     using Part = RenderModel::Part;
 
-    auto boundary = vke::fold(model.parts, AABB{}, [&](const Part& a, const Part& b) {
-        return get_mesh(a.mesh_id)->boundary.combined(get_mesh(b.mesh_id)->boundary);
+    auto boundary = vke::fold(model.parts, AABB{}, [&](const AABB& a, const Part& b) {
+        return a.combined(get_mesh(b.mesh_id)->boundary);
     });
 
     model.boundary = boundary;
