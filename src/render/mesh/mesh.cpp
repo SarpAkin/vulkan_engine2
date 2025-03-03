@@ -47,6 +47,8 @@ Mesh MeshBuilder::build(vke::CommandBuffer* buffer) const {
         mesh.index_count = m_positions.size();
     }
 
+    mesh.boundary = m_boundary;
+
     return mesh;
 }
 } // namespace vke
