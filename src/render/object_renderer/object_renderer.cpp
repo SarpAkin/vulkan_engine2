@@ -18,6 +18,13 @@
 
 namespace vke {
 
+static const u32 part_capacity          = 1 << 12;
+static const u32 model_capacity         = 1 << 10;
+static const u32 material_capacity      = 1 << 10;
+static const u32 instance_capacity      = 1 << 16;
+static const u32 mesh_capacity          = 1 << 10;
+static const u32 indirect_draw_capacity = 1 << 10;
+
 struct InstanceComponent {
     const ObjectRenderer::InstanceID id;
 };
@@ -60,6 +67,8 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     pg_provider->set_layouts["vke::object_renderer::material_set"] = m_resource_manager->get_material_set_layout();
     pg_provider->set_layouts["vke::object_renderer::scene_set"]    = m_scene_set_layout;
     pg_provider->set_layouts["vke::object_renderer::view_set"]     = m_view_set_layout;
+
+    initialize_scene_data();
 
     for (auto& framely : m_framely_data) {
         framely.light_buffer = std::make_unique<Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(SceneLightData), true);
@@ -158,12 +167,28 @@ void ObjectRenderer::render_direct(RenderState& rs) {
     }
 }
 
-void ObjectRenderer::create_render_target(const std::string& name, const std::string& subpass_name,bool allow_indirect_render) {
+void ObjectRenderer::create_render_target(const std::string& name, const std::string& subpass_name, bool allow_indirect_render) {
     RenderTarget target = {
         .renderpass_name = subpass_name,
         .subpass_type    = m_resource_manager->get_subpass_type(subpass_name),
         .camera          = nullptr,
     };
+
+    if (allow_indirect_render) {
+        auto usage     = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        target.buffers = std::make_unique<IndirectRenderBuffers>(IndirectRenderBuffers{
+            .indirect_draw_buffer     = std::make_unique<vke::Buffer>(usage | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, sizeof(VkDrawIndexedIndirectCommand) * indirect_draw_capacity, false),
+            .instance_count_buffer    = std::make_unique<vke::Buffer>(usage, sizeof(u32) * part_capacity, false),
+            .instance_draw_parameters = std::make_unique<vke::Buffer>(usage, sizeof(InstanceDrawParameter) * instance_capacity, false),
+        });
+
+        vke::set_array(target.buffers->part2indirect_draw_location, [&] {
+            return std::make_unique<vke::Buffer>(usage, sizeof(u32) * part_capacity, true);
+        });
+        vke::set_array(target.buffers->instance_draw_parameter_location_buffer, [&] {
+            return std::make_unique<vke::Buffer>(usage, sizeof(glm::uvec2) * part_capacity, true);
+        });
+    }
 
     for (int i = 0; i < FRAME_OVERLAP; i++) {
         target.view_buffers[i] = std::make_unique<vke::Buffer>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(ViewData), true);
@@ -474,4 +499,23 @@ void ObjectRenderer::render_indirect(RenderState& state) {
     });
 }
 
+void ObjectRenderer::initialize_scene_data() {
+    assert(m_scene_data == nullptr);
+
+    auto pipeline_loader = m_render_server->get_pipeline_loader();
+
+    auto buffer_usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+    m_scene_data = std::make_unique<IndirectRenderSceneData>(IndirectRenderSceneData{
+        .model_info_buffer               = std::make_unique<vke::Buffer>(buffer_usage, sizeof(ModelData) * model_capacity, false),
+        .model_part_info_buffer          = std::make_unique<vke::Buffer>(buffer_usage, sizeof(PartData) * part_capacity, false),
+        .model_part_buffer_sub_allocator = VirtualAllocator(part_capacity),
+        .material_info_buffer            = std::make_unique<vke::Buffer>(buffer_usage, sizeof(MaterialData) * material_capacity, false),
+        .instance_buffer                 = std::make_unique<vke::Buffer>(buffer_usage, sizeof(InstanceData) * instance_capacity, false),
+        .mesh_info_buffer                = std::make_unique<vke::Buffer>(buffer_usage, sizeof(MeshData) * mesh_capacity, false),
+
+        .cull_pipeline                      = pipeline_loader->load("vke::object_renderer::cull_shader"),
+        .indirect_draw_command_gen_pipeline = pipeline_loader->load("vke::object_renderer::indirect_draw_gen"),
+    });
+    }
 } // namespace vke

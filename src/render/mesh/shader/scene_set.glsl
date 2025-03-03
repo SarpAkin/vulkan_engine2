@@ -25,7 +25,7 @@ layout(set = SCENE_SET, binding = 3, std430)readonly buffer BufferS3 {
 };
 
 layout(set = SCENE_SET,binding = 4,std430) readonly buffer BufferS4{
-    MeshData mesh[];
+    MeshData meshes[];
 };
 
 #ifdef COMPUTE

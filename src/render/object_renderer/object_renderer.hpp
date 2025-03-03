@@ -88,15 +88,15 @@ private:
         vke::SlimVec<entt::entity> pending_entities_for_register;
         vke::SlimVec<InstanceID> pending_instances_for_destruction;
 
-        RCResource<vke::Pipeline> cull_pipeline;
-        RCResource<vke::Pipeline> indirect_draw_command_gen_pipeline;
+        RCResource<vke::IPipeline> cull_pipeline;
+        RCResource<vke::IPipeline> indirect_draw_command_gen_pipeline;
 
         std::unordered_map<RenderModelID, i32> model_instance_counters;
     };
 
     struct IndirectRenderBuffers {
-        // stores indirect draw commands
         std::unique_ptr<vke::Buffer> indirect_draw_buffer;
+        // stores indirect draw commands
 
         // this buffer stores indexes to parts indirect draw arguments
         std::unique_ptr<vke::Buffer> part2indirect_draw_location[FRAME_OVERLAP];
@@ -130,6 +130,8 @@ private: // indirect render
     void updates_for_indirect_render(vke::CommandBuffer& compute_cmd);
 
     void flush_pending_entities(vke::CommandBuffer& cmd, StencilBuffer& stencil);
+
+    void initialize_scene_data();
 
 private:
     FramelyData m_framely_data[FRAME_OVERLAP];
