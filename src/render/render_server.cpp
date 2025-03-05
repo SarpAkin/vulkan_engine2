@@ -53,6 +53,8 @@ void RenderServer::init() {
     for (int i = 0; i < FRAME_OVERLAP; i++) {
         m_framely_data.push_back({
             .cmd   = std::make_unique<vke::CommandBuffer>(),
+            .prepass_cmd = std::make_unique<vke::CommandBuffer>(false),
+            .main_pass_cmd = std::make_unique<vke::CommandBuffer>(false),
             .fence = std::make_unique<vke::Fence>(true),
         });
     }
@@ -67,7 +69,7 @@ void RenderServer::init() {
     //  m_object_renderer->create_model(meshID, materialID,"cube");
 }
 
-void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_function) {
+void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     m_window->poll_events();
 
     auto& framely_data = m_framely_data[m_frame_index];
@@ -85,23 +87,45 @@ void RenderServer::frame(std::function<void(vke::CommandBuffer& cmd)> render_fun
     m_imgui_manager->new_frame();
     VK_CHECK(vkResetFences(device(), 1, &fence));
 
-    auto& cmd = *framely_data.cmd;
-    cmd.reset();
-    cmd.begin();
+    auto& pre_pass_comput_cmd = *framely_data.prepass_cmd;
+    pre_pass_comput_cmd.reset();
+    pre_pass_comput_cmd.begin_secondary();
 
-    m_window_renderpass->begin(cmd);
+    auto& main_renderpass_pass_cmd = *framely_data.main_pass_cmd;
+    main_renderpass_pass_cmd.reset();
+    main_renderpass_pass_cmd.begin_secondary(m_window_renderpass->get_subpass(0));
 
-    render_function(cmd);
-    m_imgui_manager->flush_frame(cmd);
+    auto args = FrameArgs{
+        .main_pass_cmd        = &main_renderpass_pass_cmd,
+        .pre_pass_compute_cmd = &pre_pass_comput_cmd,
+    };
 
-    m_window_renderpass->end(cmd);
+    render_function(args);
 
-    cmd.end();
+    m_imgui_manager->flush_frame(main_renderpass_pass_cmd);
+
+    pre_pass_comput_cmd.end();
+    main_renderpass_pass_cmd.end();
+
+    auto& top_cmd = *framely_data.cmd;
+    top_cmd.reset();
+    top_cmd.begin();
+
+    top_cmd.execute_secondaries(&pre_pass_comput_cmd);
+
+    m_window_renderpass->set_external(true);
+    m_window_renderpass->begin(top_cmd);
+
+    top_cmd.execute_secondaries(&main_renderpass_pass_cmd);
+
+    m_window_renderpass->end(top_cmd);
+
+    top_cmd.end();
 
     std::vector<VkSemaphore> prepare_semaphores      = {m_window->surface()->get_prepare_semaphore()->handle()};
     std::vector<VkSemaphore> present_wait_semaphores = {m_window->surface()->get_wait_semaphore()->handle()};
 
-    VkCommandBuffer cmds[] = {cmd.handle()};
+    VkCommandBuffer cmds[] = {top_cmd.handle()};
 
     std::vector<VkPipelineStageFlags> prepare_wait_stage_masks = std::vector<VkPipelineStageFlags>(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, prepare_semaphores.size());
 

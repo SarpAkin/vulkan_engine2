@@ -59,8 +59,8 @@ public:
     void on_update() override {
     }
 
-    void on_render(vke::CommandBuffer& cmd) override {
-        default_render(cmd);
+    void on_render(vke::RenderServer::FrameArgs& args) override {
+        default_render(args);
 
         instantiate_menu();
     }
