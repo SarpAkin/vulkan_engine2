@@ -161,6 +161,8 @@ RenderServer::~RenderServer() {
         VkFence fence = framely.fence->handle();
         VK_CHECK(vkWaitForFences(device(), 1, &fence, true, 5E9));
     }
+
+    
 }
 
 RenderServer::RenderServer() {}

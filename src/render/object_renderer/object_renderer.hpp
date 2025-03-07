@@ -58,7 +58,7 @@ public:
         std::unique_ptr<vke::Buffer> view_buffers[FRAME_OVERLAP];
         // if this is null the scene should be renderer using render_direct
         // otherwise it can be rendered using render_indirect
-        std::unique_ptr<IndirectRenderBuffers> buffers;
+        std::unique_ptr<IndirectRenderBuffers> indirect_render_buffers;
     };
 
     using InstanceID = impl::GenericID<struct ObjectInstance>;

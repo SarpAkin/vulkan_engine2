@@ -1,5 +1,6 @@
 #include "object_renderer.hpp"
 
+#include "imgui.h"
 #include "render/mesh/shader/scene_data.h"
 #include "render/render_server.hpp"
 #include "scene/camera.hpp"
@@ -109,7 +110,35 @@ void ObjectRenderer::render(const RenderArguments& args) {
     update_view_set(rs.render_target);
     update_lights();
 
-    render_direct(rs);
+    static bool window_open;
+    static bool indirect_render_enabled;
+    ImGui::Begin("ObjectRenderer", &window_open);
+    ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
+
+    ImGui::End();
+
+    if (rs.render_target->indirect_render_buffers && indirect_render_enabled) {
+        render_indirect(rs);
+    } else {
+        render_direct(rs);
+    }
+}
+
+auto create_model_matrix_getter(entt::registry* registery) {
+    auto transform_view = registery->view<Transform>();
+    auto parent_view    = registery->view<CParent>();
+
+    return vke::make_y_combinator([=](auto&& self, entt::entity e) -> glm::mat4 {
+        glm::mat4 model_mat = transform_view->get(e).local_model_matrix();
+
+        if (parent_view.contains(e)) {
+            auto parent = parent_view->get(e).parent;
+
+            model_mat = self(parent) * model_mat;
+        }
+
+        return model_mat;
+    });
 }
 
 void ObjectRenderer::render_direct(RenderState& rs) {
@@ -121,17 +150,7 @@ void ObjectRenderer::render_direct(RenderState& rs) {
     auto transform_view = m_registry->view<Transform>();
     auto parent_view    = m_registry->view<CParent>();
 
-    auto get_model_matrix = vke::make_y_combinator([&](auto&& self, entt::entity e) -> glm::mat4 {
-        glm::mat4 model_mat = transform_view->get(e).local_model_matrix();
-
-        if (parent_view.contains(e)) {
-            auto parent = parent_view->get(e).parent;
-
-            model_mat = self(parent) * model_mat;
-        }
-
-        return model_mat;
-    });
+    auto get_model_matrix = create_model_matrix_getter(m_registry);
 
     for (auto& e : view) {
         auto [r, t] = view.get(e);
@@ -147,11 +166,13 @@ void ObjectRenderer::render_direct(RenderState& rs) {
         struct Push {
             glm::mat4 model_matrix;
             glm::mat4 normal_matrix;
+            uint mode;
         };
 
         Push push{
             .model_matrix  = model_mat,
             .normal_matrix = glm::transpose(glm::inverse(glm::mat3(model_mat))),
+            .mode          = 0,
             // .normal_matrix = model_mat,
         };
 
@@ -175,17 +196,17 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
     };
 
     if (allow_indirect_render) {
-        auto usage     = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        target.buffers = std::make_unique<IndirectRenderBuffers>(IndirectRenderBuffers{
+        auto usage                     = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        target.indirect_render_buffers = std::make_unique<IndirectRenderBuffers>(IndirectRenderBuffers{
             .indirect_draw_buffer     = std::make_unique<vke::Buffer>(usage | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, sizeof(VkDrawIndexedIndirectCommand) * indirect_draw_capacity, false),
             .instance_count_buffer    = std::make_unique<vke::Buffer>(usage, sizeof(u32) * part_capacity, false),
             .instance_draw_parameters = std::make_unique<vke::Buffer>(usage, sizeof(InstanceDrawParameter) * instance_capacity, false),
         });
 
-        vke::set_array(target.buffers->part2indirect_draw_location, [&] {
+        vke::set_array(target.indirect_render_buffers->part2indirect_draw_location, [&] {
             return std::make_unique<vke::Buffer>(usage, sizeof(u32) * part_capacity, true);
         });
-        vke::set_array(target.buffers->instance_draw_parameter_location_buffer, [&] {
+        vke::set_array(target.indirect_render_buffers->instance_draw_parameter_location_buffer, [&] {
             return std::make_unique<vke::Buffer>(usage, sizeof(glm::uvec2) * part_capacity, true);
         });
     }
@@ -196,8 +217,8 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
         vke::DescriptorSetBuilder builder;
         builder.add_ubo(target.view_buffers[i].get(), VK_SHADER_STAGE_ALL);
 
-        if (target.buffers) {
-            auto* render_buffers = target.buffers.get();
+        if (target.indirect_render_buffers) {
+            auto* render_buffers = target.indirect_render_buffers.get();
 
             builder.add_ssbo(render_buffers->instance_draw_parameter_location_buffer[i].get(), VK_SHADER_STAGE_COMPUTE_BIT); // instance_draw_parameter_locations
             builder.add_ssbo(render_buffers->instance_count_buffer.get(), VK_SHADER_STAGE_COMPUTE_BIT);                      // instance_counters
@@ -319,7 +340,8 @@ void ObjectRenderer::updates_for_indirect_render(vke::CommandBuffer& cmd) {
     for (auto model_id : resource_updates.model_updates) {
         auto* model = m_resource_manager->get_model(model_id);
 
-        auto allocation                                    = m_scene_data->model_part_buffer_sub_allocator.allocate(model->parts.size()).value();
+        auto allocation = m_scene_data->model_part_buffer_sub_allocator.allocate(model->parts.size()).value();
+
         m_scene_data->model_part_sub_allocations[model_id] = allocation;
 
         ModelData model_data = {
@@ -336,6 +358,8 @@ void ObjectRenderer::updates_for_indirect_render(vke::CommandBuffer& cmd) {
             };
         });
 
+        assert(model_id <= model_capacity);
+        assert(allocation.size + allocation.offset <= part_capacity);
         stencil.copy_data(m_scene_data->model_part_info_buffer->subspan_item<PartData>(allocation.offset, allocation.size), parts.as_const_span());
     }
 
@@ -356,6 +380,8 @@ void ObjectRenderer::updates_for_indirect_render(vke::CommandBuffer& cmd) {
 
     flush_pending_entities(cmd, stencil);
 
+    resource_updates.reset();
+
     stencil.flush_copies(cmd);
 }
 
@@ -365,23 +391,35 @@ void ObjectRenderer::flush_pending_entities(vke::CommandBuffer& cmd, StencilBuff
     auto renderable_view         = m_registry->view<Renderable, Transform>();
     auto instance_component_view = m_registry->view<InstanceComponent>();
 
+    auto model_matrix_getter = create_model_matrix_getter(m_registry);
+
     for (auto entity : m_scene_data->pending_entities_for_register) {
-        auto [model, transform] = renderable_view.get(entity);
-        auto model_id           = model.model_id;
+        auto [model, _] = renderable_view.get(entity);
+        auto model_id   = model.model_id;
+        m_scene_data->model_instance_counters[model_id] += 1;
+
+        auto model_matrix = model_matrix_getter(entity);
+        auto t            = Transform::decompose_from_matrix(model_matrix);
 
         InstanceData instance_data = {
-            .world_position = glm::dvec4(transform.position, 0.0),
-            .rotation       = glm::vec4(quat2vec4(transform.rotation)),
+            .world_position = glm::dvec4(t.position, 0.0),
+            .rotation       = glm::vec4(quat2vec4(t.rotation)),
+            .size           = t.scale,
             .model_id       = model_id.id,
         };
 
         auto instance_id = m_scene_data->instance_id_manager.new_id();
         stencil.copy_data(m_scene_data->instance_buffer->subspan_item<InstanceData>(instance_id.id, 1), &instance_data, 1);
     }
+
+    m_scene_data->pending_entities_for_register.clear();
 }
 
 void ObjectRenderer::render_indirect(RenderState& state) {
     updates_for_indirect_render(state.compute_cmd);
+
+    auto ctx                  = VulkanContext::get_context();
+    bool mesh_shaders_enabled = false;
 
     struct PartEntry {
         u32 part_id;
@@ -390,7 +428,7 @@ void ObjectRenderer::render_indirect(RenderState& state) {
 
     std::unordered_map<MaterialID, SmallVec<PartEntry>> material_part_ids;
 
-    auto* draw_data = state.render_target->buffers.get();
+    auto* draw_data = state.render_target->indirect_render_buffers.get();
 
     u32 total_instance_counter   = 0;
     auto allocate_instance_space = [&](u32 instance_count) {
@@ -402,10 +440,16 @@ void ObjectRenderer::render_indirect(RenderState& state) {
     auto instance_offsets = draw_data->instance_draw_parameter_location_buffer[m_render_server->get_frame_index()]->mapped_data_as_span<glm::uvec2>();
 
     for (auto& [model_id, instance_count] : m_scene_data->model_instance_counters) {
-        assert(instance_count < 0);
+        assert(instance_count > 0);
         if (instance_count <= 0) continue;
 
-        auto* model       = m_resource_manager->get_model(model_id);
+        auto* model = m_resource_manager->get_model(model_id);
+
+        if (model == nullptr) {
+            LOG_WARNING("couldn't find model with the id %d. skipping it\n", model_id.id);
+            continue;
+        }
+
         auto& model_parts = m_scene_data->model_part_sub_allocations[model_id];
 
         for (u32 i = 0; i < model->parts.size(); i++) {
@@ -422,15 +466,30 @@ void ObjectRenderer::render_indirect(RenderState& state) {
         }
     }
 
+    struct Push {
+        mat4 pad[2];
+        uint32_t mode;
+    };
+
+    Push push = {
+        .mode = 1,
+    };
+
     state.cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
     state.cmd.bind_descriptor_set(VIEW_SET, state.render_target->view_sets[m_render_server->get_frame_index()]);
 
     auto indirect_draw_location = draw_data->part2indirect_draw_location[m_render_server->get_frame_index()]->mapped_data<u32>();
-    auto indirect_draw_buffer   = draw_data->indirect_draw_buffer.get();
+    for (auto& n : indirect_draw_location.subspan(0, m_scene_data->model_part_buffer_sub_allocator.max_id())) {
+        n = 0xFFFF'FFFF;
+    }
+
+    auto indirect_draw_buffer = draw_data->indirect_draw_buffer.get();
 
     u32 total_indirect_draws = 0;
     for (auto& [material_id, parts] : material_part_ids) {
         m_resource_manager->bind_material(state, material_id);
+
+        state.cmd.push_constant(&push);
 
         for (u32 i = 0; i < parts.size(); i++) {
             auto& part              = parts[i];
@@ -445,13 +504,36 @@ void ObjectRenderer::render_indirect(RenderState& state) {
         }
 
         total_indirect_draws += parts.size();
+        assert(total_indirect_draws <= indirect_draw_capacity);
     }
+
+    state.compute_cmd.fill_buffer(*draw_data->instance_count_buffer, 0);
+
+    VkBufferMemoryBarrier buffer_barriers0[] = {
+        VkBufferMemoryBarrier{
+            .sType         = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+            .buffer        = draw_data->instance_count_buffer->handle(),
+            .offset        = 0,
+            .size          = VK_WHOLE_SIZE,
+        },
+    };
+
+    state.compute_cmd.pipeline_barrier({
+        .src_stage_mask         = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .dst_stage_mask         = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .buffer_memory_barriers = buffer_barriers0,
+    });
+
+    state.compute_cmd.bind_pipeline(m_scene_data->cull_pipeline.get());
 
     state.compute_cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
     state.compute_cmd.bind_descriptor_set(VIEW_SET, state.render_target->view_sets[m_render_server->get_frame_index()]);
 
-    state.compute_cmd.bind_pipeline(m_scene_data->cull_pipeline.get());
-    state.compute_cmd.dispatch(1, 1, 1);
+    assert(total_instance_counter <= instance_capacity);
+    state.compute_cmd.push_constant(&total_instance_counter);
+    state.compute_cmd.dispatch(calculate_dispatch_size(total_instance_counter, 128), 1, 1);
 
     VkBufferMemoryBarrier buffer_barriers[] = {
         VkBufferMemoryBarrier{
@@ -470,8 +552,11 @@ void ObjectRenderer::render_indirect(RenderState& state) {
         .buffer_memory_barriers = buffer_barriers,
     });
 
+    u32 part_count = m_scene_data->model_part_buffer_sub_allocator.max_id();
+    state.compute_cmd.push_constant(&part_count);
+
     state.compute_cmd.bind_pipeline(m_scene_data->indirect_draw_command_gen_pipeline.get());
-    state.compute_cmd.dispatch(1, 1, 1);
+    state.compute_cmd.dispatch(calculate_dispatch_size(part_count, 128), 1, 1);
 
     VkBufferMemoryBarrier buffer_barriers2[] = {
         VkBufferMemoryBarrier{
@@ -494,7 +579,7 @@ void ObjectRenderer::render_indirect(RenderState& state) {
 
     state.compute_cmd.pipeline_barrier({
         .src_stage_mask         = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        .dst_stage_mask         = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,
+        .dst_stage_mask         = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | (mesh_shaders_enabled ? VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT : 0u),
         .buffer_memory_barriers = buffer_barriers2,
     });
 }
@@ -517,5 +602,5 @@ void ObjectRenderer::initialize_scene_data() {
         .cull_pipeline                      = pipeline_loader->load("vke::object_renderer::cull_shader"),
         .indirect_draw_command_gen_pipeline = pipeline_loader->load("vke::object_renderer::indirect_draw_gen"),
     });
-    }
+}
 } // namespace vke

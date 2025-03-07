@@ -13,11 +13,14 @@ layout(location = 1) out vec2 f_uvs;
 layout(location = 2) out vec3 f_normal;
 layout(location = 3) out vec3 f_position;
 
-
 layout(push_constant) uniform PC {
-    mat4 model_matrix;
-    mat4 normal_matrix;
+    mat4 p_model_matrix;
+    mat4 p_normal_matrix;
+    uint mode;
 };
+
+mat4 model_matrix = mode != 0 ? instance_draw_parameters[gl_InstanceIndex].model_matrix : p_model_matrix;
+mat4 normal_matrix = mode != 0 ? model_matrix : p_normal_matrix;
 
 void main() {
     vec4 world_position = model_matrix * vec4(v_pos, 1.0);

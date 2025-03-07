@@ -43,10 +43,9 @@ struct MaterialData {
 
 struct InstanceData {
     dvec4 world_position;
-    vec4 size;
     vec4 rotation;
+    vec3 size;
     uint model_id;
-    uint padd[3];
 };
 
 #define MAX_PARTS 32

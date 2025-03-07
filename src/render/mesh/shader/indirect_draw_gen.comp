@@ -3,6 +3,9 @@
 #include "scene_data.h"
 #include "scene_set.glsl"
 
+#extension GL_EXT_debug_printf : enable
+
+
 layout(local_size_x = 128) in;
 layout(local_size_y = 1) in;
 layout(local_size_z = 1) in;
@@ -18,11 +21,17 @@ void main() {
 
     uint drawID = indirect_draw_locations[partID];
 
+    if(drawID == 0xFFFFFFFF) return;
+
     uvec2 instance_location = instance_draw_parameter_locations[partID];
     uint instance_count     = min(instance_location.y, instance_counters[partID]);
 
     uint meshID   = parts[partID].mesh_id;
     MeshData mesh = meshes[meshID];
+
+    // if(mesh.index_count > 36) mesh.index_count = 0;
+    // debugPrintfEXT("part ID %d\n",partID);
+    // debugPrintfEXT("mesh index %d,index count %d,instance count %d\n",meshID ,mesh.index_count,instance_count);
 
     draw_commands[drawID].indexCount    = mesh.index_count;
     draw_commands[drawID].instanceCount = instance_count;

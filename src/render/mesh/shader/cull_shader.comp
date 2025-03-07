@@ -64,7 +64,7 @@ void main() {
     InstanceData instance = instances[instanceID];
     ModelData model       = models[instance.model_id];
 
-    vec3 relative_pos = vec3(instance.world_position.xyz - scene_view.view_world_pos.xyz);
+    vec3 relative_pos = vec3(instance.world_position.xyz);
     AABB boundary;
     boundary.start = vec4(relative_pos, 0.0);
     boundary.size  = model.aabb_size;
