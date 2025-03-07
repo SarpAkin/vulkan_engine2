@@ -8,23 +8,23 @@
 #define SCENE_SET 0
 #define VIEW_SET 1
 
-layout(set = SCENE_SET, binding = 0, std430) readonly buffer BufferS0 {
+layout(set = SCENE_SET, binding = 0, std430) readonly buffer BufferS0_SceneLights {
     SceneLightData lights;
 };
 
-layout(set = SCENE_SET, binding = 1, std430) readonly buffer BufferS1 {
+layout(set = SCENE_SET, binding = 1, std430) readonly buffer BufferS1_Instances {
     InstanceData instances[];
 };
 
-layout(set = SCENE_SET, binding = 2, std430) readonly buffer BufferS2 {
+layout(set = SCENE_SET, binding = 2, std430) readonly buffer BufferS2_ModelData {
     ModelData models[];
 };
 
-layout(set = SCENE_SET, binding = 3, std430)readonly buffer BufferS3 {
+layout(set = SCENE_SET, binding = 3, std430)readonly buffer BufferS3_PartData {
     PartData parts[];
 };
 
-layout(set = SCENE_SET,binding = 4,std430) readonly buffer BufferS4{
+layout(set = SCENE_SET,binding = 4,std430) readonly buffer BufferS4_MeshData{
     MeshData meshes[];
 };
 
@@ -34,31 +34,31 @@ layout(set = SCENE_SET,binding = 4,std430) readonly buffer BufferS4{
 
 #endif
 
-layout(set = VIEW_SET, binding = 0, std430) uniform BufferV0 {
+layout(set = VIEW_SET, binding = 0, std430) uniform BufferV0_ScenView {
     ViewData scene_view;
 };
 
-layout(set = VIEW_SET, binding = 1, std430) readonly buffer BufferV1 {
+layout(set = VIEW_SET, binding = 1, std430) readonly buffer BufferV1_InstanceDrawParameterLocations {
     //indexes correspond to partIDs
     uvec2 instance_draw_parameter_locations[];
 };
 
-layout(set = VIEW_SET, binding = 2, std430) buffer BufferV2 {
+layout(set = VIEW_SET, binding = 2, std430) buffer BufferV2_InstanceCounters {
     //indexes correspond to partIDs
     uint instance_counters[];
 };
 
-layout(set = VIEW_SET, binding = 3, std430) readonly buffer BufferV3 {
+layout(set = VIEW_SET, binding = 3, std430) readonly buffer BufferV3_IndirectDrawLocations {
     //indexes correspond to partIDs
     uint indirect_draw_locations[];
 };
 
-layout(set = VIEW_SET, binding = 4, std430) buffer BufferV4 {
+layout(set = VIEW_SET, binding = 4, std430) buffer BufferV4_draw_commands {
     //indexes should come from indirect_draw_locations[partID]
     VkDrawIndexedIndirectCommand_ draw_commands[];
 };
 
-layout(set = VIEW_SET, binding = 5, std430) buffer BufferV5 {
+layout(set = VIEW_SET, binding = 5, std430) buffer BufferV5_instance_draw_parameters {
     InstanceDrawParameter instance_draw_parameters[];
 };
 
