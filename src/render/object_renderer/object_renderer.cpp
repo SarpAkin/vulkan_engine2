@@ -302,7 +302,11 @@ void ObjectRenderer::set_entt_registry(entt::registry* registry) {
     connect_registry_callbacks();
 }
 
-void ObjectRenderer::renderable_component_creation_callback(entt::registry&, entt::entity e) {
+void ObjectRenderer::renderable_component_creation_callback(entt::registry& r, entt::entity e) {
+    if(r.get<Renderable>(e).model_id == 0){
+        LOG_WARNING("zero model id skipping adding to indirect renderer\n");
+        return;
+    }
     m_scene_data->pending_entities_for_register.push_back(e);
 }
 

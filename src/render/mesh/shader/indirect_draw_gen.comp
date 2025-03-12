@@ -5,7 +5,6 @@
 
 #extension GL_EXT_debug_printf : enable
 
-
 layout(local_size_x = 128) in;
 layout(local_size_y = 1) in;
 layout(local_size_z = 1) in;
@@ -21,10 +20,14 @@ void main() {
 
     uint drawID = indirect_draw_locations[partID];
 
-    if(drawID == 0xFFFFFFFF) return;
+    if (drawID == 0xFFFFFFFF) return;
 
     uvec2 instance_location = instance_draw_parameter_locations[partID];
-    uint instance_count     = min(instance_location.y, instance_counters[partID]);
+    uint instance_count     = instance_counters[partID];
+    if (instance_count > instance_location.y) {
+        debugPrintfEXT("instance overflow. capacity %d,the amount %d", instance_location.y, instance_count);
+        instance_count = instance_location.y;
+    }
 
     uint meshID   = parts[partID].mesh_id;
     MeshData mesh = meshes[meshID];
