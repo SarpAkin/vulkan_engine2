@@ -66,15 +66,15 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
     };
 
     auto get_buffer_view = [&]<typename T>(Type<T>, int buffer_view, size_t byte_offset = 0) -> std::span<T> {
-        auto& view   = model.bufferViews[buffer_view];
-        auto& buffer = model.buffers[view.buffer];
+        auto& view   = model.bufferViews.at(buffer_view);
+        auto& buffer = model.buffers.at(view.buffer);
 
         // return std::span<T>(reinterpret_cast<T*>(buffer.data.data() + view.byteOffset + byte_offset), view.byteLength / sizeof(T));
         return vke::span_cast<T>(std::span(buffer.data).subspan(view.byteOffset + byte_offset, view.byteLength));
     };
 
     auto get_buffer_view_from_accessor = [&]<typename T>(Type<T> t, int accessor_index) {
-        auto& accessor = model.accessors[accessor_index];
+        auto& accessor = model.accessors.at(accessor_index);
 
         return get_buffer_view(t, accessor.bufferView, accessor.byteOffset).subspan(0, accessor.count);
     };
@@ -101,9 +101,9 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
     });
 
     auto get_image = [&](int texture_index) {
-        auto& texture = model.textures[texture_index];
+        auto& texture = model.textures.at(texture_index);
 
-        return images[texture.source];
+        return images.at(texture.source);
     };
 
     auto default_id   = resource_manager->create_material(ObjectRenderer::pbr_pipeline_name, {});
@@ -119,7 +119,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
     auto set_indicies = [&](MeshBuilder& builder, int ib_accessor_index) {
         if (ib_accessor_index == -1) return;
 
-        auto& index_accessor = model.accessors[ib_accessor_index];
+        auto& index_accessor = model.accessors.at(ib_accessor_index);
 
         if (index_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
             builder.set_indicies(get_buffer_view_from_accessor(Type<uint16_t>(), ib_accessor_index));
@@ -154,7 +154,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
 
     auto model_ids = vke::map_vec(model.meshes, [&](const tg::Mesh& mesh) {
         auto parts = vke::map_vec(mesh.primitives, [&](const tg::Primitive& primitive) {
-            return std::pair(create_mesh_from_primitive(primitive), material_ids[primitive.material]);
+            return std::pair(create_mesh_from_primitive(primitive), material_ids.at(primitive.material));
         });
 
         return resource_manager->create_model(parts, make_name(mesh.name));
@@ -179,7 +179,7 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
     };
 
     auto convert_node = vke::make_y_combinator([&](auto& self, int node_index, const glm::mat4& t) -> void {
-        auto& node         = model.nodes[node_index];
+        auto& node         = model.nodes.at(node_index);
         auto transform_mat = t * create_transformation_from_node(node);
 
         auto transform = Transform::decompose_from_matrix(transform_mat);
