@@ -184,9 +184,12 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
 
         auto transform = Transform::decompose_from_matrix(transform_mat);
 
-        auto entity = registry->create();
-        registry->emplace<Transform>(entity, transform);
-        registry->emplace<Renderable>(entity, Renderable{model_ids[node.mesh]});
+        if(node.mesh != -1){
+            auto entity = registry->create();
+            registry->emplace<Transform>(entity, transform);
+            registry->emplace<Renderable>(entity, Renderable{model_ids.at(node.mesh)});
+        }
+
 
         for (auto child_index : node.children) {
             self(child_index, transform_mat);
