@@ -77,6 +77,7 @@ public: // render state binding
     bool bind_material(RenderState& state, MaterialID id);
 
 private:
+    void calculate_boundary(RenderModel& model);
     void create_null_texture(int size);
 
     RCResource<vke::IPipeline> load_pipeline_cached(const std::string& name);
@@ -92,6 +93,7 @@ public:
 
         vke::SmallVec<Part> parts;
         std::string name;
+        AABB boundary;
     };
 
     struct MultiPipeline {

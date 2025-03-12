@@ -105,14 +105,26 @@ MeshID ResourceManager::create_mesh(Mesh mesh, const std::string& name) {
     return id;
 }
 
+void ResourceManager::calculate_boundary(RenderModel& model) {
+    using Part = RenderModel::Part;
+
+    auto boundary = vke::fold(model.parts, AABB{}, [&](const Part& a, const Part& b) {
+        return get_mesh(a.mesh_id)->boundary.combined(get_mesh(b.mesh_id)->boundary);
+    });
+
+    model.boundary = boundary;
+}
+
 RenderModelID ResourceManager::create_model(MeshID mesh, MaterialID material, const std::string& name) {
     auto id = RenderModelID(m_render_model_id_manager.new_id());
 
-    m_render_models[id] = RenderModel{
+    RenderModel model = {
         .parts = {
             {mesh, material},
         },
     };
+    calculate_boundary(model);
+    m_render_models[id] = std::move(model);
 
     if (!name.empty()) {
         bind_name2model(id, name);
@@ -125,12 +137,14 @@ RenderModelID ResourceManager::create_model(MeshID mesh, MaterialID material, co
 RenderModelID ResourceManager::create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name) {
     auto id = RenderModelID(m_render_model_id_manager.new_id());
 
-    m_render_models[id] = RenderModel{
+    RenderModel model = {
         .parts = map_vec(parts, [](auto& part) {
         auto& [mesh, mat] = part;
         return RenderModel::Part{mesh, mat};
     }),
     };
+    calculate_boundary(model);
+    m_render_models[id] = std::move(model);
 
     if (!name.empty()) {
         bind_name2model(id, name);
