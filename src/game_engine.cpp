@@ -20,7 +20,7 @@ GameEngine::GameEngine(bool headless) {
 
         obj_renderer->set_entt_registry(m_scene->get_registry());
         
-        obj_renderer->create_render_target(render_target_name, "vke::default_forward");
+        obj_renderer->create_render_target(render_target_name, "vke::default_forward",true);
         obj_renderer->set_camera(render_target_name,m_scene->get_camera());
 
     }
@@ -59,7 +59,7 @@ void GameEngine::run() {
         if (m_render_server) {
             if (!m_render_server->is_running()) break;
 
-            m_render_server->frame([&](vke::CommandBuffer& cmd) {
+            m_render_server->frame([&](RenderServer::FrameArgs& args) {
                 static bool window_opened = false;
                 if (window_opened) {
                     ImGui::Begin("Stats", &window_opened);
@@ -68,7 +68,7 @@ void GameEngine::run() {
                     ImGui::End();
                 }
 
-                on_render(cmd);
+                on_render(args);
             });
         }
 
@@ -76,7 +76,7 @@ void GameEngine::run() {
     }
 }
 
-void GameEngine::default_render(vke::CommandBuffer& cmd) {
+void GameEngine::default_render(RenderServer::FrameArgs& args) {
     auto* cam    = get_scene()->get_camera();
     auto* window = get_render_server()->get_window();
 
@@ -85,7 +85,8 @@ void GameEngine::default_render(vke::CommandBuffer& cmd) {
     cam->update();
 
     m_render_server->get_object_renderer()->render({
-        .subpass_cmd = &cmd,
+        .subpass_cmd = args.main_pass_cmd,
+        .compute_cmd = args.pre_pass_compute_cmd,
         .render_target_name = "default",
     });
 }

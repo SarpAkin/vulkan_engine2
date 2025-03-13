@@ -33,6 +33,7 @@ using MaterialID    = impl::GenericID<impl::Material>;
 using ImageID       = impl::GenericID<vke::Image>;
 using RenderPassID  = impl::GenericID<vke::ISubpass>;
 
+
 template <class T>
 class GenericIDManager {
 public:
@@ -47,7 +48,7 @@ public:
 
 // Component for rendering
 struct Renderable {
-    RenderModelID model_id;
+    const RenderModelID model_id;
 };
 
 struct CPointLight {

@@ -87,6 +87,7 @@ MaterialID ResourceManager::create_material(const std::string& pipeline_name, st
     }
 
     m_materials[id] = std::move(m);
+    m_updates.material_updates.push_back(id);
     return id;
 }
 
@@ -100,39 +101,56 @@ MeshID ResourceManager::create_mesh(Mesh mesh, const std::string& name) {
         m_mesh_names2mesh_ids[name] = id;
     }
 
+    m_updates.mesh_updates.push_back(id);
     return id;
+}
+
+void ResourceManager::calculate_boundary(RenderModel& model) {
+    using Part = RenderModel::Part;
+
+    auto boundary = vke::fold(model.parts, AABB{}, [&](const AABB& a, const Part& b) {
+        return a.combined(get_mesh(b.mesh_id)->boundary);
+    });
+
+    model.boundary = boundary;
 }
 
 RenderModelID ResourceManager::create_model(MeshID mesh, MaterialID material, const std::string& name) {
     auto id = RenderModelID(m_render_model_id_manager.new_id());
 
-    m_render_models[id] = RenderModel{
+    RenderModel model = {
         .parts = {
             {mesh, material},
         },
     };
+    calculate_boundary(model);
+    m_render_models[id] = std::move(model);
 
     if (!name.empty()) {
         bind_name2model(id, name);
     }
 
+    m_updates.model_updates.push_back(id);
     return id;
 }
 
 RenderModelID ResourceManager::create_model(const std::vector<std::pair<MeshID, MaterialID>>& parts, const std::string& name) {
     auto id = RenderModelID(m_render_model_id_manager.new_id());
 
-    m_render_models[id] = RenderModel{
+    RenderModel model = {
         .parts = map_vec(parts, [](auto& part) {
         auto& [mesh, mat] = part;
         return RenderModel::Part{mesh, mat};
     }),
     };
+    calculate_boundary(model);
+    m_render_models[id] = std::move(model);
 
     if (!name.empty()) {
         bind_name2model(id, name);
     }
 
+    m_updates.model_updates.push_back(id);
     return id;
 }
 
@@ -152,6 +170,7 @@ ImageID ResourceManager::create_image(std::unique_ptr<IImageView> image_view, co
         m_image_names2image_ids[name] = id;
     }
 
+    m_updates.image_updates.push_back(id);
     return id;
 }
 

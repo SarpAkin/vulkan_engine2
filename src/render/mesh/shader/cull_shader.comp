@@ -1,0 +1,85 @@
+#version 450
+
+#ifndef COMPUTE_SHADER
+#define COMPUTE_SHADER
+#endif
+
+#include "quat_util.glsl"
+#include "scene_data.h"
+#include "scene_set.glsl"
+
+layout(local_size_x = 128) in;
+layout(local_size_y = 1) in;
+layout(local_size_z = 1) in;
+
+layout(push_constant) uniform Push {
+    uint instance_count;
+};
+
+float plane_sdf(vec4 plane, vec3 point) {
+    return dot(plane.xyz, point) - plane.w;
+}
+
+bool is_visible(in AABB boundary, in vec4 rotation) {
+
+    // vec3 rotated_extend = boundary.half_size;
+    vec3 rotated_extend = quat_rotate(rotation, boundary.half_size);
+
+    for (int i = 0; i < 1; i++) {
+        vec4 plane = scene_view.frustum.planes[i];
+
+        float center_distance = plane_sdf(plane, boundary.center_point);
+        float extend_distance = -abs(dot(plane.xyz, rotated_extend));
+
+        if (extend_distance > center_distance) {
+            return false;
+        }
+    }
+
+    // return false;
+    return true;
+}
+
+mat4 make_model_matrix(in InstanceData instance, vec3 relative_pos) {
+    mat3 inner  = mat3(1);
+    inner[0][0] = instance.size.x;
+    inner[1][1] = instance.size.y;
+    inner[2][2] = instance.size.z;
+
+    inner = mat3_cast(instance.rotation) * inner;
+
+    mat4 result = mat4(inner);
+    result[3]   = vec4(relative_pos, 1.0);
+
+    return result;
+}
+
+void main() {
+    uint instanceID = gl_GlobalInvocationID.x;
+
+    if (instanceID >= instance_count) return;
+
+    InstanceData instance = instances[instanceID];
+    ModelData model       = models[instance.model_id];
+
+    vec3 relative_pos = vec3(instance.world_position.xyz);
+    AABB boundary;
+    boundary.center_point = model.aabb_offset + relative_pos;
+    boundary.half_size    = model.aabb_half_size;
+
+    if (!is_visible(boundary, instance.rotation)) return;
+
+    mat4 model_matrix = make_model_matrix(instance, relative_pos);
+
+    for (int i = 0; i < min(MAX_PARTS, model.part_count); i++) {
+        uint partID             = model.part_index + i;
+        PartData part           = parts[partID];
+        uvec2 instance_location = instance_draw_parameter_locations[partID];
+
+        uint draw_parameterID = atomicAdd(instance_counters[partID], 1);
+        if (draw_parameterID >= instance_location.y) continue;
+        draw_parameterID += instance_location.x;
+
+        instance_draw_parameters[draw_parameterID].model_matrix = model_matrix;
+    }
+}

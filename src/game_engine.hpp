@@ -6,6 +6,8 @@
 
 #include "fwd.hpp"
 
+#include "render/render_server.hpp"
+
 namespace vke {
 
 class GameEngine {
@@ -19,11 +21,11 @@ public:
     RenderServer* get_render_server() { return m_render_server.get(); }
 
 protected: // virtuals
-    virtual void on_render(vke::CommandBuffer& cmd) { default_render(cmd); }
+    virtual void on_render(RenderServer::FrameArgs& args) { default_render(args); }
     virtual void on_update() {} // called before synchronizing with gpu.Good for physics
 
 protected:
-    void default_render(vke::CommandBuffer& cmd);
+    void default_render(RenderServer::FrameArgs&);
 
 private:
 

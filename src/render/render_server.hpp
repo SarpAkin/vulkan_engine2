@@ -18,6 +18,11 @@ class ImguiManager;
 
 class RenderServer : protected vke::DeviceGetter {
 public:
+    struct FrameArgs{
+        vke::CommandBuffer* main_pass_cmd;
+        vke::CommandBuffer* pre_pass_compute_cmd;
+    };
+
     RenderServer();
     ~RenderServer();
 
@@ -28,7 +33,7 @@ public:
     Window* get_window() { return m_window.get(); }
     ObjectRenderer* get_object_renderer() { return m_object_renderer.get(); }
 
-    void frame(std::function<void(vke::CommandBuffer& cmd)> render_function);
+    void frame(std::function<void(FrameArgs& args)> render_function);
     bool is_running() { return m_running && m_window->is_open(); }
 
     int get_frame_index() const { return m_frame_index; }
@@ -48,7 +53,7 @@ private:
     int m_frame_index = 0;
 
     struct FramelyData {
-        std::unique_ptr<vke::CommandBuffer> cmd;
+        std::unique_ptr<vke::CommandBuffer> cmd,prepass_cmd,main_pass_cmd;
         std::unique_ptr<vke::Fence> fence;
     };
 

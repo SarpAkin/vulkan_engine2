@@ -1,0 +1,48 @@
+#version 460
+
+#ifndef COMPUTE_SHADER
+#define COMPUTE_SHADER
+#endif
+
+#include "scene_data.h"
+#include "scene_set.glsl"
+
+#extension GL_EXT_debug_printf : enable
+
+layout(local_size_x = 128) in;
+layout(local_size_y = 1) in;
+layout(local_size_z = 1) in;
+
+layout(push_constant) uniform Push {
+    uint part_count;
+};
+
+void main() {
+    uint partID = gl_GlobalInvocationID.x;
+
+    if (partID >= part_count) return;
+
+    uint drawID = indirect_draw_locations[partID];
+
+    if (drawID == 0xFFFFFFFF) return;
+
+    uvec2 instance_location = instance_draw_parameter_locations[partID];
+    uint instance_count     = instance_counters[partID];
+    if (instance_count > instance_location.y) {
+        debugPrintfEXT("instance overflow. capacity %d,the amount %d", instance_location.y, instance_count);
+        instance_count = instance_location.y;
+    }
+
+    uint meshID   = parts[partID].mesh_id;
+    MeshData mesh = meshes[meshID];
+
+    // if(mesh.index_count > 36) mesh.index_count = 0;
+    // debugPrintfEXT("part ID %d\n",partID);
+    // debugPrintfEXT("mesh index %d,index count %d,instance count %d\n",meshID ,mesh.index_count,instance_count);
+
+    draw_commands[drawID].indexCount    = mesh.index_count;
+    draw_commands[drawID].instanceCount = instance_count;
+    draw_commands[drawID].firstIndex    = 0; // mesh.index_offset;
+    draw_commands[drawID].vertexOffset  = 0;
+    draw_commands[drawID].firstInstance = instance_location.x;
+}
