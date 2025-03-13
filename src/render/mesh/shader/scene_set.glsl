@@ -8,6 +8,13 @@
 #define SCENE_SET 0
 #define VIEW_SET 1
 
+#ifndef COMPUTE_SHADER
+#define IF_NOT_COMPUTE(x) x
+#else 
+#define IF_NOT_COMPUTE(x)
+#endif
+
+
 layout(set = SCENE_SET, binding = 0, std430) readonly buffer BufferS0_SceneLights {
     SceneLightData lights;
 };
@@ -43,7 +50,7 @@ layout(set = VIEW_SET, binding = 1, std430) readonly buffer BufferV1_InstanceDra
     uvec2 instance_draw_parameter_locations[];
 };
 
-layout(set = VIEW_SET, binding = 2, std430) buffer BufferV2_InstanceCounters {
+layout(set = VIEW_SET, binding = 2, std430) IF_NOT_COMPUTE(readonly) buffer BufferV2_InstanceCounters {
     //indexes correspond to partIDs
     uint instance_counters[];
 };
@@ -53,12 +60,12 @@ layout(set = VIEW_SET, binding = 3, std430) readonly buffer BufferV3_IndirectDra
     uint indirect_draw_locations[];
 };
 
-layout(set = VIEW_SET, binding = 4, std430) buffer BufferV4_draw_commands {
+layout(set = VIEW_SET, binding = 4, std430) IF_NOT_COMPUTE(readonly) buffer  BufferV4_draw_commands {
     //indexes should come from indirect_draw_locations[partID]
     VkDrawIndexedIndirectCommand_ draw_commands[];
 };
 
-layout(set = VIEW_SET, binding = 5, std430) buffer BufferV5_instance_draw_parameters {
+layout(set = VIEW_SET, binding = 5, std430) IF_NOT_COMPUTE(readonly) buffer  BufferV5_instance_draw_parameters {
     InstanceDrawParameter instance_draw_parameters[];
 };
 
