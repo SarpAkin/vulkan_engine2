@@ -1,5 +1,9 @@
 #version 460
 
+#ifndef COMPUTE_SHADER
+#define COMPUTE_SHADER
+#endif
+
 #include "scene_data.h"
 #include "scene_set.glsl"
 

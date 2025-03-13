@@ -24,6 +24,7 @@ struct AABB {
 
     glm::vec3 size() const { return end - start; }
     glm::vec3 half_size() const { return size() / 2.f; }
+    glm::vec3 mip_point() const { return start + half_size(); }
 };
 
 struct Mesh {

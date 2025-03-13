@@ -23,14 +23,19 @@ struct VkDrawIndexedIndirectCommand_ {
 };
 
 struct AABB {
-    vec4 start;
-    vec4 size;
+    vec3 center_point;
+    vec3 half_size;
+};
+
+struct Frustum{
+    vec4 planes[6];
 };
 
 struct ViewData {
     mat4 proj_view;
     mat4 inv_proj_view;
     dvec4 view_world_pos;
+    Frustum frustum;
 };
 
 struct MaterialData {
@@ -56,10 +61,10 @@ struct PartData {
 };
 
 struct ModelData {
-    vec4 aabb_size;
+    vec3 aabb_half_size;
     uint part_index;
+    vec3 aabb_offset;
     uint part_count;
-    uint padd[2];
 };
 
 struct MeshData {

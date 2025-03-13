@@ -1,5 +1,10 @@
 #version 450
 
+#ifndef COMPUTE_SHADER
+#define COMPUTE_SHADER
+#endif
+
+#include "quat_util.glsl"
 #include "scene_data.h"
 #include "scene_set.glsl"
 
@@ -11,35 +16,28 @@ layout(push_constant) uniform Push {
     uint instance_count;
 };
 
-bool is_visible(in AABB boundary) {
-    return true;
+float plane_sdf(vec4 plane, vec3 point) {
+    return dot(plane.xyz, point) - plane.w;
 }
 
-// translated from glm::mat3_cast
-mat3 mat3_cast(vec4 q) {
-    mat3 result = mat3(1);
-    float qxx   = q.x * q.x;
-    float qyy   = q.y * q.y;
-    float qzz   = q.z * q.z;
-    float qxz   = q.x * q.z;
-    float qxy   = q.x * q.y;
-    float qyz   = q.y * q.z;
-    float qwx   = q.w * q.x;
-    float qwy   = q.w * q.y;
-    float qwz   = q.w * q.z;
+bool is_visible(in AABB boundary, in vec4 rotation) {
 
-    result[0][0] = 1 - 2 * (qyy + qzz);
-    result[0][1] = 2 * (qxy + qwz);
-    result[0][2] = 2 * (qxz - qwy);
+    // vec3 rotated_extend = boundary.half_size;
+    vec3 rotated_extend = quat_rotate(rotation, boundary.half_size);
 
-    result[1][0] = 2 * (qxy - qwz);
-    result[1][1] = 1 - 2 * (qxx + qzz);
-    result[1][2] = 2 * (qyz + qwx);
+    for (int i = 0; i < 1; i++) {
+        vec4 plane = scene_view.frustum.planes[i];
 
-    result[2][0] = 2 * (qxz + qwy);
-    result[2][1] = 2 * (qyz - qwx);
-    result[2][2] = 1 - 2 * (qxx + qyy);
-    return result;
+        float center_distance = plane_sdf(plane, boundary.center_point);
+        float extend_distance = -abs(dot(plane.xyz, rotated_extend));
+
+        if (extend_distance > center_distance) {
+            return false;
+        }
+    }
+
+    // return false;
+    return true;
 }
 
 mat4 make_model_matrix(in InstanceData instance, vec3 relative_pos) {
@@ -66,10 +64,10 @@ void main() {
 
     vec3 relative_pos = vec3(instance.world_position.xyz);
     AABB boundary;
-    boundary.start = vec4(relative_pos, 0.0);
-    boundary.size  = model.aabb_size;
+    boundary.center_point = model.aabb_offset + relative_pos;
+    boundary.half_size    = model.aabb_half_size;
 
-    if (!is_visible(boundary)) return;
+    if (!is_visible(boundary, instance.rotation)) return;
 
     mat4 model_matrix = make_model_matrix(instance, relative_pos);
 

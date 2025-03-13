@@ -8,6 +8,8 @@
 #include "scene/components/transform.hpp"
 #include "scene/scene.hpp"
 
+#include "render_util.hpp"
+
 #include "render_state.hpp"
 
 #include <vke/pipeline_loader.hpp>
@@ -110,8 +112,8 @@ void ObjectRenderer::render(const RenderArguments& args) {
     update_view_set(rs.render_target);
     update_lights();
 
-    static bool window_open;
-    static bool indirect_render_enabled;
+    static bool window_open = true;
+    static bool indirect_render_enabled = true;
     ImGui::Begin("ObjectRenderer", &window_open);
     ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
 
@@ -277,6 +279,8 @@ void ObjectRenderer::update_view_set(RenderTarget* target) {
     data.proj_view      = target->camera->proj_view();
     data.inv_proj_view  = glm::inverse(data.proj_view);
     data.view_world_pos = dvec4(target->camera->world_position, 0.0);
+    
+    data.frustum = calculate_frustum(data.inv_proj_view);
 }
 
 ObjectRenderer::FramelyData& ObjectRenderer::get_framely() {
@@ -349,7 +353,9 @@ void ObjectRenderer::updates_for_indirect_render(vke::CommandBuffer& cmd) {
         m_scene_data->model_part_sub_allocations[model_id] = allocation;
 
         ModelData model_data = {
+            .aabb_half_size = model->boundary.half_size(),
             .part_index = allocation.offset,
+            .aabb_offset = model->boundary.mip_point(),
             .part_count = allocation.size,
         };
 
