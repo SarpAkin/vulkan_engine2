@@ -80,7 +80,7 @@ private:
         std::unique_ptr<vke::Buffer> material_info_buffer;
 
         // stores instance specific data
-        std::unique_ptr<vke::Buffer> instance_buffer;
+        std::unique_ptr<vke::GrowableBuffer> instance_buffer;
 
         std::unique_ptr<vke::Buffer> mesh_info_buffer;
 
@@ -106,7 +106,7 @@ private:
         std::unique_ptr<vke::Buffer> instance_draw_parameter_location_buffer[FRAME_OVERLAP];
         std::unique_ptr<vke::Buffer> instance_count_buffer;
 
-        std::unique_ptr<vke::Buffer> instance_draw_parameters;
+        std::unique_ptr<vke::GrowableBuffer> instance_draw_parameters;
     };
 
 private:
