@@ -82,8 +82,6 @@ private:
 
     RCResource<vke::IPipeline> load_pipeline_cached(const std::string& name);
 
-    IPipeline* get_pipeline(MultiPipeline* mp, MaterialSubpassType type);
-
 public:
     struct RenderModel {
         struct Part {
@@ -97,9 +95,7 @@ public:
     };
 
     struct MultiPipeline {
-        RCResource<IPipeline> deferred_pipeline;
-        RCResource<IPipeline> forward_pipeline;
-        RCResource<IPipeline> shadow_pipeline;
+        std::unordered_map<std::string,vke::RCResource<IPipeline>> pipelines;
     };
 
     struct Material {

@@ -40,22 +40,9 @@ void ResourceManager::create_multi_target_pipeline(const std::string& name, std:
 
     for (const auto& name : pipeline_names) {
         auto pipeline = load_pipeline_cached(name);
-        auto type     = get_subpass_type(std::string(pipeline->subpass_name()));
-
-        switch (type) {
-        case MaterialSubpassType::NONE:
-            break;
-        case MaterialSubpassType::FORWARD:
-            multi_pipeline.forward_pipeline = std::move(pipeline);
-            break;
-        case MaterialSubpassType::DEFERRED_PBR:
-            multi_pipeline.deferred_pipeline = std::move(pipeline);
-            break;
-        case MaterialSubpassType::SHADOW:
-            multi_pipeline.shadow_pipeline = std::move(pipeline);
-            break;
-        case MaterialSubpassType::CUSTOM: break;
-        }
+        
+        auto subpass_name = std::string(pipeline->subpass_name());
+        multi_pipeline.pipelines[subpass_name] = std::move(pipeline);
     }
 
     m_multi_pipelines[name] = std::move(multi_pipeline);
@@ -259,23 +246,6 @@ bool ResourceManager::bind_mesh(RenderState& state, MeshID id) {
     return true;
 }
 
-IPipeline* ResourceManager::get_pipeline(MultiPipeline* mp, MaterialSubpassType type) {
-    switch (type) {
-    case MaterialSubpassType::NONE:
-        THROW_ERROR("Material Subpass Type: NONE isn't supported");
-    case MaterialSubpassType::FORWARD:
-        return mp->forward_pipeline.get();
-    case MaterialSubpassType::DEFERRED_PBR:
-        return mp->deferred_pipeline.get();
-    case MaterialSubpassType::SHADOW:
-        return mp->shadow_pipeline.get();
-    case MaterialSubpassType::CUSTOM:
-        THROW_ERROR("Material Subpass Type: CUSTOM isn't supported");
-    }
-
-    return nullptr;
-}
-
 bool ResourceManager::bind_material(RenderState& state, MaterialID id) {
     if (state.bound_material_id == id) return true;
 
@@ -286,7 +256,7 @@ bool ResourceManager::bind_material(RenderState& state, MaterialID id) {
         return false;
     }
 
-    auto pipeline = get_pipeline(state.material->multi_pipeline, state.render_target->subpass_type);
+    auto pipeline = state.material->multi_pipeline->pipelines.at(state.render_target->renderpass_name).get();
 
     if (state.bound_pipeline != pipeline) {
         state.bound_pipeline = pipeline;
