@@ -20,23 +20,28 @@ float plane_sdf(vec4 plane, vec3 point) {
     return dot(plane.xyz, point) - plane.w;
 }
 
-bool is_visible(in AABB boundary, in vec4 rotation) {
+bool is_visible(in AABB boundary, in vec3 position, in vec4 rotation, in vec3 size) {
 
-    // vec3 rotated_extend = boundary.half_size;
-    vec3 rotated_extend = quat_rotate(rotation, boundary.half_size);
+    vec3 center = quat_rotate(rotation, boundary.center_point * size) + position;
 
-    for (int i = 0; i < 1; i++) {
+    // Compute the transformed OBB axes
+    vec3 right   = quat_rotate(rotation, vec3(1.0, 0.0, 0.0)) * boundary.half_size.x * size.x;
+    vec3 up      = quat_rotate(rotation, vec3(0.0, 1.0, 0.0)) * boundary.half_size.y * size.y;
+    vec3 forward = quat_rotate(rotation, vec3(0.0, 0.0, 1.0)) * boundary.half_size.z * size.z;
+
+    for (int i = 0; i < 6; i++) { // Check all 6 frustum planes
         vec4 plane = scene_view.frustum.planes[i];
 
-        float center_distance = plane_sdf(plane, boundary.center_point);
-        float extend_distance = -abs(dot(plane.xyz, rotated_extend));
+        float center_distance = plane_sdf(plane, center);
 
-        if (extend_distance > center_distance) {
+        // Correct projected radius (support mapping)
+        float extend_distance = abs(dot(plane.xyz, right)) + abs(dot(plane.xyz, up)) + abs(dot(plane.xyz, forward));
+
+        if (center_distance + extend_distance < 0.0) {
             return false;
         }
     }
 
-    // return false;
     return true;
 }
 
@@ -64,10 +69,10 @@ void main() {
 
     vec3 relative_pos = vec3(instance.world_position.xyz);
     AABB boundary;
-    boundary.center_point = model.aabb_offset + relative_pos;
+    boundary.center_point = model.aabb_offset;
     boundary.half_size    = model.aabb_half_size;
 
-    if (!is_visible(boundary, instance.rotation)) return;
+    if (!is_visible(boundary, relative_pos, instance.rotation, instance.size)) return;
 
     mat4 model_matrix = make_model_matrix(instance, relative_pos);
 

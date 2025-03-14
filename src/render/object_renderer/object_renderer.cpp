@@ -24,7 +24,7 @@ namespace vke {
 static const u32 part_capacity          = 1 << 12;
 static const u32 model_capacity         = 1 << 10;
 static const u32 material_capacity      = 1 << 10;
-static const u32 instance_capacity      = 1 << 16;
+static const u32 instance_capacity      = 1 << 15;
 static const u32 mesh_capacity          = 1 << 10;
 static const u32 indirect_draw_capacity = 1 << 10;
 
@@ -112,7 +112,7 @@ void ObjectRenderer::render(const RenderArguments& args) {
     update_view_set(rs.render_target);
     update_lights();
 
-    static bool window_open = true;
+    static bool window_open             = true;
     static bool indirect_render_enabled = true;
     ImGui::Begin("ObjectRenderer", &window_open);
     ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
@@ -202,7 +202,7 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
         target.indirect_render_buffers = std::make_unique<IndirectRenderBuffers>(IndirectRenderBuffers{
             .indirect_draw_buffer     = std::make_unique<vke::Buffer>(usage | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, sizeof(VkDrawIndexedIndirectCommand) * indirect_draw_capacity, false),
             .instance_count_buffer    = std::make_unique<vke::Buffer>(usage, sizeof(u32) * part_capacity, false),
-            .instance_draw_parameters = std::make_unique<vke::Buffer>(usage, sizeof(InstanceDrawParameter) * instance_capacity, false),
+            .instance_draw_parameters = std::make_unique<vke::GrowableBuffer>(usage, sizeof(InstanceDrawParameter) * instance_capacity, false),
         });
 
         vke::set_array(target.indirect_render_buffers->part2indirect_draw_location, [&] {
@@ -279,7 +279,7 @@ void ObjectRenderer::update_view_set(RenderTarget* target) {
     data.proj_view      = target->camera->proj_view();
     data.inv_proj_view  = glm::inverse(data.proj_view);
     data.view_world_pos = dvec4(target->camera->world_position, 0.0);
-    
+
     data.frustum = calculate_frustum(data.inv_proj_view);
 }
 
@@ -307,7 +307,7 @@ void ObjectRenderer::set_entt_registry(entt::registry* registry) {
 }
 
 void ObjectRenderer::renderable_component_creation_callback(entt::registry& r, entt::entity e) {
-    if(r.get<Renderable>(e).model_id == 0){
+    if (r.get<Renderable>(e).model_id == 0) {
         LOG_WARNING("zero model id skipping adding to indirect renderer\n");
         return;
     }
@@ -354,9 +354,9 @@ void ObjectRenderer::updates_for_indirect_render(vke::CommandBuffer& cmd) {
 
         ModelData model_data = {
             .aabb_half_size = model->boundary.half_size(),
-            .part_index = allocation.offset,
-            .aabb_offset = model->boundary.mip_point(),
-            .part_count = allocation.size,
+            .part_index     = allocation.offset,
+            .aabb_offset    = model->boundary.mip_point(),
+            .part_count     = allocation.size,
         };
 
         stencil.copy_data(m_scene_data->model_info_buffer->subspan_item<ModelData>(model_id.id, 1), &model_data, 1);
@@ -403,6 +403,8 @@ void ObjectRenderer::flush_pending_entities(vke::CommandBuffer& cmd, StencilBuff
 
     auto model_matrix_getter = create_model_matrix_getter(m_registry);
 
+    auto instance_capacity = m_scene_data->instance_buffer->item_size<InstanceData>();
+
     for (auto entity : m_scene_data->pending_entities_for_register) {
         auto [model, _] = renderable_view.get(entity);
         auto model_id   = model.model_id;
@@ -419,6 +421,12 @@ void ObjectRenderer::flush_pending_entities(vke::CommandBuffer& cmd, StencilBuff
         };
 
         auto instance_id = m_scene_data->instance_id_manager.new_id();
+        if (instance_id.id >= instance_capacity) {
+            auto* instance_buffer = m_scene_data->instance_buffer.get();
+            instance_buffer->resize((instance_buffer->byte_size() * 3) / 2);
+            instance_capacity = instance_buffer->item_size<InstanceData>();
+        }
+
         stencil.copy_data(m_scene_data->instance_buffer->subspan_item<InstanceData>(instance_id.id, 1), &instance_data, 1);
     }
 
@@ -541,7 +549,11 @@ void ObjectRenderer::render_indirect(RenderState& state) {
     state.compute_cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
     state.compute_cmd.bind_descriptor_set(VIEW_SET, state.render_target->view_sets[m_render_server->get_frame_index()]);
 
-    assert(total_instance_counter <= instance_capacity);
+    if(total_instance_counter > draw_data->instance_draw_parameters->item_size<InstanceDrawParameter>()){
+        draw_data->instance_draw_parameters->resize(total_instance_counter * sizeof(InstanceDrawParameter));
+    }
+
+    // assert(total_instance_counter <= instance_capacity);
     state.compute_cmd.push_constant(&total_instance_counter);
     state.compute_cmd.dispatch(calculate_dispatch_size(total_instance_counter, 128), 1, 1);
 
@@ -606,7 +618,7 @@ void ObjectRenderer::initialize_scene_data() {
         .model_part_info_buffer          = std::make_unique<vke::Buffer>(buffer_usage, sizeof(PartData) * part_capacity, false),
         .model_part_buffer_sub_allocator = VirtualAllocator(part_capacity),
         .material_info_buffer            = std::make_unique<vke::Buffer>(buffer_usage, sizeof(MaterialData) * material_capacity, false),
-        .instance_buffer                 = std::make_unique<vke::Buffer>(buffer_usage, sizeof(InstanceData) * instance_capacity, false),
+        .instance_buffer                 = std::make_unique<vke::GrowableBuffer>(buffer_usage, sizeof(InstanceData) * instance_capacity, false),
         .mesh_info_buffer                = std::make_unique<vke::Buffer>(buffer_usage, sizeof(MeshData) * mesh_capacity, false),
 
         .cull_pipeline                      = pipeline_loader->load("vke::object_renderer::cull_shader"),

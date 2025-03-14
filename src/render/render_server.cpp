@@ -24,6 +24,8 @@ void RenderServer::init() {
             .shaderFloat64 = true,
             .shaderInt64   = true,
             .shaderInt16   = true,
+            .sparseBinding = true,
+            .sparseResidencyBuffer = true,
         },
         .features1_2 = {
             .shaderInt8 = true,
