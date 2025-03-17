@@ -69,6 +69,8 @@ struct RenderArguments {
     // executed before subpass is started
     vke::CommandBuffer* compute_cmd;
     std::string render_target_name;
+    vke::IImageView* hzb_buffer = nullptr;
+    VkDescriptorSet render_pipeline_set = VK_NULL_HANDLE;
 };
 
 // This class is responsible for managing :

@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "render/object_renderer/object_renderer.hpp"
+#include "render/render_pipeline/defered_render_pipeline.hpp"
 #include "render/render_server.hpp"
 #include "scene/scene.hpp"
 
@@ -19,11 +20,17 @@ GameEngine::GameEngine(bool headless) {
         auto obj_renderer = m_render_server->get_object_renderer();
 
         obj_renderer->set_entt_registry(m_scene->get_registry());
-        
-        obj_renderer->create_render_target(render_target_name, "vke::default_forward",true);
-        obj_renderer->set_camera(render_target_name,m_scene->get_camera());
 
+        obj_renderer->create_render_target(render_target_name, "vke::default_forward", true);
+        obj_renderer->set_camera(render_target_name, m_scene->get_camera());
+
+        m_render_pipeline = std::make_unique<DeferedRenderPipeline>(m_render_server.get());
     }
+
+}
+
+GameEngine::~GameEngine() {
+    m_render_server->early_cleanup();
 }
 
 void GameEngine::run() {
@@ -32,7 +39,6 @@ void GameEngine::run() {
     double time_counter       = 0.0;
     double total_time_counter = 0.0;
     double longest_frame_time = 0.0;
-
     double fps = 0.0, fps_low = 0.0;
 
     int frame_counter = 0;
@@ -60,7 +66,7 @@ void GameEngine::run() {
             if (!m_render_server->is_running()) break;
 
             m_render_server->frame([&](RenderServer::FrameArgs& args) {
-                static bool window_opened = false;
+                static bool window_opened = true;
                 if (window_opened) {
                     ImGui::Begin("Stats", &window_opened);
                     ImGui::Text("FPS: %.1f", fps);
@@ -84,10 +90,6 @@ void GameEngine::default_render(RenderServer::FrameArgs& args) {
     cam->move_freecam(window, get_delta_time());
     cam->update();
 
-    m_render_server->get_object_renderer()->render({
-        .subpass_cmd = args.main_pass_cmd,
-        .compute_cmd = args.pre_pass_compute_cmd,
-        .render_target_name = "default",
-    });
+    m_render_pipeline->render(args);
 }
 } // namespace vke

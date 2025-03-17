@@ -55,7 +55,7 @@ void RenderServer::init() {
     for (int i = 0; i < FRAME_OVERLAP; i++) {
         m_framely_data.push_back({
             .cmd   = std::make_unique<vke::CommandBuffer>(),
-            .prepass_cmd = std::make_unique<vke::CommandBuffer>(false),
+            // .prepass_cmd = std::make_unique<vke::CommandBuffer>(false),
             .main_pass_cmd = std::make_unique<vke::CommandBuffer>(false),
             .fence = std::make_unique<vke::Fence>(true),
         });
@@ -89,31 +89,26 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     m_imgui_manager->new_frame();
     VK_CHECK(vkResetFences(device(), 1, &fence));
 
-    auto& pre_pass_comput_cmd = *framely_data.prepass_cmd;
-    pre_pass_comput_cmd.reset();
-    pre_pass_comput_cmd.begin_secondary();
 
     auto& main_renderpass_pass_cmd = *framely_data.main_pass_cmd;
     main_renderpass_pass_cmd.reset();
     main_renderpass_pass_cmd.begin_secondary(m_window_renderpass->get_subpass(0));
 
+    auto& top_cmd = *framely_data.cmd;
+    top_cmd.reset();
+    top_cmd.begin();
+
     auto args = FrameArgs{
         .main_pass_cmd        = &main_renderpass_pass_cmd,
-        .pre_pass_compute_cmd = &pre_pass_comput_cmd,
+        .primary_cmd = &top_cmd,
+        // .pre_pass_compute_cmd = &pre_pass_comput_cmd,
     };
 
     render_function(args);
 
     m_imgui_manager->flush_frame(main_renderpass_pass_cmd);
 
-    pre_pass_comput_cmd.end();
     main_renderpass_pass_cmd.end();
-
-    auto& top_cmd = *framely_data.cmd;
-    top_cmd.reset();
-    top_cmd.begin();
-
-    top_cmd.execute_secondaries(&pre_pass_comput_cmd);
 
     m_window_renderpass->set_external(true);
     m_window_renderpass->begin(top_cmd);
@@ -157,6 +152,13 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
 }
 
 RenderServer::~RenderServer() {
+    assert(m_early_cleanup_called == true && "early_cleanup must be called!");
+}
+
+RenderServer::RenderServer() {}
+
+void RenderServer::early_cleanup() {
+    assert(m_early_cleanup_called == false && "early cleanup called twice!");
     VK_CHECK(vkDeviceWaitIdle(device()));
     // Wait for fences in order to ensure proper cleanup
     for (auto& framely : m_framely_data) {
@@ -164,9 +166,6 @@ RenderServer::~RenderServer() {
         VK_CHECK(vkWaitForFences(device(), 1, &fence, true, 5E9));
     }
 
-    
+    m_early_cleanup_called = true;
 }
-
-RenderServer::RenderServer() {}
-
 } // namespace vke

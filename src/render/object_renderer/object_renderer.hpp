@@ -24,6 +24,7 @@ public:
     constexpr static int SCENE_SET    = 0;
     constexpr static int VIEW_SET     = 1;
     constexpr static int MATERIAL_SET = 2;
+    constexpr static int RENDER_PIPELINE_SET = 3;
     constexpr static int LIGHT_SET    = -1;
 
     constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;

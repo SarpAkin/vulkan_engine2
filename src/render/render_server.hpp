@@ -20,7 +20,8 @@ class RenderServer : protected vke::DeviceGetter {
 public:
     struct FrameArgs{
         vke::CommandBuffer* main_pass_cmd;
-        vke::CommandBuffer* pre_pass_compute_cmd;
+        // vke::CommandBuffer* pre_pass_compute_cmd;
+        vke::CommandBuffer* primary_cmd; //main_pass_cmd is called after
     };
 
     RenderServer();
@@ -28,6 +29,7 @@ public:
 
     void init();
     void run();
+    void early_cleanup();
 
     IPipelineLoader* get_pipeline_loader() { return m_pipeline_loader.get(); }
     Window* get_window() { return m_window.get(); }
@@ -50,10 +52,11 @@ private:
     std::unique_ptr<vke::ImguiManager> m_imgui_manager;
 
     bool m_running    = true;
+    bool m_early_cleanup_called = false;
     int m_frame_index = 0;
 
     struct FramelyData {
-        std::unique_ptr<vke::CommandBuffer> cmd,prepass_cmd,main_pass_cmd;
+        std::unique_ptr<vke::CommandBuffer> cmd,main_pass_cmd;
         std::unique_ptr<vke::Fence> fence;
     };
 
