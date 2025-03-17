@@ -1,6 +1,6 @@
 #pragma once
 
-#include "render/mesh/shader/scene_data.h"
+#include "render/shader/scene_data.h"
 
 namespace vke{
 

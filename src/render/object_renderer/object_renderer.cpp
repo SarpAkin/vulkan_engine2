@@ -1,7 +1,7 @@
 #include "object_renderer.hpp"
 
 #include "imgui.h"
-#include "render/mesh/shader/scene_data.h"
+#include "render/shader/scene_data.h"
 #include "render/render_server.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/components.hpp"
