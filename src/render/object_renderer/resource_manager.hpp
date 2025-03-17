@@ -63,6 +63,7 @@ public: // getters
 
 public: // creation
     void create_multi_target_pipeline(const std::string& name, std::span<const std::string> pipelines);
+    void add_pipeline2multi_pipeline(const std::string& multi_pipeline_name, const std::string& pipeline_name, const std::string& renderpass_name = "", std::span<const std::string> modifiers = {});
 
     MaterialID create_material(const std::string& multi_pipeline_name, std::vector<ImageID> images = {}, const std::string& material_name = "");
     MeshID create_mesh(Mesh mesh, const std::string& name = "");
