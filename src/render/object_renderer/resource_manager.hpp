@@ -26,8 +26,10 @@ public:
     ~ResourceManager();
 
 public: // getters
+    VkSampler get_nearest_sampler() { return m_nearest_sampler; }
+
     VkDescriptorSetLayout get_material_set_layout() const { return m_material_set_layout; }
-    UpdatedResources& get_updated_resource(){return m_updates;}
+    UpdatedResources& get_updated_resource() { return m_updates; }
     // id getters
     RenderModelID get_model_id(const std::string& name) const { return m_render_model_names2model_ids.at(name); }
 
@@ -96,7 +98,8 @@ public:
     };
 
     struct MultiPipeline {
-        std::unordered_map<std::string,vke::RCResource<IPipeline>> pipelines;
+        std::unordered_map<std::string, vke::RCResource<IPipeline>> pipelines;
+        std::string name;
     };
 
     struct Material {

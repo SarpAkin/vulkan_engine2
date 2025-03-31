@@ -24,7 +24,8 @@ GameEngine::GameEngine(bool headless) {
         obj_renderer->create_render_target(render_target_name, "vke::default_forward", true);
         obj_renderer->set_camera(render_target_name, m_scene->get_camera());
 
-        m_render_pipeline = std::make_unique<DeferedRenderPipeline>(m_render_server.get());
+        m_render_pipeline = std::make_unique<DeferredRenderPipeline>(m_render_server.get());
+        m_render_pipeline->set_camera(m_scene->get_camera());
     }
 
 }

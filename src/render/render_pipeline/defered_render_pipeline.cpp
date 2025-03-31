@@ -1,28 +1,32 @@
 #include "defered_render_pipeline.hpp"
 
+#include <vke/pipeline_loader.hpp>
 #include <vke/vke_builders.hpp>
 
 #include "../object_renderer/object_renderer.hpp"
+#include "../object_renderer/resource_manager.hpp"
 
 namespace vke {
 
-static DeferedRenderPipeline::DeferedRenderPass create_render_pass(Window* window) {
+static DeferredRenderPipeline::DeferredRenderPass create_render_pass(Window* window) {
     auto builder = vke::RenderPassBuilder();
-    auto albedo  = builder.add_attachment(VK_FORMAT_R8G8B8A8_SRGB, VkClearValue{.color = {}});
-    auto normal  = builder.add_attachment(VK_FORMAT_A2R10G10B10_SNORM_PACK32, VkClearValue{.color = {}});
-    auto depth   = builder.add_attachment(VK_FORMAT_D32_SFLOAT, VkClearValue{.depthStencil = {.depth = 1.0}});
+    auto albedo  = builder.add_attachment(VK_FORMAT_R8G8B8A8_SRGB, VkClearValue{.color = {}}, true);
+    auto normal  = builder.add_attachment(VK_FORMAT_R8G8B8A8_SNORM, VkClearValue{.color = {}}, true);
+    auto depth   = builder.add_attachment(VK_FORMAT_D32_SFLOAT, VkClearValue{.depthStencil = {.depth = 1.0}}, true);
 
     builder.add_subpass({albedo, normal}, depth, {});
 
-    return DeferedRenderPipeline::DeferedRenderPass{
-        .renderpass = builder.build(window->width(), window->height()),
-        .albedo_id  = albedo,
-        .normal_id  = normal,
-        .depth_id   = depth,
+    return DeferredRenderPipeline::DeferredRenderPass{
+        .renderpass         = builder.build(window->width(), window->height()),
+        .albedo_id          = albedo,
+        .normal_id          = normal,
+        .depth_id           = depth,
+        .subpass_name       = "vke::gpass",
+        .render_target_name = "vke::gpass",
     };
 }
 
-DeferedRenderPipeline::DeferedRenderPipeline(vke::RenderServer* render_server) {
+DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server) {
     m_render_server = render_server;
 
     for (int i = 0; i < FRAME_OVERLAP; i++) {
@@ -32,38 +36,84 @@ DeferedRenderPipeline::DeferedRenderPipeline(vke::RenderServer* render_server) {
         });
     }
 
-    m_defered_render_pass = create_render_pass(render_server->get_window());
+    m_deferred_render_pass = create_render_pass(render_server->get_window());
+    auto pg_provider       = m_render_server->get_pipeline_loader()->get_pipeline_globals_provider();
+    pg_provider->subpasses.emplace(
+        m_deferred_render_pass.subpass_name,
+        m_deferred_render_pass.renderpass->get_subpass(0)->create_copy());
+
+    vke::DescriptorSetLayoutBuilder builder;
+    builder.add_binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3);
+    m_deferred_set_layout = builder.build();
+
+    pg_provider->set_layouts.emplace("vke::deferred_render_set", m_deferred_set_layout);
+
+    auto resource_manager = render_server->get_object_renderer()->get_resource_manager();
+    resource_manager->add_pipeline2multi_pipeline("vke::object_renderer::pbr_pipeline", "vke::gpass::default");
+
+    m_render_server->get_object_renderer()->create_render_target(m_deferred_render_pass.render_target_name, m_deferred_render_pass.subpass_name);
+
+    m_deferred_pipeline = m_render_server->get_pipeline_loader()->load("vke::post_deferred");
+
+    create_set();
 }
 
-void DeferedRenderPipeline::render(RenderServer::FrameArgs& args) {
+void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
     auto& framely = get_framely();
     framely.compute_cmd->reset();
     framely.compute_cmd->begin_secondary();
 
-    // framely.gpass_cmd->reset();
-    // framely.gpass_cmd->begin_secondary(m_defered_render_pass->get_subpass(0));
+    framely.gpass_cmd->reset();
+
+    auto* deferred_pass = m_deferred_render_pass.renderpass.get();
+
+    framely.gpass_cmd->begin_secondary(deferred_pass->get_subpass(0));
 
     m_render_server->get_object_renderer()->render({
-        .subpass_cmd        = args.main_pass_cmd,
+        .subpass_cmd        = framely.gpass_cmd.get(),
         .compute_cmd        = framely.compute_cmd.get(),
-        .render_target_name = "default",
-
+        .render_target_name = m_deferred_render_pass.render_target_name,
     });
 
     framely.compute_cmd->end();
-    // framely.gpass_cmd->end();
+    framely.gpass_cmd->end();
 
     auto& primary_cmd = *args.primary_cmd;
 
     primary_cmd.execute_secondaries(framely.compute_cmd.get());
 
-    // m_defered_render_pass->set_external(true);
-    // m_defered_render_pass->begin(primary_cmd);
+    deferred_pass->set_external(true);
+    deferred_pass->begin(primary_cmd);
 
-    // m_defered_render_pass->set_external(false);
-    // m_defered_render_pass->end(primary_cmd);
+    primary_cmd.execute_secondaries(framely.gpass_cmd.get());
+
+    deferred_pass->set_external(false);
+    deferred_pass->end(primary_cmd);
+
+    args.main_pass_cmd->bind_pipeline(m_deferred_pipeline.get());
+    args.main_pass_cmd->bind_descriptor_set(0, m_deferred_set);
+
+    args.main_pass_cmd->draw(3, 1, 0, 0);
 }
 
-DeferedRenderPipeline::~DeferedRenderPipeline() {
+DeferredRenderPipeline::~DeferredRenderPipeline() {
+}
+
+void DeferredRenderPipeline::create_set() {
+    IImageView* images[] = {
+        m_deferred_render_pass.renderpass->get_attachment_view(m_deferred_render_pass.albedo_id),
+        m_deferred_render_pass.renderpass->get_attachment_view(m_deferred_render_pass.normal_id),
+        m_deferred_render_pass.renderpass->get_attachment_view(m_deferred_render_pass.depth_id),
+    };
+
+    VkSampler sampler = m_render_server->get_object_renderer()->get_resource_manager()->get_nearest_sampler(); 
+
+    vke::DescriptorSetBuilder builder;
+    builder.add_image_samplers(images, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_FRAGMENT_BIT);
+    m_deferred_set = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
+}
+
+void DeferredRenderPipeline::set_camera(Camera* camera) {
+    m_render_server->get_object_renderer()->set_camera(m_deferred_render_pass.render_target_name, camera);
 }
 } // namespace vke

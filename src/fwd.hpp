@@ -11,6 +11,6 @@ class IObjectRenderer;
 class ObjectRenderer;
 class Scene;
 class GameEngine;
-class DeferedRenderPipeline;
+class DeferredRenderPipeline;
 
 }

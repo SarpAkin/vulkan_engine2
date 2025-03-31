@@ -36,12 +36,14 @@ ResourceManager::~ResourceManager() {
 }
 
 void ResourceManager::create_multi_target_pipeline(const std::string& name, std::span<const std::string> pipeline_names) {
-    MultiPipeline multi_pipeline{};
+    MultiPipeline multi_pipeline{
+        .name = name,
+    };
 
     for (const auto& name : pipeline_names) {
         auto pipeline = load_pipeline_cached(name);
-        
-        auto subpass_name = std::string(pipeline->subpass_name());
+
+        auto subpass_name                      = std::string(pipeline->subpass_name());
         multi_pipeline.pipelines[subpass_name] = std::move(pipeline);
     }
 
@@ -49,14 +51,13 @@ void ResourceManager::create_multi_target_pipeline(const std::string& name, std:
 }
 
 void ResourceManager::add_pipeline2multi_pipeline(const std::string& multi_pipeline_name, const std::string& pipeline_name, const std::string& renderpass_name, std::span<const std::string> modifiers) {
-    auto multi_pipeline = m_multi_pipelines.at(multi_pipeline_name);
-    
+    auto& multi_pipeline = m_multi_pipelines.at(multi_pipeline_name);
+
     auto pipeline = load_pipeline_cached(pipeline_name);
-        
-    auto subpass_name = std::string(pipeline->subpass_name());
+
+    auto subpass_name                      = std::string(pipeline->subpass_name());
     multi_pipeline.pipelines[subpass_name] = std::move(pipeline);
 }
-
 
 MaterialID ResourceManager::create_material(const std::string& pipeline_name, std::vector<ImageID> images, const std::string& material_name) {
     images.resize(4, m_null_texture_id);
