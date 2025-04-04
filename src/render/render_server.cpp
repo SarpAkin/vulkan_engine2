@@ -53,10 +53,12 @@ void RenderServer::init() {
     m_pipeline_loader->set_pipeline_globals_provider(std::move(pg_provider));
 
     for (int i = 0; i < FRAME_OVERLAP; i++) {
+        auto _pool = std::make_unique<vke::CommandPool>();
+        auto* pool = _pool.get();
         m_framely_data.push_back({
-            .cmd   = std::make_unique<vke::CommandBuffer>(),
-            // .prepass_cmd = std::make_unique<vke::CommandBuffer>(false),
-            .main_pass_cmd = std::make_unique<vke::CommandBuffer>(false),
+            .cmd_pool = std::move(_pool),
+            .cmd   = pool->allocate(),
+            .main_pass_cmd = pool->allocate(false),
             .fence = std::make_unique<vke::Fence>(true),
         });
     }

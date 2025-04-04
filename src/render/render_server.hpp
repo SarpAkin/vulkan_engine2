@@ -18,10 +18,10 @@ class ImguiManager;
 
 class RenderServer : protected vke::DeviceGetter {
 public:
-    struct FrameArgs{
+    struct FrameArgs {
         vke::CommandBuffer* main_pass_cmd;
         // vke::CommandBuffer* pre_pass_compute_cmd;
-        vke::CommandBuffer* primary_cmd; //main_pass_cmd is called after
+        vke::CommandBuffer* primary_cmd; // main_pass_cmd is called after
     };
 
     RenderServer();
@@ -40,7 +40,8 @@ public:
 
     int get_frame_index() const { return m_frame_index; }
 
-    DescriptorPool* get_descriptor_pool(){return m_descriptor_pool.get();}
+    DescriptorPool* get_descriptor_pool() { return m_descriptor_pool.get(); }
+    CommandPool* get_framely_command_pool() { return m_framely_data[m_frame_index].cmd_pool.get()  ; }
 
 private:
 private:
@@ -51,12 +52,13 @@ private:
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     std::unique_ptr<vke::ImguiManager> m_imgui_manager;
 
-    bool m_running    = true;
+    bool m_running              = true;
     bool m_early_cleanup_called = false;
-    int m_frame_index = 0;
+    int m_frame_index           = 0;
 
     struct FramelyData {
-        std::unique_ptr<vke::CommandBuffer> cmd,main_pass_cmd;
+        std::unique_ptr<vke::CommandPool> cmd_pool;
+        std::unique_ptr<vke::CommandBuffer> cmd, main_pass_cmd;
         std::unique_ptr<vke::Fence> fence;
     };
 
