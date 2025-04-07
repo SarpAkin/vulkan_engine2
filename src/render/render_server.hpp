@@ -24,6 +24,12 @@ public:
         vke::CommandBuffer* primary_cmd; // main_pass_cmd is called after
     };
 
+    struct CommandSubmitInfo{
+        vke::SlimVec<vke::CommandBuffer*> cmd;
+        vke::SlimVec<VkSemaphore> signal_semaphore;
+        vke::SlimVec<VkSemaphore> wait_semaphores;
+    };
+
     RenderServer();
     ~RenderServer();
 
@@ -43,6 +49,9 @@ public:
     DescriptorPool* get_descriptor_pool() { return m_descriptor_pool.get(); }
     CommandPool* get_framely_command_pool() { return m_framely_data[m_frame_index].cmd_pool.get()  ; }
 
+    void submit_cmd(CommandSubmitInfo&& info){
+        m_main_queue_submit_infos.push_back(std::move(info));
+    }
 private:
 private:
     std::unique_ptr<vke::Window> m_window;
@@ -63,6 +72,7 @@ private:
     };
 
     std::vector<FramelyData> m_framely_data;
+    std::vector<CommandSubmitInfo> m_main_queue_submit_infos;
 };
 
 } // namespace vke

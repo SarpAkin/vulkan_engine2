@@ -21,10 +21,10 @@ void RenderServer::init() {
     vke::ContextConfig config{
         .app_name    = "app0",
         .features1_0 = {
-            .shaderFloat64 = true,
-            .shaderInt64   = true,
-            .shaderInt16   = true,
-            .sparseBinding = true,
+            .shaderFloat64         = true,
+            .shaderInt64           = true,
+            .shaderInt16           = true,
+            .sparseBinding         = true,
             .sparseResidencyBuffer = true,
         },
         .features1_2 = {
@@ -56,10 +56,10 @@ void RenderServer::init() {
         auto _pool = std::make_unique<vke::CommandPool>();
         auto* pool = _pool.get();
         m_framely_data.push_back({
-            .cmd_pool = std::move(_pool),
-            .cmd   = pool->allocate(),
+            .cmd_pool      = std::move(_pool),
+            .cmd           = pool->allocate(),
             .main_pass_cmd = pool->allocate(false),
-            .fence = std::make_unique<vke::Fence>(true),
+            .fence         = std::make_unique<vke::Fence>(true),
         });
     }
 
@@ -91,7 +91,6 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     m_imgui_manager->new_frame();
     VK_CHECK(vkResetFences(device(), 1, &fence));
 
-
     auto& main_renderpass_pass_cmd = *framely_data.main_pass_cmd;
     main_renderpass_pass_cmd.reset();
     main_renderpass_pass_cmd.begin_secondary(m_window_renderpass->get_subpass(0));
@@ -101,8 +100,8 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     top_cmd.begin();
 
     auto args = FrameArgs{
-        .main_pass_cmd        = &main_renderpass_pass_cmd,
-        .primary_cmd = &top_cmd,
+        .main_pass_cmd = &main_renderpass_pass_cmd,
+        .primary_cmd   = &top_cmd,
         // .pre_pass_compute_cmd = &pre_pass_comput_cmd,
     };
 
@@ -128,7 +127,38 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
 
     std::vector<VkPipelineStageFlags> prepare_wait_stage_masks = std::vector<VkPipelineStageFlags>(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, prepare_semaphores.size());
 
-    VkSubmitInfo s_info{
+    auto submit_info_datas = vke::map_vec2small_vec(m_main_queue_submit_infos, [&](const CommandSubmitInfo& info) {
+        std::vector<VkSemaphore> wait_semaphores;
+        wait_semaphores.insert(wait_semaphores.end(), info.wait_semaphores.begin(), info.wait_semaphores.end());
+
+        auto cmds = vke::map_vec(info.cmd, [&](CommandBuffer* cmd) {
+            wait_semaphores.insert(wait_semaphores.end(), cmd->get_wait_semaphores().begin(), cmd->get_wait_semaphores().end());
+            return cmd->handle();
+        });
+
+        return std::make_tuple(std::move(cmds), wait_semaphores);
+    });
+
+    vke::SmallVec<VkSubmitInfo, 8UL> submit_infos;
+    submit_infos.reserve(submit_info_datas.size() + 1);
+
+    for(int i = 0;i < submit_info_datas.size();i++){
+        const auto& [cmds,waits] = submit_info_datas[i];
+        auto& signals = m_main_queue_submit_infos[i].signal_semaphore;
+
+        submit_infos.push_back(VkSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+
+            .waitSemaphoreCount = static_cast<u32>(waits.size()),
+            .pWaitSemaphores = waits.data(),
+            .commandBufferCount = static_cast<u32>(cmds.size()),
+            .pCommandBuffers = cmds.data(),
+            .signalSemaphoreCount = static_cast<u32>(signals.size()),
+            .pSignalSemaphores = signals.data(),
+        });
+    }
+
+    submit_infos.push_back(VkSubmitInfo{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 
         .waitSemaphoreCount = static_cast<u32>(prepare_semaphores.size()),
@@ -140,10 +170,10 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
 
         .signalSemaphoreCount = static_cast<u32>(present_wait_semaphores.size()),
         .pSignalSemaphores    = present_wait_semaphores.data(),
+    });
 
-    };
-
-    VK_CHECK(vkQueueSubmit(get_context()->get_graphics_queue(), 1, &s_info, fence));
+    VK_CHECK(vkQueueSubmit(get_context()->get_graphics_queue(), submit_infos.size(), submit_infos.data(), fence));
+    m_main_queue_submit_infos.clear();
 
     if (!m_window->surface()->present()) {
         VK_CHECK(vkDeviceWaitIdle(device()));
