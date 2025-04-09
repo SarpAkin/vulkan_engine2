@@ -16,8 +16,17 @@ void Camera::set_world_pos(const glm::dvec3& wpos) {
     update();
 }
 
+constexpr glm::mat4 z_flip_matrix = glm::mat4(
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, -1, 0,
+    0, 0, 1, 1 //
+);
+
 void Camera::update() {
-    m_proj = glm::perspective(fov_deg, aspect_ratio, z_near, z_far);
+    // m_proj = perspective_custom(fov_deg, aspect_ratio, z_near, z_far);
+
+    m_proj = z_flip_matrix * glm::perspectiveRH_ZO(fov_deg, aspect_ratio, z_near, z_far);
 
     float yaw_sin   = std::sin(glm::radians(yaw));
     float yaw_cos   = std::cos(glm::radians(yaw));

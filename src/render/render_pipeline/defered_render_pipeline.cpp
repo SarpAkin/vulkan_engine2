@@ -12,7 +12,7 @@ static DeferredRenderPipeline::DeferredRenderPass create_render_pass(Window* win
     auto builder = vke::RenderPassBuilder();
     auto albedo  = builder.add_attachment(VK_FORMAT_R8G8B8A8_SRGB, VkClearValue{.color = {}}, true);
     auto normal  = builder.add_attachment(VK_FORMAT_R8G8B8A8_SNORM, VkClearValue{.color = {}}, true);
-    auto depth   = builder.add_attachment(VK_FORMAT_D32_SFLOAT, VkClearValue{.depthStencil = {.depth = 1.0}}, true);
+    auto depth   = builder.add_attachment(VK_FORMAT_D32_SFLOAT, VkClearValue{.depthStencil = {.depth = 0.0}}, true);
 
     builder.add_subpass({albedo, normal}, depth, {});
 

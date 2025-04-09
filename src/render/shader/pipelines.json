@@ -29,8 +29,8 @@
       "depth_write": true,
       "polygon_mode": "FILL",
       "topology_mode": "TRIANGLE_LIST",
-      "cull_mode": "BACK",
-      "depth_op": "LESS_OR_EQUAL",
+      "cull_mode": "NONE",
+      "depth_op": "GREATER_OR_EQUAL",
       "compiler_definitions": {},
       "set_layouts": {
         "vke::object_renderer::scene_set": 0,
