@@ -16,16 +16,17 @@
 namespace vke {
 
 class ResourceManager;
+class SceneBuffersManager;
 
 struct RenderState;
 
 class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
 public:
-    constexpr static int SCENE_SET    = 0;
-    constexpr static int VIEW_SET     = 1;
-    constexpr static int MATERIAL_SET = 2;
+    constexpr static int SCENE_SET           = 0;
+    constexpr static int VIEW_SET            = 1;
+    constexpr static int MATERIAL_SET        = 2;
     constexpr static int RENDER_PIPELINE_SET = 3;
-    constexpr static int LIGHT_SET    = -1;
+    constexpr static int LIGHT_SET           = -1;
 
     constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;
 
@@ -44,7 +45,10 @@ public:
 
     ResourceManager* get_resource_manager() { return m_resource_manager.get(); }
 
-    void create_render_target(const std::string& name, const std::string& subpass_name,bool allow_indirect_render = false);
+    void create_render_target(const std::string& name, const std::string& subpass_name, bool allow_indirect_render = false);
+
+    // gets the current frames light buffer
+    vke::IBuffer* get_lights_buffer() { return get_framely().light_buffer.get(); }
 
 private:
     struct IndirectRenderBuffers;
@@ -62,37 +66,10 @@ public:
         std::unique_ptr<IndirectRenderBuffers> indirect_render_buffers;
     };
 
-    using InstanceID = impl::GenericID<struct ObjectInstance>;
-
 private:
     struct FramelyData {
         std::unique_ptr<vke::Buffer> light_buffer;
         VkDescriptorSet scene_set;
-    };
-
-    struct IndirectRenderSceneData {
-        std::unique_ptr<vke::Buffer> model_info_buffer;
-        std::unique_ptr<vke::Buffer> model_part_info_buffer;
-        // allocates sub ranges from model_part_info_buffer.
-        // allocations are done in parts not bytes
-        VirtualAllocator model_part_buffer_sub_allocator;
-        std::unordered_map<RenderModelID, VirtualAllocator::Allocation> model_part_sub_allocations;
-
-        std::unique_ptr<vke::Buffer> material_info_buffer;
-
-        // stores instance specific data
-        std::unique_ptr<vke::GrowableBuffer> instance_buffer;
-
-        std::unique_ptr<vke::Buffer> mesh_info_buffer;
-
-        GenericIDManager<InstanceID> instance_id_manager = GenericIDManager<InstanceID>(0);
-        vke::SlimVec<entt::entity> pending_entities_for_register;
-        vke::SlimVec<InstanceID> pending_instances_for_destruction;
-
-        RCResource<vke::IPipeline> cull_pipeline;
-        RCResource<vke::IPipeline> indirect_draw_command_gen_pipeline;
-
-        std::unordered_map<RenderModelID, i32> model_instance_counters;
     };
 
     struct IndirectRenderBuffers {
@@ -120,18 +97,7 @@ private: // rendering
     void update_view_set(RenderTarget* target);
     void update_lights();
 
-private: // indirect render
-    void connect_registry_callbacks();
-    void disconnect_registry_callbacks();
-
-    void renderable_component_creation_callback(entt::registry&, entt::entity e);
-    void renderable_component_update_callback(entt::registry&, entt::entity e);
-    void renderable_component_destroy_callback(entt::registry&, entt::entity e);
-
-    void updates_for_indirect_render(vke::CommandBuffer& compute_cmd);
-
-    void flush_pending_entities(vke::CommandBuffer& cmd, StencilBuffer& stencil);
-
+private:
     void initialize_scene_data();
 
 private:
@@ -141,16 +107,20 @@ private:
 private:
     std::unordered_map<std::string, RenderTarget> m_render_targets;
 
-    std::unique_ptr<vke::Buffer> m_dummy_buffer; // 256 byte long buffer that is designed to fill descriptor binding 
+    std::unique_ptr<vke::Buffer> m_dummy_buffer; // 256 byte long buffer that is designed to fill descriptor binding
 
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     std::unique_ptr<ResourceManager> m_resource_manager;
 
-    // gpu side scene data meant for indirect render
-    std::unique_ptr<IndirectRenderSceneData> m_scene_data;
 
     vke::RenderServer* m_render_server = nullptr;
     entt::registry* m_registry         = nullptr;
+
+private://indirect render related data
+    RCResource<vke::IPipeline> m_cull_pipeline;
+    RCResource<vke::IPipeline> m_indirect_draw_command_gen_pipeline;
+
+    std::unique_ptr<SceneBuffersManager> m_scene_data;
 };
 
 } // namespace vke

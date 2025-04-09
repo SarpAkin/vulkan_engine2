@@ -12,5 +12,5 @@ class ObjectRenderer;
 class Scene;
 class GameEngine;
 class DeferredRenderPipeline;
-
+class ResourceManager;
 }
