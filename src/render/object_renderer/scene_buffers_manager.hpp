@@ -10,10 +10,17 @@
 
 namespace vke {
 
+constexpr u32 part_capacity          = 1 << 12;
+constexpr u32 model_capacity         = 1 << 10;
+constexpr u32 material_capacity      = 1 << 10;
+constexpr u32 instance_capacity      = 1 << 15;
+constexpr u32 mesh_capacity          = 1 << 10;
+constexpr u32 indirect_draw_capacity = 1 << 10;
+
 // this class manages buffers for indirect rendering data
 class SceneBuffersManager {
 public:
-    SceneBuffersManager(RenderServer* render_server,ResourceManager* resource_manager);
+    SceneBuffersManager(RenderServer* render_server, ResourceManager* resource_manager);
     ~SceneBuffersManager();
 
 public:
@@ -63,9 +70,9 @@ private:
 
     std::unordered_map<RenderModelID, i32> m_model_instance_counters;
 
-    entt::registry* m_registry= nullptr;
-    RenderServer* m_render_server= nullptr;
-    ResourceManager* m_resource_manager= nullptr;
+    entt::registry* m_registry          = nullptr;
+    RenderServer* m_render_server       = nullptr;
+    ResourceManager* m_resource_manager = nullptr;
 };
 
 } // namespace vke

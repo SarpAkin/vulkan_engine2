@@ -22,12 +22,7 @@
 
 namespace vke {
 
-static const u32 part_capacity          = 1 << 12;
-static const u32 model_capacity         = 1 << 10;
-static const u32 material_capacity      = 1 << 10;
-static const u32 instance_capacity      = 1 << 15;
-static const u32 mesh_capacity          = 1 << 10;
-static const u32 indirect_draw_capacity = 1 << 10;
+
 
 struct InstanceComponent {
     const InstanceID id;
