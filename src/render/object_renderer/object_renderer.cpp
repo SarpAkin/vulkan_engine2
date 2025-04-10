@@ -32,21 +32,18 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
 
     m_dummy_buffer = std::make_unique<vke::Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 256, false);
 
+
+
+    // View set layout
     {
         vke::DescriptorSetLayoutBuilder layout_builder;
-        layout_builder.add_ssbo(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT); // lights
+        layout_builder.add_ubo(VK_SHADER_STAGE_ALL); // scene_view
+
         auto stages = VK_SHADER_STAGE_ALL;
         layout_builder.add_ssbo(stages); // instances
         layout_builder.add_ssbo(stages); // models
         layout_builder.add_ssbo(stages); // parts
         layout_builder.add_ssbo(stages); // meshes
-
-        m_scene_set_layout = layout_builder.build();
-    }
-
-    {
-        vke::DescriptorSetLayoutBuilder layout_builder;
-        layout_builder.add_ubo(VK_SHADER_STAGE_ALL); // scene_view
 
         layout_builder.add_ssbo(VK_SHADER_STAGE_COMPUTE_BIT); // instance_draw_parameter_locations
         layout_builder.add_ssbo(VK_SHADER_STAGE_COMPUTE_BIT); // instance_counters
@@ -62,7 +59,6 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     m_resource_manager = std::make_unique<ResourceManager>(render_server);
 
     pg_provider->set_layouts["vke::object_renderer::material_set"] = m_resource_manager->get_material_set_layout();
-    pg_provider->set_layouts["vke::object_renderer::scene_set"]    = m_scene_set_layout;
     pg_provider->set_layouts["vke::object_renderer::view_set"]     = m_view_set_layout;
 
     initialize_scene_data();
@@ -85,12 +81,10 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
             builder.add_ssbo(m_dummy_buffer.get(), stages);
         }
 
-        framely.scene_set = builder.build(m_descriptor_pool.get(), m_scene_set_layout);
     }
 }
 
 ObjectRenderer::~ObjectRenderer() {
-    vkDestroyDescriptorSetLayout(device(), m_scene_set_layout, nullptr);
     vkDestroyDescriptorSetLayout(device(), m_view_set_layout, nullptr);
 }
 
@@ -138,7 +132,6 @@ static auto create_model_matrix_getter(entt::registry* registry) {
 void ObjectRenderer::render_direct(RenderState& rs) {
     auto view = m_registry->view<Renderable, Transform>();
 
-    rs.cmd.bind_descriptor_set(rs.render_target->set_indices.scene_set, get_framely().scene_set);
     rs.cmd.bind_descriptor_set(rs.render_target->set_indices.view_set, rs.render_target->view_sets[m_render_server->get_frame_index()]);
 
     auto transform_view = m_registry->view<Transform>();
@@ -210,6 +203,19 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
 
         vke::DescriptorSetBuilder builder;
         builder.add_ubo(target.view_buffers[i].get(), VK_SHADER_STAGE_ALL);
+
+        auto stages = VK_SHADER_STAGE_ALL;
+        if (m_scene_data) {
+            builder.add_ssbo(m_scene_data->get_instance_data_buffer(), stages);
+            builder.add_ssbo(m_scene_data->get_model_info_buffer(), stages);
+            builder.add_ssbo(m_scene_data->get_model_part_info_buffer(), stages);
+            builder.add_ssbo(m_scene_data->get_mesh_info_buffer(), stages);
+        } else {
+            builder.add_ssbo(m_dummy_buffer.get(), stages);
+            builder.add_ssbo(m_dummy_buffer.get(), stages);
+            builder.add_ssbo(m_dummy_buffer.get(), stages);
+            builder.add_ssbo(m_dummy_buffer.get(), stages);
+        }
 
         if (target.indirect_render_buffers) {
             auto* render_buffers = target.indirect_render_buffers.get();
@@ -358,7 +364,6 @@ void ObjectRenderer::render_indirect(RenderState& state) {
         .mode = 1,
     };
 
-    state.cmd.bind_descriptor_set(state.render_target->set_indices.scene_set, get_framely().scene_set);
     state.cmd.bind_descriptor_set(state.render_target->set_indices.view_set, state.render_target->view_sets[m_render_server->get_frame_index()]);
 
     auto indirect_draw_location = draw_data->part2indirect_draw_location[m_render_server->get_frame_index()]->mapped_data<u32>();
@@ -411,7 +416,6 @@ void ObjectRenderer::render_indirect(RenderState& state) {
 
     state.compute_cmd.bind_pipeline(m_cull_pipeline.get());
 
-    state.compute_cmd.bind_descriptor_set(state.render_target->set_indices.scene_set, get_framely().scene_set);
     state.compute_cmd.bind_descriptor_set(state.render_target->set_indices.view_set, state.render_target->view_sets[m_render_server->get_frame_index()]);
 
     if (total_instance_counter > draw_data->instance_draw_parameters->item_size<InstanceDrawParameter>()) {

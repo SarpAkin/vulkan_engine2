@@ -32,34 +32,35 @@ layout(location = 0) out vec4 o_color;
 float calculate_light_strength(vec3 light_dir, vec3 normal, vec3 view_dir);
 
 vec3 calculate_total_light(vec3 world_pos, vec3 normal, vec3 view_dir) {
-    vec3 total_light = vec3(0);
+    return vec3(0,0,0);
+    // vec3 total_light = vec3(0);
 
-    //calculate point lights
-    for (int i = 0; i < min(MAX_LIGHTS, lights.point_light_count); i++) {
-        PointLight p   = lights.point_lights[i];
-        vec3 light_dir = world_pos - p.pos;
-        float d        = length(light_dir);
-        light_dir /= d;
-        //if light is in range calculate it and add it to total
-        if (d < p.range) {
-            float strength = calculate_light_strength(light_dir, normal, view_dir);
-            float mul      = 1.0 - (d / p.range);
-            strength *= mul * mul;
-            total_light += p.color.xyz * strength;
+    // //calculate point lights
+    // for (int i = 0; i < min(MAX_LIGHTS, lights.point_light_count); i++) {
+    //     PointLight p   = lights.point_lights[i];
+    //     vec3 light_dir = world_pos - p.pos;
+    //     float d        = length(light_dir);
+    //     light_dir /= d;
+    //     //if light is in range calculate it and add it to total
+    //     if (d < p.range) {
+    //         float strength = calculate_light_strength(light_dir, normal, view_dir);
+    //         float mul      = 1.0 - (d / p.range);
+    //         strength *= mul * mul;
+    //         total_light += p.color.xyz * strength;
 
-            // total_light += normalize(light_dir);
-        }
+    //         // total_light += normalize(light_dir);
+    //     }
 
         
-    }
+    // }
 
-    //calculate directional light
-    total_light += calculate_light_strength(lights.directional_light.dir.xyz, normal, view_dir) * lights.directional_light.color.xyz;
+    // //calculate directional light
+    // total_light += calculate_light_strength(lights.directional_light.dir.xyz, normal, view_dir) * lights.directional_light.color.xyz;
     
-    //add ambient light
-    total_light += lights.ambient_light.xyz;
+    // //add ambient light
+    // total_light += lights.ambient_light.xyz;
 
-    return total_light;
+    // return total_light;
 }
 
 #else

@@ -65,7 +65,6 @@ public:
 private:
     struct FramelyData {
         std::unique_ptr<vke::Buffer> light_buffer;
-        VkDescriptorSet scene_set;
     };
 
     struct IndirectRenderBuffers {
@@ -98,7 +97,7 @@ private:
 
 private:
     FramelyData m_framely_data[FRAME_OVERLAP];
-    VkDescriptorSetLayout m_scene_set_layout, m_view_set_layout;
+    VkDescriptorSetLayout m_view_set_layout;
 
 private:
     std::unordered_map<std::string, RenderTarget> m_render_targets;

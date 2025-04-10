@@ -74,9 +74,9 @@ struct RenderArguments {
 };
 
 struct SetIndices {
-    int scene_set           = 0;
-    int view_set            = 1;
-    int material_set        = 2;
+    // int scene_set           = 0;
+    int view_set            = 0;
+    int material_set        = 1;
     int render_pipeline_set = 3;
 };
 
