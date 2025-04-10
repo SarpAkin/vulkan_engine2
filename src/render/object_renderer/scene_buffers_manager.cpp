@@ -138,6 +138,55 @@ void SceneBuffersManager::updates_for_indirect_render(vke::CommandBuffer& cmd) {
     resource_updates.reset();
 
     stencil.flush_copies(cmd);
+
+    VkBufferMemoryBarrier barriers[] = {
+        VkBufferMemoryBarrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = m_mesh_info_buffer->handle(),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE,
+        },
+        VkBufferMemoryBarrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = m_model_info_buffer->handle(),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE,
+        },
+        VkBufferMemoryBarrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = m_material_info_buffer->handle(),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE,
+        },
+        VkBufferMemoryBarrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = m_instance_buffer->handle(),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE,
+        },
+        VkBufferMemoryBarrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = m_model_part_info_buffer->handle(),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE,
+        },
+    };
+
+    cmd.pipeline_barrier(PipelineBarrierArgs{
+        .src_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .dst_stage_mask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .buffer_memory_barriers = barriers,
+    });
 }
 
 void SceneBuffersManager::connect_registry_callbacks() {
