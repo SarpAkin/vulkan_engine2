@@ -22,12 +22,6 @@ struct RenderState;
 
 class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
 public:
-    constexpr static int SCENE_SET           = 0;
-    constexpr static int VIEW_SET            = 1;
-    constexpr static int MATERIAL_SET        = 2;
-    constexpr static int RENDER_PIPELINE_SET = 3;
-    constexpr static int LIGHT_SET           = -1;
-
     constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;
 
 public:
@@ -64,6 +58,8 @@ public:
         // if this is null the scene should be renderer using render_direct
         // otherwise it can be rendered using render_indirect
         std::unique_ptr<IndirectRenderBuffers> indirect_render_buffers;
+
+        SetIndices set_indices;
     };
 
 private:

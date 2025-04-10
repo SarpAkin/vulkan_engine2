@@ -22,8 +22,6 @@
 
 namespace vke {
 
-
-
 struct InstanceComponent {
     const InstanceID id;
 };
@@ -140,8 +138,8 @@ static auto create_model_matrix_getter(entt::registry* registry) {
 void ObjectRenderer::render_direct(RenderState& rs) {
     auto view = m_registry->view<Renderable, Transform>();
 
-    rs.cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
-    rs.cmd.bind_descriptor_set(VIEW_SET, rs.render_target->view_sets[m_render_server->get_frame_index()]);
+    rs.cmd.bind_descriptor_set(rs.render_target->set_indices.scene_set, get_framely().scene_set);
+    rs.cmd.bind_descriptor_set(rs.render_target->set_indices.view_set, rs.render_target->view_sets[m_render_server->get_frame_index()]);
 
     auto transform_view = m_registry->view<Transform>();
     auto parent_view    = m_registry->view<CParent>();
@@ -360,8 +358,8 @@ void ObjectRenderer::render_indirect(RenderState& state) {
         .mode = 1,
     };
 
-    state.cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
-    state.cmd.bind_descriptor_set(VIEW_SET, state.render_target->view_sets[m_render_server->get_frame_index()]);
+    state.cmd.bind_descriptor_set(state.render_target->set_indices.scene_set, get_framely().scene_set);
+    state.cmd.bind_descriptor_set(state.render_target->set_indices.view_set, state.render_target->view_sets[m_render_server->get_frame_index()]);
 
     auto indirect_draw_location = draw_data->part2indirect_draw_location[m_render_server->get_frame_index()]->mapped_data<u32>();
     for (auto& n : indirect_draw_location.subspan(0, m_scene_data->get_part_max_id())) {
@@ -413,8 +411,8 @@ void ObjectRenderer::render_indirect(RenderState& state) {
 
     state.compute_cmd.bind_pipeline(m_cull_pipeline.get());
 
-    state.compute_cmd.bind_descriptor_set(SCENE_SET, get_framely().scene_set);
-    state.compute_cmd.bind_descriptor_set(VIEW_SET, state.render_target->view_sets[m_render_server->get_frame_index()]);
+    state.compute_cmd.bind_descriptor_set(state.render_target->set_indices.scene_set, get_framely().scene_set);
+    state.compute_cmd.bind_descriptor_set(state.render_target->set_indices.view_set, state.render_target->view_sets[m_render_server->get_frame_index()]);
 
     if (total_instance_counter > draw_data->instance_draw_parameters->item_size<InstanceDrawParameter>()) {
         draw_data->instance_draw_parameters->resize(total_instance_counter * sizeof(InstanceDrawParameter));
