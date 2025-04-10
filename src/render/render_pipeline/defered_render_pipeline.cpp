@@ -3,6 +3,7 @@
 #include <vke/pipeline_loader.hpp>
 #include <vke/vke_builders.hpp>
 
+#include "../object_renderer/light_buffers_manager.hpp"
 #include "../object_renderer/object_renderer.hpp"
 #include "../object_renderer/resource_manager.hpp"
 
@@ -44,6 +45,8 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
 
     vke::DescriptorSetLayoutBuilder builder;
     builder.add_binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3);
+    builder.add_ubo(VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_ssbo(VK_SHADER_STAGE_FRAGMENT_BIT);
     m_deferred_set_layout = builder.build();
 
     pg_provider->set_layouts.emplace("vke::deferred_render_set", m_deferred_set_layout);
@@ -51,7 +54,7 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
     auto resource_manager = render_server->get_object_renderer()->get_resource_manager();
     resource_manager->add_pipeline2multi_pipeline("vke::object_renderer::pbr_pipeline", "vke::gpass::default");
 
-    m_render_server->get_object_renderer()->create_render_target(m_deferred_render_pass.render_target_name, m_deferred_render_pass.subpass_name);
+    m_render_server->get_object_renderer()->create_render_target(m_deferred_render_pass.render_target_name, m_deferred_render_pass.subpass_name, true);
 
     m_deferred_pipeline = m_render_server->get_pipeline_loader()->load("vke::post_deferred");
 
@@ -106,10 +109,14 @@ void DeferredRenderPipeline::create_set() {
         m_deferred_render_pass.renderpass->get_attachment_view(m_deferred_render_pass.depth_id),
     };
 
-    VkSampler sampler = m_render_server->get_object_renderer()->get_resource_manager()->get_nearest_sampler(); 
+    auto* object_renderer = m_render_server->get_object_renderer();
+
+    VkSampler sampler = object_renderer->get_resource_manager()->get_nearest_sampler();
 
     vke::DescriptorSetBuilder builder;
     builder.add_image_samplers(images, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_ubo(object_renderer->get_view_buffer(m_deferred_render_pass.render_target_name), VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_ssbo(object_renderer->get_light_manager()->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
     m_deferred_set = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
 }
 

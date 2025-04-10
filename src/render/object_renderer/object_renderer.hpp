@@ -17,6 +17,7 @@ namespace vke {
 
 class ResourceManager;
 class SceneBuffersManager;
+class LightBuffersManager;
 
 struct RenderState;
 
@@ -41,8 +42,8 @@ public:
 
     void create_render_target(const std::string& name, const std::string& subpass_name, bool allow_indirect_render = false);
 
-    // gets the current frames light buffer
-    vke::IBuffer* get_lights_buffer() { return get_framely().light_buffer.get(); }
+    LightBuffersManager* get_light_manager() { return m_light_manager.get(); }
+    IBuffer* get_view_buffer(const std::string& render_target_name) const;
 
 private:
     struct IndirectRenderBuffers;
@@ -64,7 +65,6 @@ public:
 
 private:
     struct FramelyData {
-        std::unique_ptr<vke::Buffer> light_buffer;
     };
 
     struct IndirectRenderBuffers {
@@ -90,7 +90,6 @@ private:
 
 private: // rendering
     void update_view_set(RenderTarget* target);
-    void update_lights();
 
 private:
     void initialize_scene_data();
@@ -116,6 +115,7 @@ private://indirect render related data
     RCResource<vke::IPipeline> m_indirect_draw_command_gen_pipeline;
 
     std::unique_ptr<SceneBuffersManager> m_scene_data;
+    std::unique_ptr<LightBuffersManager> m_light_manager;
 };
 
 } // namespace vke

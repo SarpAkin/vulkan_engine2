@@ -1,6 +1,7 @@
 #include "object_renderer.hpp"
 
 #include "imgui.h"
+#include "render/object_renderer/light_buffers_manager.hpp"
 #include "render/render_server.hpp"
 #include "render/shader/scene_data.h"
 #include "scene/camera.hpp"
@@ -22,17 +23,11 @@
 
 namespace vke {
 
-struct InstanceComponent {
-    const InstanceID id;
-};
-
 ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     m_render_server   = render_server;
     m_descriptor_pool = std::make_unique<DescriptorPool>();
 
     m_dummy_buffer = std::make_unique<vke::Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 256, false);
-
-
 
     // View set layout
     {
@@ -64,23 +59,6 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     initialize_scene_data();
 
     for (auto& framely : m_framely_data) {
-        framely.light_buffer = std::make_unique<Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(SceneLightData), true);
-        vke::DescriptorSetBuilder builder;
-        builder.add_ssbo(framely.light_buffer.get(), VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
-
-        auto stages = VK_SHADER_STAGE_ALL;
-        if (m_scene_data) {
-            builder.add_ssbo(m_scene_data->get_instance_data_buffer(), stages);
-            builder.add_ssbo(m_scene_data->get_model_info_buffer(), stages);
-            builder.add_ssbo(m_scene_data->get_model_part_info_buffer(), stages);
-            builder.add_ssbo(m_scene_data->get_mesh_info_buffer(), stages);
-        } else {
-            builder.add_ssbo(m_dummy_buffer.get(), stages);
-            builder.add_ssbo(m_dummy_buffer.get(), stages);
-            builder.add_ssbo(m_dummy_buffer.get(), stages);
-            builder.add_ssbo(m_dummy_buffer.get(), stages);
-        }
-
     }
 }
 
@@ -96,7 +74,7 @@ void ObjectRenderer::render(const RenderArguments& args) {
     };
 
     update_view_set(rs.render_target);
-    update_lights();
+    m_light_manager->flush_pending_lights(*args.compute_cmd);
 
     static bool window_open             = true;
     static bool indirect_render_enabled = true;
@@ -239,35 +217,6 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
     m_render_targets[name] = std::move(target);
 }
 
-void ObjectRenderer::update_lights() {
-    auto view         = m_registry->view<Transform, CPointLight>();
-    auto point_lights = vke::map_vec(view, [&](const entt::entity& e) {
-        auto [t, light] = view.get(e);
-        return PointLight{
-            .color = glm::vec4(light.color, 0.0),
-            .pos   = t.position,
-            .range = light.range,
-        };
-    });
-
-    if (point_lights.size() > MAX_LIGHTS) {
-        point_lights.resize(MAX_LIGHTS);
-    }
-
-    auto light_buffer = get_framely().light_buffer.get();
-    auto& lights      = light_buffer->mapped_data<SceneLightData>()[0];
-
-    lights.point_light_count = point_lights.size();
-    for (int i = 0; i < point_lights.size(); i++) {
-        lights.point_lights[i] = point_lights[i];
-    }
-
-    lights.ambient_light = glm::vec4(0.1, 0.2, 0.2, 0.0);
-
-    lights.directional_light.dir   = glm::vec4(glm::normalize(glm::vec3(0.2, 1.0, 0.1)), 0.0);
-    lights.directional_light.color = glm::vec4(0.9);
-}
-
 void ObjectRenderer::update_view_set(RenderTarget* target) {
     assert(target->camera);
 
@@ -302,6 +251,7 @@ void ObjectRenderer::set_entt_registry(entt::registry* registry) {
     m_registry = registry;
 
     m_scene_data->set_registry(registry);
+    m_light_manager = std::make_unique<LightBuffersManager>(registry);
 }
 
 void ObjectRenderer::render_indirect(RenderState& state) {
@@ -486,5 +436,8 @@ void ObjectRenderer::initialize_scene_data() {
     m_indirect_draw_command_gen_pipeline = pipeline_loader->load("vke::object_renderer::indirect_draw_gen");
 
     m_scene_data = std::make_unique<SceneBuffersManager>(m_render_server, m_resource_manager.get());
+}
+IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name) const {
+    return m_render_targets.at(render_target_name).view_buffers[m_render_server->get_frame_index()].get();
 }
 } // namespace vke
