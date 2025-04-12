@@ -39,7 +39,7 @@ private:
     std::vector<entt::entity> m_pending_entities_for_register;
     std::vector<LightID> m_pending_instances_for_destruction;
 
-    GenericIDManager<LightID> m_light_id_manager;
+    GenericIDManager<LightID> m_light_id_manager = GenericIDManager<LightID>(0);
 
     u32 m_max_point_light_count = 1020;
 };
