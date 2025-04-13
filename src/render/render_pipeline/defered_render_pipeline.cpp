@@ -19,6 +19,10 @@ static DeferredRenderPipeline::DeferredRenderPass create_render_pass(Window* win
 
     auto render_pass = builder.build(window->width(), window->height());
 
+    auto& pipeline_render_target_description = render_pass->get_render_target_description(0);
+
+    pipeline_render_target_description.depth_compare_op = VK_COMPARE_OP_GREATER_OR_EQUAL;
+
     return DeferredRenderPipeline::DeferredRenderPass{
         .renderpass         = std::move(render_pass),
         .albedo_id          = albedo,
@@ -65,7 +69,7 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
 
 void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
     check_for_resize(*args.primary_cmd);
-    
+
     auto& framely = get_framely();
     framely.compute_cmd->reset();
     framely.compute_cmd->begin_secondary();
