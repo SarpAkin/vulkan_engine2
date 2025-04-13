@@ -17,8 +17,10 @@ static DeferredRenderPipeline::DeferredRenderPass create_render_pass(Window* win
 
     builder.add_subpass({albedo, normal}, depth, {});
 
+    auto render_pass = builder.build(window->width(), window->height());
+
     return DeferredRenderPipeline::DeferredRenderPass{
-        .renderpass         = builder.build(window->width(), window->height()),
+        .renderpass         = std::move(render_pass),
         .albedo_id          = albedo,
         .normal_id          = normal,
         .depth_id           = depth,
@@ -62,6 +64,8 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
 }
 
 void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
+    check_for_resize(*args.primary_cmd);
+    
     auto& framely = get_framely();
     framely.compute_cmd->reset();
     framely.compute_cmd->begin_secondary();
@@ -122,5 +126,16 @@ void DeferredRenderPipeline::create_set() {
 
 void DeferredRenderPipeline::set_camera(Camera* camera) {
     m_render_server->get_object_renderer()->set_camera(m_deferred_render_pass.render_target_name, camera);
+}
+
+void DeferredRenderPipeline::check_for_resize(vke::CommandBuffer& cmd) {
+    // return if the extends of renderpass and the window are same
+    auto w_extends = m_render_server->get_window()->extend();
+
+    if (is_equal(m_deferred_render_pass.renderpass->extend(), w_extends)) return;
+
+    m_deferred_render_pass.renderpass->resize(cmd, w_extends.width, w_extends.height);
+
+    create_set();
 }
 } // namespace vke
