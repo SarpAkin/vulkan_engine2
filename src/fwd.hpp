@@ -1,6 +1,6 @@
 #pragma once
 
-namespace vke{
+namespace vke {
 
 class Camera;
 class RenderServer;
@@ -11,5 +11,6 @@ class IObjectRenderer;
 class ObjectRenderer;
 class Scene;
 class GameEngine;
-
-}
+class DeferredRenderPipeline;
+class ResourceManager;
+} // namespace vke

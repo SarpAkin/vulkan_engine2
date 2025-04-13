@@ -13,6 +13,7 @@ namespace vke {
 class GameEngine {
 public:
     GameEngine(bool headless = false);
+    ~GameEngine();
 
     void run();
 
@@ -31,7 +32,9 @@ private:
 
 private:
     std::unique_ptr<vke::Scene> m_scene;
+    //must be defined before the other render elements in order to be destroyed last
     std::unique_ptr<vke::RenderServer> m_render_server;
+    std::unique_ptr<vke::DeferredRenderPipeline> m_render_pipeline;
 
     bool m_running     = true;
     float m_delta_time = 0.1f;

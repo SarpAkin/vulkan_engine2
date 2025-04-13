@@ -26,8 +26,10 @@ public:
     ~ResourceManager();
 
 public: // getters
+    VkSampler get_nearest_sampler() { return m_nearest_sampler; }
+
     VkDescriptorSetLayout get_material_set_layout() const { return m_material_set_layout; }
-    UpdatedResources& get_updated_resource(){return m_updates;}
+    UpdatedResources& get_updated_resource() { return m_updates; }
     // id getters
     RenderModelID get_model_id(const std::string& name) const { return m_render_model_names2model_ids.at(name); }
 
@@ -63,6 +65,7 @@ public: // getters
 
 public: // creation
     void create_multi_target_pipeline(const std::string& name, std::span<const std::string> pipelines);
+    void add_pipeline2multi_pipeline(const std::string& multi_pipeline_name, const std::string& pipeline_name, const std::string& renderpass_name = "", std::span<const std::string> modifiers = {});
 
     MaterialID create_material(const std::string& multi_pipeline_name, std::vector<ImageID> images = {}, const std::string& material_name = "");
     MeshID create_mesh(Mesh mesh, const std::string& name = "");
@@ -82,8 +85,6 @@ private:
 
     RCResource<vke::IPipeline> load_pipeline_cached(const std::string& name);
 
-    IPipeline* get_pipeline(MultiPipeline* mp, MaterialSubpassType type);
-
 public:
     struct RenderModel {
         struct Part {
@@ -97,9 +98,8 @@ public:
     };
 
     struct MultiPipeline {
-        RCResource<IPipeline> deferred_pipeline;
-        RCResource<IPipeline> forward_pipeline;
-        RCResource<IPipeline> shadow_pipeline;
+        std::unordered_map<std::string, vke::RCResource<IPipeline>> pipelines;
+        std::string name;
     };
 
     struct Material {
