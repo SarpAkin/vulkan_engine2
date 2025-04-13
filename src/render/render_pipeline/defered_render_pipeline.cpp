@@ -13,11 +13,15 @@ static DeferredRenderPipeline::DeferredRenderPass create_render_pass(Window* win
     auto builder = vke::RenderPassBuilder();
     auto albedo  = builder.add_attachment(VK_FORMAT_R8G8B8A8_SRGB, VkClearValue{.color = {}}, true);
     auto normal  = builder.add_attachment(VK_FORMAT_R8G8B8A8_SNORM, VkClearValue{.color = {}}, true);
-    auto depth   = builder.add_attachment(VK_FORMAT_D32_SFLOAT, VkClearValue{.depthStencil = {.depth = 1.0}}, true);
+    auto depth   = builder.add_attachment(VK_FORMAT_D32_SFLOAT, VkClearValue{.depthStencil = {.depth = 0.0}}, true);
 
     builder.add_subpass({albedo, normal}, depth, {});
 
     auto render_pass = builder.build(window->width(), window->height());
+
+    auto& pipeline_render_target_description = render_pass->get_render_target_description(0);
+
+    pipeline_render_target_description.depth_compare_op = VK_COMPARE_OP_GREATER_OR_EQUAL;
 
     return DeferredRenderPipeline::DeferredRenderPass{
         .renderpass         = std::move(render_pass),
@@ -65,7 +69,7 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
 
 void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
     check_for_resize(*args.primary_cmd);
-    
+
     auto& framely = get_framely();
     framely.compute_cmd->reset();
     framely.compute_cmd->begin_secondary();
