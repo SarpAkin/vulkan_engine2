@@ -273,7 +273,7 @@ bool ResourceManager::bind_material(RenderState& state, MaterialID id) {
         state.bound_pipeline = pipeline;
         state.cmd.bind_pipeline(state.bound_pipeline);
     }
-    state.cmd.bind_descriptor_set(ObjectRenderer::MATERIAL_SET, state.material->material_set);
+    state.cmd.bind_descriptor_set(state.render_target->set_indices.material_set, state.material->material_set);
 
     return true;
 }

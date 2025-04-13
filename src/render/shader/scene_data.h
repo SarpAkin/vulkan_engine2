@@ -92,10 +92,10 @@ struct DirectionalLight {
 
 // requires std430
 struct SceneLightData {
-    PointLight point_lights[MAX_LIGHTS];
     DirectionalLight directional_light;
     vec4 ambient_light;
     uint point_light_count;
+    uint padd[3];
 };
 
 #endif

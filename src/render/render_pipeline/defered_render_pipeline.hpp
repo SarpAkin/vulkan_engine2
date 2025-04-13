@@ -31,6 +31,7 @@ private:
     FramelyData& get_framely() { return m_framely[m_render_server->get_frame_index()]; }
 
     void create_set();
+    void check_for_resize(vke::CommandBuffer& cmd);
 
 private:
     std::vector<FramelyData> m_framely;
