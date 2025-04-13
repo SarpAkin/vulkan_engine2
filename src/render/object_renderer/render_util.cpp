@@ -10,8 +10,8 @@ glm::vec4 calculate_plane_of_triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
     return glm::vec4(normal, glm::dot(normal, a));
 }
 
-Frustum calculate_frustum(const glm::mat4& ipv) {
-    glm::vec3 boundries[2][2][2];
+Frustum calculate_frustum(const glm::mat4& ipv, bool reverse_z) {
+    glm::vec3 boundaries[2][2][2];
 
     for (int x = 0; x < 2; ++x) {
         float xf = (x - 0.5f) * 2.f;
@@ -20,8 +20,8 @@ Frustum calculate_frustum(const glm::mat4& ipv) {
             float yf = (y - 0.5f) * 2.f;
 
             for (int z = 0; z < 2; ++z) {
-                glm::vec4 res      = ipv * glm::vec4(xf, yf, float(z), 1);
-                boundries[x][y][z] = glm::vec3(res) / res.w;
+                glm::vec4 res       = ipv * glm::vec4(xf, yf, float(z), 1);
+                boundaries[x][y][z] = glm::vec3(res) / res.w;
             }
         }
     }
@@ -29,14 +29,21 @@ Frustum calculate_frustum(const glm::mat4& ipv) {
     Frustum frustum;
 
     // planes are tested in the order from 0-5 so we put the planes that are likely to cull most at the start
-    frustum.planes[0] = calculate_plane_of_triangle(boundries[0][0][0], boundries[0][1][0], boundries[1][1][0]); // near
+    frustum.planes[0] = calculate_plane_of_triangle(boundaries[0][0][0], boundaries[0][1][0], boundaries[1][1][0]); // near
 
-    frustum.planes[1] = calculate_plane_of_triangle(boundries[1][1][0], boundries[1][0][1], boundries[1][0][0]); // right
-    frustum.planes[2] = calculate_plane_of_triangle(boundries[0][0][1], boundries[0][1][0], boundries[0][0][0]); // left
-    frustum.planes[3] = calculate_plane_of_triangle(boundries[0][0][1], boundries[0][0][0], boundries[1][0][0]); // bottom
-    frustum.planes[4] = calculate_plane_of_triangle(boundries[1][1][0], boundries[0][1][0], boundries[0][1][1]); // top
+    frustum.planes[1] = calculate_plane_of_triangle(boundaries[1][1][0], boundaries[1][0][1], boundaries[1][0][0]); // right
+    frustum.planes[2] = calculate_plane_of_triangle(boundaries[0][0][1], boundaries[0][1][0], boundaries[0][0][0]); // left
+    frustum.planes[3] = calculate_plane_of_triangle(boundaries[0][0][1], boundaries[0][0][0], boundaries[1][0][0]); // bottom
+    frustum.planes[4] = calculate_plane_of_triangle(boundaries[1][1][0], boundaries[0][1][0], boundaries[0][1][1]); // top
 
-    frustum.planes[5] = calculate_plane_of_triangle(boundries[0][0][1], boundries[1][1][1], boundries[0][1][1]); // far
+    frustum.planes[5] = calculate_plane_of_triangle(boundaries[0][0][1], boundaries[1][1][1], boundaries[0][1][1]); // far
+
+    // if reverse z is enabled flip all planes
+    if (reverse_z) {
+        for (auto& p : frustum.planes) {
+            p = -p;
+        }
+    }
 
     return frustum;
 }
