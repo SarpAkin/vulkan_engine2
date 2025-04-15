@@ -66,6 +66,11 @@ ObjectRenderer::~ObjectRenderer() {
     vkDestroyDescriptorSetLayout(device(), m_view_set_layout, nullptr);
 }
 
+void ObjectRenderer::update_scene_data(CommandBuffer& cmd) {
+    m_light_manager->flush_pending_lights(cmd);
+    m_scene_data->updates_for_indirect_render(cmd);
+}
+
 void ObjectRenderer::render(const RenderArguments& args) {
     RenderState rs = {
         .cmd           = *args.subpass_cmd,
@@ -74,7 +79,6 @@ void ObjectRenderer::render(const RenderArguments& args) {
     };
 
     update_view_set(rs.render_target);
-    m_light_manager->flush_pending_lights(*args.compute_cmd);
 
     static bool window_open             = true;
     static bool indirect_render_enabled = true;
@@ -255,7 +259,6 @@ void ObjectRenderer::set_entt_registry(entt::registry* registry) {
 }
 
 void ObjectRenderer::render_indirect(RenderState& state) {
-    m_scene_data->updates_for_indirect_render(state.compute_cmd);
 
     auto ctx                  = VulkanContext::get_context();
     bool mesh_shaders_enabled = false;

@@ -35,6 +35,7 @@ public:
 
     void set_entt_registry(entt::registry* registry) override;
     void render(const RenderArguments& args) override;
+    void update_scene_data(CommandBuffer& cmd);
 
     void set_camera(const std::string& render_target, Camera* camera) { m_render_targets.at(render_target).camera = camera; }
 

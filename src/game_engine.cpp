@@ -91,6 +91,8 @@ void GameEngine::default_render(RenderServer::FrameArgs& args) {
     cam->move_freecam(window, get_delta_time());
     cam->update();
 
+    m_render_server->get_object_renderer()->update_scene_data(*args.primary_cmd);
+
     m_render_pipeline->render(args);
 }
 } // namespace vke
