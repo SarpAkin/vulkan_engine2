@@ -229,7 +229,7 @@ void ObjectRenderer::update_view_set(RenderTarget* target) {
 
     data.proj_view      = target->camera->proj_view();
     data.inv_proj_view  = glm::inverse(data.proj_view);
-    data.view_world_pos = dvec4(target->camera->world_position, 0.0);
+    data.view_world_pos = glm::dvec4(target->camera->get_world_pos(), 0.0);
 
     data.frustum = calculate_frustum(data.inv_proj_view);
 }

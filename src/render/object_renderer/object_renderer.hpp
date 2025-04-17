@@ -111,6 +111,7 @@ private:
     vke::RenderServer* m_render_server = nullptr;
     entt::registry* m_registry         = nullptr;
 
+    glm::dvec3 m_render_origin = {0,0,0};
 private://indirect render related data
     RCResource<vke::IPipeline> m_cull_pipeline;
     RCResource<vke::IPipeline> m_indirect_draw_command_gen_pipeline;
