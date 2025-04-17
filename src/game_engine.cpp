@@ -84,7 +84,7 @@ void GameEngine::run() {
 }
 
 void GameEngine::default_render(RenderServer::FrameArgs& args) {
-    auto* cam    = get_scene()->get_camera();
+    auto* cam    = dynamic_cast<FreeCamera*>(get_scene()->get_camera());
     auto* window = get_render_server()->get_window();
 
     cam->aspect_ratio = static_cast<float>(window->width()) / static_cast<float>(window->height());

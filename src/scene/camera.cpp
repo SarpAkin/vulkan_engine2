@@ -10,12 +10,6 @@
 
 namespace vke {
 
-void Camera::set_world_pos(const glm::dvec3& wpos) {
-    world_position = wpos;
-
-    update();
-}
-
 constexpr glm::mat4 z_flip_matrix = glm::mat4(
     1, 0, 0, 0,
     0, 1, 0, 0,
@@ -23,7 +17,13 @@ constexpr glm::mat4 z_flip_matrix = glm::mat4(
     0, 0, 1, 1 //
 );
 
-void Camera::update() {
+void Camera::set_world_pos(const glm::dvec3& world_pos) {
+    world_position = world_pos;
+
+    update();
+}
+
+void PerspectiveCamera::update() {
     // m_proj = perspective_custom(fov_deg, aspect_ratio, z_near, z_far);
 
     m_proj = z_flip_matrix * glm::perspectiveRH_ZO(fov_deg, aspect_ratio, z_near, z_far);
@@ -52,8 +52,8 @@ void Camera::update() {
 void Camera::move_freecam(Window* window, float delta_time) {
     static bool focused = false;
 
-    static float sensitivity_x    = 0.5;
-    static float sensitivity_y    = 0.5;
+    static float sensitivity_x  = 0.5;
+    static float sensitivity_y  = 0.5;
     static float speed          = 35.f;
     static float speed_vertical = 20;
     static float sprint_mul     = 15.f;
@@ -63,7 +63,6 @@ void Camera::move_freecam(Window* window, float delta_time) {
     ImGui::SliderFloat("vertical speed", &speed_vertical, 1.f, 100.f);
     ImGui::SliderFloat("speed multiplier", &sprint_mul, 1.f, 100.f);
     ImGui::End();
-
 
     if (window->is_key_pressed('"')) {
         window->lock_mouse();
@@ -75,7 +74,7 @@ void Camera::move_freecam(Window* window, float delta_time) {
         focused = false;
     }
 
-    if(!focused) return;
+    if (!focused) return;
 
     // printf("mouse delta: (%.2f,%.2f)\n", window->get_mouse_input().delta_x, window->get_mouse_input().delta_y);
     // printf("pitch,yaw: (%.1f,%.1f)\n",pitch,yaw);
