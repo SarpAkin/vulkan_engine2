@@ -34,7 +34,7 @@ public:
     glm::vec3 right() const { return m_rotation * glm::vec3(1, 0, 0); };
     glm::vec3 up() const { return m_rotation * glm::vec3(0, 1, 0); };
 
-    virtual void update() {}
+    virtual void update();
 
 protected:
     // updates the view matrix from m_rotation and m_world_position
@@ -52,7 +52,6 @@ protected:
 class PerspectiveCamera : public Camera {
 public:
     ~PerspectiveCamera() {}
-    void update() override;
     void update_proj() override;
 
 public:
@@ -72,10 +71,12 @@ private:
 
 class OrthographicCamera : public Camera {
 public:
-    void update() override {};
-    void update_proj() override {};
+    void update_proj() override;
 
     ~OrthographicCamera() {}
+
+public:
+    float half_width, half_height, z_near, z_far;
 };
 
 } // namespace vke

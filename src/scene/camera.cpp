@@ -28,18 +28,19 @@ void Camera::update_view() {
     m_view = glm::lookAt(local_pos,local_pos + forward(),up());
 }
 
+void Camera::update() {
+    update_view();
+    update_proj();
+
+    m_proj_view = m_proj * m_view;
+    m_inv_proj_view = glm::inverse(m_proj_view);
+}
+
+
 void PerspectiveCamera::update_proj() {
     m_proj = z_flip_matrix * glm::perspectiveRH_ZO(fov_deg, aspect_ratio, z_near, z_far);
 };
 
-void PerspectiveCamera::update() {
-    // m_proj = perspective_custom(fov_deg, aspect_ratio, z_near, z_far);
-
-    update_proj();
-    update_view();
-
-    m_proj_view = m_proj * m_view;
-}
 
 void FreeCamera::move_freecam(Window* window, float delta_time) {
     static bool focused = false;
@@ -99,5 +100,10 @@ void FreeCamera::move_freecam(Window* window, float delta_time) {
 
     m_world_position += total_move;
 }
+
+void OrthographicCamera::update_proj() {
+    m_proj = glm::ortho(half_width,half_width,half_height,half_height,z_near,z_far);
+};
+
 
 } // namespace vke
