@@ -19,7 +19,8 @@ public:
 
     float get_delta_time() const { return m_delta_time; }
     Scene* get_scene() { return m_scene.get(); }
-    RenderServer* get_render_server() { return m_render_server.get(); }
+    RenderServer* get_render_server();
+    RenderSystem* get_renderer() { return m_renderer.get(); }
 
 protected: // virtuals
     virtual void on_render(RenderServer::FrameArgs& args) { default_render(args); }
@@ -29,12 +30,9 @@ protected:
     void default_render(RenderServer::FrameArgs&);
 
 private:
-
 private:
     std::unique_ptr<vke::Scene> m_scene;
-    //must be defined before the other render elements in order to be destroyed last
-    std::unique_ptr<vke::RenderServer> m_render_server;
-    std::unique_ptr<vke::DeferredRenderPipeline> m_render_pipeline;
+    std::unique_ptr<vke::RenderSystem> m_renderer;
 
     bool m_running     = true;
     float m_delta_time = 0.1f;

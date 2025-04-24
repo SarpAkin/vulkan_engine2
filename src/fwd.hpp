@@ -16,4 +16,5 @@ class Scene;
 class GameEngine;
 class DeferredRenderPipeline;
 class ResourceManager;
+class RenderSystem;
 } // namespace vke

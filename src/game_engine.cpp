@@ -4,6 +4,7 @@
 #include "render/object_renderer/object_renderer.hpp"
 #include "render/render_pipeline/defered_render_pipeline.hpp"
 #include "render/render_server.hpp"
+#include "render/render_system.hpp"
 #include "scene/scene.hpp"
 
 namespace vke {
@@ -12,27 +13,10 @@ GameEngine::GameEngine(bool headless) {
     m_scene = std::make_unique<Scene>();
 
     if (!headless) {
-        m_render_server = std::make_unique<RenderServer>();
-        m_render_server->init();
-
-        const std::string render_target_name = "default";
-
-        auto obj_renderer = m_render_server->get_object_renderer();
-
-        obj_renderer->set_entt_registry(m_scene->get_registry());
-
-        obj_renderer->create_render_target(render_target_name, "vke::default_forward", true);
-        obj_renderer->set_camera(render_target_name, m_scene->get_camera());
-
-        m_render_pipeline = std::make_unique<DeferredRenderPipeline>(m_render_server.get());
-        m_render_pipeline->set_camera(m_scene->get_camera());
+        m_renderer = std::make_unique<RenderSystem>(this);
     }
-
 }
-
-GameEngine::~GameEngine() {
-    m_render_server->early_cleanup();
-}
+GameEngine::~GameEngine() {}
 
 void GameEngine::run() {
     auto prev_time = std::chrono::system_clock::now();
@@ -63,10 +47,10 @@ void GameEngine::run() {
 
         on_update();
 
-        if (m_render_server) {
-            if (!m_render_server->is_running()) break;
+        if (m_renderer) {
+            if (!m_renderer->get_render_server()->is_running()) break;
 
-            m_render_server->frame([&](RenderServer::FrameArgs& args) {
+            m_renderer->get_render_server()->frame([&](RenderServer::FrameArgs& args) {
                 static bool window_opened = true;
                 if (window_opened) {
                     ImGui::Begin("Stats", &window_opened);
@@ -83,16 +67,7 @@ void GameEngine::run() {
     }
 }
 
-void GameEngine::default_render(RenderServer::FrameArgs& args) {
-    auto* cam    = dynamic_cast<FreeCamera*>(get_scene()->get_camera());
-    auto* window = get_render_server()->get_window();
+void GameEngine::default_render(RenderServer::FrameArgs& args) { m_renderer->render(args); }
 
-    cam->aspect_ratio = static_cast<float>(window->width()) / static_cast<float>(window->height());
-    cam->move_freecam(window, get_delta_time());
-    cam->update();
-
-    m_render_server->get_object_renderer()->update_scene_data(*args.primary_cmd);
-
-    m_render_pipeline->render(args);
-}
+RenderServer* GameEngine::get_render_server() { return m_renderer->get_render_server(); }
 } // namespace vke
