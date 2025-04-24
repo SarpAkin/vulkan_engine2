@@ -66,10 +66,18 @@ ObjectRenderer::~ObjectRenderer() {
     vkDestroyDescriptorSetLayout(device(), m_view_set_layout, nullptr);
 }
 
+static bool indirect_render_enabled = true;
 void ObjectRenderer::update_scene_data(CommandBuffer& cmd) {
     m_light_manager->flush_pending_lights(cmd);
     m_scene_data->updates_for_indirect_render(cmd);
+
+    static bool window_open             = true;
+    ImGui::Begin("ObjectRenderer", &window_open);
+    ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
+
+    ImGui::End();
 }
+
 
 void ObjectRenderer::render(const RenderArguments& args) {
     RenderState rs = {
@@ -80,12 +88,7 @@ void ObjectRenderer::render(const RenderArguments& args) {
 
     update_view_set(rs.render_target);
 
-    static bool window_open             = true;
-    static bool indirect_render_enabled = true;
-    ImGui::Begin("ObjectRenderer", &window_open);
-    ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
 
-    ImGui::End();
 
     if (rs.render_target->indirect_render_buffers && indirect_render_enabled) {
         render_indirect(rs);
