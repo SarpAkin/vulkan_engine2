@@ -86,6 +86,8 @@ void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
         .render_target_name = m_deferred_render_pass.render_target_name,
     });
 
+    m_render_server->get_line_drawer()->flush(*framely.gpass_cmd, m_camera, m_deferred_render_pass.subpass_name);
+
     framely.compute_cmd->end();
     framely.gpass_cmd->end();
 
