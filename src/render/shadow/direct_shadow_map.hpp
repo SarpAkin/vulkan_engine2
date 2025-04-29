@@ -16,12 +16,15 @@ public:
     ~DirectShadowMap();
 
     ShadowMapType get_shadow_map_type() override { return ShadowMapType::DIRECT; }
-    IImageView* get_image_view() override { return m_shadow_map.get(); }
+    RCResource<IImageView> get_image_view(bool, u32) override { return m_shadow_map; }
     u32 get_shadow_map_array_size() override { return 1; }
-    glm::mat4 get_projection_view_matrix() override;
-    void set_camera_data(const ShadowMapCameraData& camera_data) override;
+    glm::mat4 get_projection_view_matrix(u32, u32) override;
+    void set_camera_data(const ShadowMapCameraData& camera_data, u32) override;
 
-    void render(vke::CommandBuffer& primary_buffer) override;
+    glm::dvec3 get_camera_position(u32 index = 0) override;
+    glm::vec3 get_camera_direction(u32 index = 0, u32 view_index = 0) override;
+
+    void render(vke::CommandBuffer& primary_buffer, u32) override;
 
 private:
     vke::RCResource<vke::IImageView> m_shadow_map;
