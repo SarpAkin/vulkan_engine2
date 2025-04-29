@@ -38,6 +38,7 @@ private:
     DeferredRenderPass m_deferred_render_pass;
 
     vke::RenderServer* m_render_server;
+    vke::Camera* m_camera = nullptr;
 
     VkDescriptorSetLayout m_deferred_set_layout;
     VkDescriptorSet m_deferred_set;

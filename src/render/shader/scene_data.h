@@ -88,6 +88,7 @@ struct PointLight {
 struct DirectionalLight {
     vec4 dir;
     vec4 color;
+    mat4 proj_view;
 };
 
 // requires std430

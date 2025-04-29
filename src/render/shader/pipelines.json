@@ -66,7 +66,7 @@
       "depth_write": true,
       "polygon_mode": "FILL",
       "topology_mode": "TRIANGLE_LIST",
-      "cull_mode": "BACK",
+      "cull_mode": "FRONT",
       "depth_op": "LESS_OR_EQUAL",
       "compiler_definitions": {},
       "set_layouts": {

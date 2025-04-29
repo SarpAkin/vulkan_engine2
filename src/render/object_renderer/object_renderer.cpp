@@ -258,7 +258,7 @@ void ObjectRenderer::set_entt_registry(entt::registry* registry) {
     m_registry = registry;
 
     m_scene_data->set_registry(registry);
-    m_light_manager = std::make_unique<LightBuffersManager>(registry);
+    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server,registry);
 }
 
 void ObjectRenderer::render_indirect(RenderState& state) {

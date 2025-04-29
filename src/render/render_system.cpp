@@ -1,6 +1,9 @@
 #include "render_system.hpp"
 #include "render/object_renderer/object_renderer.hpp"
 #include "render/render_pipeline/defered_render_pipeline.hpp"
+#include "render/object_renderer/light_buffers_manager.hpp"
+#include "render/shadow/direct_shadow_map.hpp"
+#include "render/shadow/shadow_manager.hpp"
 #include "scene/scene.hpp"
 #include "game_engine.hpp"
 
@@ -39,8 +42,12 @@ void RenderSystem::render(RenderServer::FrameArgs& args) {
     cam->move_freecam(window, m_game_engine->get_delta_time());
     cam->update();
 
+    auto* shadow_manager = m_render_server->get_object_renderer()->get_light_manager()->get_shadow_manager();
+    shadow_manager->render_shadows(*args.primary_cmd);
+
     m_render_server->get_object_renderer()->update_scene_data(*args.primary_cmd);
 
     m_render_pipeline->render(args);
 }
+
 } // namespace vke

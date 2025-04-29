@@ -7,6 +7,10 @@
 #include "../object_renderer/object_renderer.hpp"
 #include "../object_renderer/resource_manager.hpp"
 
+#include "render/debug/line_drawer.hpp"
+
+#include "../shadow/shadow_manager.hpp"
+
 namespace vke {
 
 static DeferredRenderPipeline::DeferredRenderPass create_render_pass(Window* window) {
@@ -53,6 +57,7 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
     builder.add_binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3);
     builder.add_ubo(VK_SHADER_STAGE_FRAGMENT_BIT);
     builder.add_ssbo(VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);//shadows
     m_deferred_set_layout = builder.build();
 
     pg_provider->set_layouts.emplace("vke::deferred_render_set", m_deferred_set_layout);
@@ -120,17 +125,26 @@ void DeferredRenderPipeline::create_set() {
     };
 
     auto* object_renderer = m_render_server->get_object_renderer();
+    auto* light_manager = object_renderer->get_light_manager();
+    auto* shadow_manager = light_manager->get_shadow_manager();
 
     VkSampler sampler = object_renderer->get_resource_manager()->get_nearest_sampler();
+
+    IImageView* shadow_maps[] = {
+        shadow_manager->get_direct_shadow_map_texture(0).get(),
+    };
 
     vke::DescriptorSetBuilder builder;
     builder.add_image_samplers(images, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_FRAGMENT_BIT);
     builder.add_ubo(object_renderer->get_view_buffer(m_deferred_render_pass.render_target_name), VK_SHADER_STAGE_FRAGMENT_BIT);
-    builder.add_ssbo(object_renderer->get_light_manager()->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_ssbo(light_manager->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_image_samplers(shadow_maps,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,shadow_manager->get_shadow_sampler(),VK_SHADER_STAGE_FRAGMENT_BIT);
+
     m_deferred_set = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
 }
 
 void DeferredRenderPipeline::set_camera(Camera* camera) {
+    m_camera = camera;
     m_render_server->get_object_renderer()->set_camera(m_deferred_render_pass.render_target_name, camera);
 }
 

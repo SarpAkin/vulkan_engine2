@@ -5,6 +5,7 @@
 #include "render/iobject_renderer.hpp"
 #include "render/shader/scene_data.h"
 #include "scene/components/components.hpp"
+#include "render/shadow/shadow_manager.hpp"
 
 namespace vke {
 
@@ -12,14 +13,17 @@ struct CPointLightInstance {
     const LightBuffersManager::LightID id;
 };
 
-LightBuffersManager::LightBuffersManager(entt::registry* registry) {
+LightBuffersManager::LightBuffersManager(vke::RenderServer* render_server, entt::registry* registry) {
     m_registry     = registry;
+    m_render_server = render_server;
     m_light_buffer = std::make_unique<vke::Buffer>(
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         sizeof(SceneLightData) + sizeof(PointLight) * m_max_point_light_count, false //
     );
 
     connect_registry_callbacks();
+
+    m_shadow_manager = std::make_unique<ShadowManager>(m_render_server);
 }
 
 LightBuffersManager::~LightBuffersManager() {
@@ -81,10 +85,21 @@ void LightBuffersManager::flush_pending_lights(vke::CommandBuffer& cmd) {
 
     m_pending_entities_for_register.clear();
 
+    glm::vec3 directional_light_dir = glm::normalize(glm::vec3(1,-1,1));
+
+    m_shadow_manager->set_direct_shadow_map_camera(0, ShadowMapCameraData{
+        .position = directional_light_dir * -150.f,
+        .direction = directional_light_dir,
+        .far = 300.f,
+        .width = 100.f,
+        .height = 100.f,
+    });
+
     SceneLightData scene_light_data{
         .directional_light = {
-            .dir   = glm::vec4(glm::normalize(glm::vec3{0.f, -1.f, 0.f}), 1.0),
+            .dir   = glm::vec4(directional_light_dir, 1.0),
             .color = glm::vec4(1.0, 1.0, 1.0, 1.0),
+            .proj_view = m_shadow_manager->get_direct_shadow_map(0)->get_projection_view_matrix(),
         },
         .ambient_light     = glm::vec4(),
         .point_light_count = static_cast<u32>(m_light_id_manager.id_manager.id_count()),
