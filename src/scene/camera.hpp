@@ -23,7 +23,7 @@ public:
     void set_world_pos(const glm::dvec3& world_pos);
 
     void set_rotation(glm::quat rotation) { m_rotation = rotation; }
-    void set_rotation(glm::vec3 forward, glm::vec3 up = {0, 1, 0}) { m_rotation = glm::quatLookAtRH(forward, up); }
+    void set_rotation(glm::vec3 forward, glm::vec3 up = {0, 1, 0}) { m_rotation = glm::quatLookAtLH(forward, up); }
     void set_rotation_euler(float pitch, float yaw) { m_rotation = glm::quat(glm::vec3(pitch, yaw, 0)); }
     void set_rotation_euler(const glm::vec3& euler_rotation) { m_rotation = glm::quat(euler_rotation); }
 
