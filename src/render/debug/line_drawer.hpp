@@ -24,6 +24,7 @@ public: // draw
     void draw_line(glm::vec3 a, glm::vec3 b, u32 color);
 
     void draw_transformed_box(const glm::mat4& model, u32 color);
+    void draw_camera_frustum(const glm::mat4& inv_proj_view, u32 color);
 
 public:
     void flush(vke::CommandBuffer& cmd,const Camera* camera,const std::string& renderpass);

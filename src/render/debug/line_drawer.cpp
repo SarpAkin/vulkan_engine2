@@ -9,7 +9,7 @@
 namespace vke {
 
 LineDrawer::LineDrawer(RenderServer* render_server) {
-    m_render_server = render_server;
+    m_render_server          = render_server;
     m_buffer_vertex_capacity = 8192;
 
     auto* pg_provider = m_render_server->get_pipeline_loader()->get_pipeline_globals_provider();
@@ -114,4 +114,14 @@ void LineDrawer::flush(vke::CommandBuffer& cmd, const Camera* camera, const std:
     m_buffer_index        = 0;
 }
 
+void LineDrawer::draw_camera_frustum(const glm::mat4& model, u32 color) {
+    glm::mat4 m = glm::mat4(
+        2, 0, 0, 0,
+        0, 2, 0, 0,
+        0, 0, 1, 0,
+        -1, -1, 0, 1 //
+    );
+
+    draw_transformed_box(model * m, color);
+}
 } // namespace vke
