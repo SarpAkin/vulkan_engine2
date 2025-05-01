@@ -81,6 +81,15 @@ uint permutate(uint x) {
 }
 
 vec3 calculate_direct_light(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 view_dir) {
+    // config
+    const float normal_offset_value = 0.035;
+    const float base_bias           = 0.0001;
+#define POISSON_SAMPLING
+#define WORLD_SPACE_SEED
+
+    // normal offsetting
+    world_pos4.xyz += normal * (normal_offset_value * world_pos4.w);
+
     vec4 shadow_pos4 = lights.directional_light.proj_view * world_pos4;
     vec3 shadow_pos  = shadow_pos4.xyz / shadow_pos4.w;
     // shadow_pos.z = .0;
@@ -90,26 +99,21 @@ vec3 calculate_direct_light(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 v
 
     shadow_uv = floor(shadow_uv * shadow_map_resolution) / shadow_map_resolution;
 
-    float bias = 0.001;
-    bias       = max((dot(lights.directional_light.dir.xyz, normal)), 0.1) * bias;
+    float bias = max((dot(lights.directional_light.dir.xyz, normal)), 0.1) * base_bias;
 
-
-#define POISSON_SAMPLING
 #ifdef POISSON_SAMPLING
 
-#define WORLD_SPACE_SEED
 #ifndef WORLD_SPACE_SEED
     uint seed = (uint(gl_FragCoord.x * 7 + 123214) << 17) ^ uint(gl_FragCoord.y * 3 + 1336);
 #else
     // uvec3 pos2 = uvec3(ivec3(shadow_pos * (100000)));
-    uvec3 pos2 = uvec3(ivec3(world_pos * (2000)));
-    uint seed  = permutate(pos2.x ^ permutate(pos2.y) ^ (gl_SubgroupInvocationID & 3)) ^ pos2.z;
+    uvec3 pos2 = uvec3(ivec3(world_pos * (10000)));
+    uint seed  = permutate(permutate(pos2.x ^ permutate(pos2.y) ^ (gl_SubgroupInvocationID & 3)) ^ (pos2.z));
 #endif
-
 
     const uint sample_count = 4;
     float is_lit            = 0.0;
-    vec2 poisson_mul = vec2(1.0) / vec2(textureSize(shadow_maps[0],0));
+    vec2 poisson_mul        = vec2(1.0) / vec2(textureSize(shadow_maps[0], 0));
     for (int i = 0; i < sample_count; i++) {
         seed              = permutate(seed + i);
         vec2 poisson_disc = poisson_table[seed % poisson_table_size];
@@ -155,7 +159,8 @@ vec3 calculate_total_light(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 vi
     total_light += calculate_direct_light(world_pos4, world_pos, normal, view_dir);
 
     // add ambient light
-    total_light += lights.ambient_light.xyz;
+    // total_light += lights.ambient_light.xyz;
+    total_light += 0.03;
 
     return total_light;
 }
