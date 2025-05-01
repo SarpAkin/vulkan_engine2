@@ -70,8 +70,17 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         auto& view   = model.bufferViews.at(buffer_view);
         auto& buffer = model.buffers.at(view.buffer);
 
+        size_t byte_end = view.byteOffset + view.byteLength;
+        if (buffer.data.size() < byte_end) {
+            THROW_ERROR("while loading gltf file %s:buffer view %d overflows buffer %d by %ld bytes\n", file_path.c_str(), buffer_view, view.buffer, byte_end - buffer.data.size());
+        }
+
+        if (view.byteLength < byte_offset) {
+            THROW_ERROR("while loading gltf file %s: accessor overflow by %ld", file_path.c_str(), byte_offset - view.byteLength);
+        }
+
         // return std::span<T>(reinterpret_cast<T*>(buffer.data.data() + view.byteOffset + byte_offset), view.byteLength / sizeof(T));
-        return vke::span_cast<T>(std::span(buffer.data).subspan(view.byteOffset + byte_offset, view.byteLength));
+        return vke::span_cast<T>(std::span(buffer.data).subspan(view.byteOffset + byte_offset, view.byteLength - byte_offset));
     };
 
     auto get_buffer_view_from_accessor = [&]<typename T>(Type<T> t, int accessor_index) {
@@ -190,16 +199,14 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
         auto& node         = model.nodes.at(node_index);
         auto transform_mat = t * create_transformation_from_node(node);
 
-        auto transform           = Transform::decompose_from_matrix(transform_mat);
-        auto model_id            = model_ids[node.mesh];
-        // transform.aabb_half_size = resource_manager->get_model(model_id)->boundary.half_size();
-
-        if(node.mesh != -1){
+        auto transform = Transform::decompose_from_matrix(transform_mat);
+        
+        if (node.mesh != -1) {
+            auto model_id  = model_ids[node.mesh];
             auto entity = registry->create();
             registry->emplace<Transform>(entity, transform);
             registry->emplace<Renderable>(entity, Renderable{model_ids.at(node.mesh)});
         }
-
 
         for (auto child_index : node.children) {
             self(child_index, transform_mat);
