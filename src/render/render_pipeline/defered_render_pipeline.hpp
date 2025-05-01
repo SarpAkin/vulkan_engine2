@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <vke/vke.hpp>
 
 #include "fwd.hpp"
@@ -30,7 +31,7 @@ private:
 private:
     FramelyData& get_framely() { return m_framely[m_render_server->get_frame_index()]; }
 
-    void create_set();
+    void create_set(int index,bool update = false);
     void check_for_resize(vke::CommandBuffer& cmd);
 
 private:
@@ -42,6 +43,7 @@ private:
 
     VkDescriptorSetLayout m_deferred_set_layout;
     VkDescriptorSet m_deferred_set[FRAME_OVERLAP];
+    std::bitset<FRAME_OVERLAP> m_sets_needing_update; 
 
     vke::RCResource<vke::IPipeline> m_deferred_pipeline;
 };
