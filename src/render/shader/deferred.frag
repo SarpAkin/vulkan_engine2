@@ -3,6 +3,8 @@
 
 #define DEFERRED_SET 0
 
+#define PI 3.141592653589793
+
 #include "scene_data.h"
 
 layout(set = DEFERRED_SET, binding = 0) uniform sampler2D textures[3];
@@ -25,38 +27,38 @@ vec4 debug_color;
 
 const int poisson_table_size           = 32;
 vec2 poisson_table[poisson_table_size] = {
-    vec2(0.84230, -0.53902),
-    vec2(-0.37677, -0.92631),
-    vec2(-0.99841, 0.056348),
-    vec2(-0.57858, -0.81563),
-    vec2(0.99498, -0.10009),
-    vec2(-0.34342, -0.93918),
-    vec2(-0.64817, 0.76150),
-    vec2(0.78751, -0.61630),
-    vec2(0.79134, -0.61137),
-    vec2(-0.99986, 0.016878),
-    vec2(0.70665, -0.70756),
-    vec2(0.98741, 0.15818),
-    vec2(0.94307, 0.33258),
-    vec2(-0.50838, 0.86113),
-    vec2(0.86950, -0.49394),
-    vec2(0.99430, 0.10666),
-    vec2(-0.75741, -0.65294),
-    vec2(-0.99147, 0.13037),
-    vec2(0.74686, 0.66499),
-    vec2(-0.85293, 0.52203),
-    vec2(-0.78169, -0.62367),
-    vec2(-0.96222, 0.27227),
-    vec2(-0.79200, 0.61052),
-    vec2(0.35110, -0.93634),
-    vec2(-0.99823, -0.059441),
-    vec2(-0.023254, -0.99973),
-    vec2(-0.26993, -0.96288),
-    vec2(0.60371, 0.79720),
-    vec2(0.33310, 0.94289),
-    vec2(0.076195, 0.99709),
-    vec2(0.59748, -0.80189),
-    vec2(-0.75329, 0.65769),
+    vec2(0.087164, -0.25865),
+    vec2(-0.71380, -0.31938),
+    vec2(-0.42212, -0.37691),
+    vec2(-0.35237, -0.048855),
+    vec2(0.80181, -0.073725),
+    vec2(-0.050746, -0.59212),
+    vec2(-0.030902, 0.044495),
+    vec2(0.11101, -0.17909),
+    vec2(-0.11017, -0.0071830),
+    vec2(0.57569, 0.42861),
+    vec2(-0.33310, 0.83733),
+    vec2(0.42835, 0.87701),
+    vec2(-0.64454, -0.68726),
+    vec2(0.19806, 0.33082),
+    vec2(0.048796, 0.24135),
+    vec2(0.21022, -0.84828),
+    vec2(0.27345, 0.34345),
+    vec2(0.42546, -0.084226),
+    vec2(-0.56231, 0.17967),
+    vec2(0.0056380, -0.11294),
+    vec2(-0.16145, -0.076814),
+    vec2(-0.029326, -0.017768),
+    vec2(0.28798, 0.14798),
+    vec2(-0.17497, -0.055957),
+    vec2(0.30198, -0.49570),
+    vec2(-0.84580, 0.40599),
+    vec2(-0.25414, 0.47697),
+    vec2(0.98356, -0.13102),
+    vec2(-0.10180, 0.032886),
+    vec2(0.032977, 0.24390),
+    vec2(0.66924, 0.032143),
+    vec2(-0.91677, 0.22138),
 };
 
 float quad_average(float n) {
@@ -95,12 +97,13 @@ vec3 calculate_direct_light(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 v
 #define POISSON_SAMPLING
 #ifdef POISSON_SAMPLING
 
-// #define WORLD_SPACE_SEED
+#define WORLD_SPACE_SEED
 #ifndef WORLD_SPACE_SEED
     uint seed = (uint(gl_FragCoord.x * 7 + 123214) << 17) ^ uint(gl_FragCoord.y * 3 + 1336);
 #else
-    uvec3 pos2 = uvec3(ivec3(world_pos * 5000));
-    uint seed = pos2.x ^ pos2.y ^ pos2.z;
+    // uvec3 pos2 = uvec3(ivec3(shadow_pos * (100000)));
+    uvec3 pos2 = uvec3(ivec3(world_pos * (2000)));
+    uint seed  = permutate(pos2.x ^ permutate(pos2.y) ^ (gl_SubgroupInvocationID & 3)) ^ pos2.z;
 #endif
 
 
