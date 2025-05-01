@@ -41,7 +41,7 @@ private:
     vke::Camera* m_camera = nullptr;
 
     VkDescriptorSetLayout m_deferred_set_layout;
-    VkDescriptorSet m_deferred_set;
+    VkDescriptorSet m_deferred_set[FRAME_OVERLAP];
 
     vke::RCResource<vke::IPipeline> m_deferred_pipeline;
 };

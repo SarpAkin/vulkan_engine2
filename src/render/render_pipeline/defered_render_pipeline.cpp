@@ -109,7 +109,7 @@ void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
     deferred_pass->end(primary_cmd);
 
     args.main_pass_cmd->bind_pipeline(m_deferred_pipeline.get());
-    args.main_pass_cmd->bind_descriptor_set(0, m_deferred_set);
+    args.main_pass_cmd->bind_descriptor_set(0, m_deferred_set[m_render_server->get_frame_index()]);
 
     args.main_pass_cmd->draw(3, 1, 0, 0);
 }
@@ -134,13 +134,16 @@ void DeferredRenderPipeline::create_set() {
         shadow_manager->get_direct_shadow_map_texture(0).get(),
     };
 
-    vke::DescriptorSetBuilder builder;
-    builder.add_image_samplers(images, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_FRAGMENT_BIT);
-    builder.add_ubo(object_renderer->get_view_buffer(m_deferred_render_pass.render_target_name), VK_SHADER_STAGE_FRAGMENT_BIT);
-    builder.add_ssbo(light_manager->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
-    builder.add_image_samplers(shadow_maps,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,shadow_manager->get_shadow_sampler(),VK_SHADER_STAGE_FRAGMENT_BIT);
+    for(int i = 0;i < FRAME_OVERLAP;i++){
+        vke::DescriptorSetBuilder builder;
+        builder.add_image_samplers(images, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_FRAGMENT_BIT);
+        builder.add_ubo(object_renderer->get_view_buffer(m_deferred_render_pass.render_target_name,i), VK_SHADER_STAGE_FRAGMENT_BIT);
+        builder.add_ssbo(light_manager->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
+        builder.add_image_samplers(shadow_maps,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,shadow_manager->get_shadow_sampler(),VK_SHADER_STAGE_FRAGMENT_BIT);
+    
+        m_deferred_set[i] = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
+    }
 
-    m_deferred_set = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
 }
 
 void DeferredRenderPipeline::set_camera(Camera* camera) {

@@ -44,7 +44,7 @@ public:
     void create_render_target(const std::string& name, const std::string& subpass_name, bool allow_indirect_render = false);
 
     LightBuffersManager* get_light_manager() { return m_light_manager.get(); }
-    IBuffer* get_view_buffer(const std::string& render_target_name) const;
+    IBuffer* get_view_buffer(const std::string& render_target_name,int frame_index) const;
 
 private:
     struct IndirectRenderBuffers;

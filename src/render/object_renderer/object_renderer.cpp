@@ -230,8 +230,10 @@ void ObjectRenderer::update_view_set(RenderTarget* target) {
     auto* ubo  = target->view_buffers[m_render_server->get_frame_index()].get();
     auto& data = ubo->mapped_data<ViewData>()[0];
 
-    data.proj_view      = target->camera->proj_view();
-    data.inv_proj_view  = glm::inverse(data.proj_view);
+    auto proj_view = target->camera->proj_view(); 
+
+    data.proj_view      = proj_view;
+    data.inv_proj_view  = glm::inverse(proj_view);
     data.view_world_pos = glm::dvec4(target->camera->get_world_pos(), 0.0);
 
     data.frustum = calculate_frustum(data.inv_proj_view);
@@ -443,7 +445,9 @@ void ObjectRenderer::initialize_scene_data() {
 
     m_scene_data = std::make_unique<SceneBuffersManager>(m_render_server, m_resource_manager.get());
 }
-IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name) const {
-    return m_render_targets.at(render_target_name).view_buffers[m_render_server->get_frame_index()].get();
+IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name,int frame_index) const {
+    assert(frame_index >= 0 && frame_index < FRAME_OVERLAP);
+    
+    return m_render_targets.at(render_target_name).view_buffers[frame_index].get();
 }
 } // namespace vke
