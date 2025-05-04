@@ -31,13 +31,14 @@ ShadowManager::ShadowManager(RenderServer* render_server) {
         .height    = 100,
     });
 
+    VkFilter filter = VK_FILTER_LINEAR;
     VkSamplerCreateInfo sampler_info{
-        .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .magFilter    = VK_FILTER_LINEAR,
-        .minFilter    = VK_FILTER_LINEAR,
-        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .sType         = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter     = filter,
+        .minFilter     = filter,
+        .addressModeU  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeV  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeW  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
         .compareEnable = true,
         // reverse z is enabled for all
         .compareOp   = VK_COMPARE_OP_GREATER_OR_EQUAL,

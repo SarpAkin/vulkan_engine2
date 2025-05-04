@@ -101,7 +101,7 @@ void LightBuffersManager::flush_pending_lights(vke::CommandBuffer& cmd) {
             .color = glm::vec4(1.0, 1.0, 1.0, 1.0),
             .proj_view = m_shadow_manager->get_direct_shadow_map(0)->get_projection_view_matrix(),
         },
-        .ambient_light     = glm::vec4(),
+        .ambient_light     = glm::vec4(0.04,0.03,0.03,0.0),
         .point_light_count = static_cast<u32>(m_light_id_manager.id_manager.id_count()),
     };
 

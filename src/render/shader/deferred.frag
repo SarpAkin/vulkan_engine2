@@ -159,8 +159,8 @@ vec3 calculate_total_light(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 vi
     total_light += calculate_direct_light(world_pos4, world_pos, normal, view_dir);
 
     // add ambient light
-    // total_light += lights.ambient_light.xyz;
-    total_light += 0.03;
+    total_light += lights.ambient_light.xyz;
+    // total_light += 0.03;
 
     return total_light;
 }
