@@ -17,7 +17,7 @@ enum class ShadowMapType {
 
 struct ShadowMapCameraData {
     glm::dvec3 position;
-    glm::vec3 direction; // ignore for point lights
+    glm::vec3 direction, up; // ignore for point lights
     float far, width, height;
 };
 

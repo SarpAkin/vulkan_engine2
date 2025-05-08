@@ -15,7 +15,7 @@ std::atomic<uint32_t> id_counter;
 
 DirectShadowMap::DirectShadowMap(RenderServer* render_server, u32 texture_size) {
     vke::RenderPassBuilder builder;
-    u32 depth     = builder.add_attachment(VK_FORMAT_D16_UNORM, VkClearValue{.depthStencil = {.depth = 0.0}},true);
+    u32 depth = builder.add_attachment(VK_FORMAT_D16_UNORM, VkClearValue{.depthStencil = {.depth = 0.0}}, true);
     builder.add_subpass({}, depth, {});
     m_shadow_pass = builder.build(texture_size, texture_size);
     m_shadow_map  = m_shadow_pass->get_attachment_view(depth);
@@ -34,7 +34,7 @@ DirectShadowMap::DirectShadowMap(RenderServer* render_server, u32 texture_size) 
         resource_manager->add_pipeline2multi_pipeline(ObjectRenderer::pbr_pipeline_name, "vke::shadowD16::default");
     }
 
-    m_render_server->get_object_renderer()->create_render_target(m_render_target_name, shadowD16,true);
+    m_render_server->get_object_renderer()->create_render_target(m_render_target_name, shadowD16, true);
 
     m_camera = std::make_unique<vke::OrthographicCamera>();
     m_object_renderer->set_camera(m_render_target_name, m_camera.get());
@@ -43,9 +43,9 @@ DirectShadowMap::DirectShadowMap(RenderServer* render_server, u32 texture_size) 
 DirectShadowMap::~DirectShadowMap() {
 }
 
-glm::mat4 DirectShadowMap::get_projection_view_matrix(u32,u32) { return m_camera->proj_view(); }
+glm::mat4 DirectShadowMap::get_projection_view_matrix(u32, u32) { return m_camera->proj_view(); }
 
-void DirectShadowMap::render(vke::CommandBuffer& primary_buffer,u32) {
+void DirectShadowMap::render(vke::CommandBuffer& primary_buffer, u32) {
     RCResource<vke::CommandBuffer> shadow_pass_cmd = m_render_server->get_framely_command_pool()->allocate(false);
 
     shadow_pass_cmd->begin_secondary(m_shadow_pass->get_subpass(0));
@@ -67,13 +67,13 @@ void DirectShadowMap::render(vke::CommandBuffer& primary_buffer,u32) {
     primary_buffer.add_execution_dependency(shadow_pass_cmd->get_reference());
 }
 
-void DirectShadowMap::set_camera_data(const ShadowMapCameraData& camera_data,u32) {
+void DirectShadowMap::set_camera_data(const ShadowMapCameraData& camera_data, u32) {
     m_camera->set_world_pos(camera_data.position);
-    m_camera->set_rotation(camera_data.direction);
-    m_camera->z_far = camera_data.far;
-    m_camera->z_near = 0.1f;
+    m_camera->set_rotation(camera_data.direction, camera_data.up);
+    m_camera->z_far       = camera_data.far;
+    m_camera->z_near      = 0.1f;
     m_camera->half_height = camera_data.height / 2.0f;
-    m_camera->half_width = camera_data.width / 2.0f;
+    m_camera->half_width  = camera_data.width / 2.0f;
     m_camera->update();
 }
 

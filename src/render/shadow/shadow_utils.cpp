@@ -64,7 +64,63 @@ static std::vector<u16> graham_scan(std::span<const glm::vec2> points) {
     return stack;
 }
 
-glm::mat4 calculate_optimal_direct_shadow_map_frustum(const glm::mat4& inv_proj_view, float z_s, float z_e, glm::vec3 direct_light_dir, vke::LineDrawer* ld) {
+std::tuple<glm::vec2, glm::vec2> compute_aabb(auto&& points) {
+    glm::vec2 max = {-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
+    glm::vec2 min = -max;
+
+    for (auto p : points) {
+        min = glm::min(min, p);
+        max = glm::max(max, p);
+    }
+
+    return std::tuple(min, max);
+}
+
+struct ShadowOBB {
+    glm::vec2 rotated_min, rotated_max;
+    glm::vec2 mid_point;
+    glm::mat2 rotation_mat;
+    float rotation_rad;
+};
+
+ShadowOBB find_obb(auto&& hull) {
+    float smallest_obb_size = std::numeric_limits<float>::infinity();
+
+    ShadowOBB smallest_obb;
+
+    for (int i = 0; i < hull.size(); i++) {
+        auto p0 = hull[i];
+        auto p1 = hull[(i + 1) % hull.size()];
+
+        auto dir = glm::normalize(p1 - p0);
+
+        glm::mat2 m;
+        m[0] = dir;
+        m[1] = {-dir.y, dir.x};
+
+        auto [min, max] = compute_aabb(hull | views::transform([&](auto p) { return m * p; }));
+
+        auto area_vec = max - min;
+        float area    = area_vec.x * area_vec.y;
+        assert(area >= 0.f);
+
+        if (area < smallest_obb_size) {
+            smallest_obb_size = area;
+
+            smallest_obb = {
+                .rotated_min  = min,
+                .rotated_max  = max,
+                .mid_point    = glm::inverse(m) * ((min + max) * 0.5f),
+                .rotation_mat = m,
+                .rotation_rad = std::atan2(m[0].y, m[0].x), // compute the rotation in radians
+            };
+        }
+    }
+
+    return smallest_obb;
+}
+
+ShadowMapCameraData calculate_optimal_direct_shadow_map_frustum(const glm::mat4& inv_proj_view, float z_s, float z_e, glm::vec3 direct_light_dir, vke::LineDrawer* ld) {
     assert(std::abs(glm::length(direct_light_dir) - 1.0) < 0.05 && "direct_light_dir must be normalized");
 
     glm::vec3 points[8] = {
@@ -84,7 +140,7 @@ glm::mat4 calculate_optimal_direct_shadow_map_frustum(const glm::mat4& inv_proj_
     }
 
     glm::vec3 initial_up    = {0, 1, 0};
-    glm::mat4 inital_shadow = glm::lookAt({0, 0, 0}, direct_light_dir, initial_up);
+    glm::mat4 inital_shadow = glm::lookAtRH({0, 0, 0}, direct_light_dir, initial_up);
 
     // calculate in shadow space
     glm::vec2 shadow_points[8];
@@ -100,69 +156,43 @@ glm::mat4 calculate_optimal_direct_shadow_map_frustum(const glm::mat4& inv_proj_
     const auto hull_indices = graham_scan(shadow_points);
     const auto hull         = hull_indices | views::transform([&](auto i) { return shadow_points[i]; });
 
-    auto compute_obb = [&](glm::mat2 rot) -> std::tuple<glm::vec2, glm::vec2> {
-        glm::vec2 max = {-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
-        glm::vec2 min = -max;
+    auto obb = find_obb(hull);
 
-        for (auto p0 : hull) {
-            auto p = rot * p0;
-
-            min = glm::min(min, p);
-            max = glm::max(max, p);
-        }
-
-        return std::tuple(min, max);
-    };
-
-    float smallest_obb_size = std::numeric_limits<float>::infinity();
-    float smallest_obb_rotation;
-    glm::vec2 smallest_obb_min, smallest_obb_max;
-    glm::vec2 smallest_obb_midpoint;
-
-    for (int i = 0; i < hull.size(); i++) {
-        auto p0 = hull[i];
-        auto p1 = hull[(i + 1) % hull_indices.size()];
-
-        auto dir = glm::normalize(p1 - p0);
-
-        glm::mat2 m;
-        m[0] = dir;
-        m[1] = {-dir.y, dir.x};
-
-        auto [min, max] = compute_obb(m);
-
-        auto area_vec = max - min;
-        float area    = area_vec.x * area_vec.y;
-        assert(area >= 0.f);
-
-        if (area < smallest_obb_size) {
-            smallest_obb_size     = area;
-            smallest_obb_rotation = std::atan2(m[1].y, m[1].x); // compute the rotation in radians
-
-            smallest_obb_min      = min;
-            smallest_obb_max      = max;
-            smallest_obb_midpoint = glm::inverse(m) * ((min + max) * 0.5f);
-        }
-    }
-
-    glm::vec3 up = glm::angleAxis(smallest_obb_rotation, direct_light_dir) * translate_by_matrix(inital_shadow, initial_up);
+    // glm::vec3 up = glm::angleAxis(obb.rotation_rad + glm::pi<float>() * .5f, direct_light_dir) * translate_by_matrix(inital_shadow, initial_up);
 
     auto inv_initial_shadow     = glm::inverse(inital_shadow);
-    auto transform_shadow2world = [&](auto p) { return translate_by_matrix(inv_initial_shadow, glm::vec3(p, shadow_z_min)); };
+    auto transform_shadow2world = [&](auto p) { return translate_by_matrix(inv_initial_shadow, glm::vec3(p, shadow_z_max)); };
 
-    glm::vec3 eye = transform_shadow2world(smallest_obb_midpoint);
+    glm::vec3 eye = transform_shadow2world(obb.mid_point);
+    glm::vec3 up  = glm::normalize(transform_shadow2world(obb.mid_point + (glm::inverse(obb.rotation_mat) * glm::vec2(0, 1))) - eye);
 
-    glm::vec2 half_extend = (smallest_obb_max - smallest_obb_min) * 0.5f;
+    glm::vec2 extend      = (obb.rotated_max - obb.rotated_min);
+    // extend = glm::vec2(extend.y,extend.x);
+    glm::vec2 half_extend = extend * 0.5f;
 
     glm::mat4 view      = glm::lookAt(eye, eye + direct_light_dir, up);
-    glm::mat4 proj      = glm::orthoLH_ZO(-half_extend.x, half_extend.x, -half_extend.y, half_extend.y, 0.f, shadow_z_max - shadow_z_min);
+    glm::mat4 proj      = glm::orthoRH_ZO(-half_extend.x, half_extend.x, -half_extend.y, half_extend.y, 0.f, shadow_z_max - shadow_z_min);
     glm::mat4 proj_view = proj * view;
 
     if (ld) {
-        ld->draw_camera_frustum(glm::inverse(proj_view), 0xFF'FF'FF'FF);
-        ld->draw_camera_frustum(inv_proj_view, 0xFF'00'00'FF);
+        ld->draw_camera_frustum(glm::inverse(proj_view), 0xBB'BB'BB'FF);
+        // ld->draw_camera_frustum(inv_proj_view, 0xFF'00'00'FF);
 
-        ld->draw_line(eye, eye + direct_light_dir * 5.f, 0xAA'FF'CC'FF);
+        auto color = 0xFF'00'00'FF;
+        ld->draw_line(points[0], points[1], color);
+        ld->draw_line(points[1], points[3], color);
+        ld->draw_line(points[3], points[2], color);
+        ld->draw_line(points[2], points[0], color);
+        ld->draw_line(points[4], points[5], color);
+        ld->draw_line(points[5], points[7], color);
+        ld->draw_line(points[7], points[6], color);
+        ld->draw_line(points[6], points[4], color);
+        ld->draw_line(points[0], points[4], color);
+        ld->draw_line(points[1], points[5], color);
+        ld->draw_line(points[2], points[6], color);
+        ld->draw_line(points[3], points[7], color);
+
+        // ld->draw_line(eye, eye + direct_light_dir * 5.f, 0xAA'FF'CC'FF);
         ld->draw_line(eye, eye + up * 3.f, 0xAA'FF'CC'FF);
 
         auto hull_world = hull | views::transform(transform_shadow2world);
@@ -173,27 +203,39 @@ glm::mat4 calculate_optimal_direct_shadow_map_frustum(const glm::mat4& inv_proj_
             ld->draw_line(p0, p1, 0x00'FF'00'FF);
         }
 
+        // ld->draw_line(hull_world[0], eye, 0x00'FF'00'FF);
+
         // ld->draw_line(hull_world[0], transform_shadow2world(smallest_obb_midpoint), 0x00'FF'00'FF);
 
-        // glm::mat2 rotation_matrix;
-        // rotation_matrix[0] = {std::cos(-smallest_obb_rotation), std::sin(-smallest_obb_rotation)};
-        // rotation_matrix[1] = {-std::sin(-smallest_obb_rotation), std::cos(-smallest_obb_rotation)};
+        glm::mat2 rotation_matrix = glm::inverse(obb.rotation_mat);
+        // rotation_matrix[0] = {std::cos(-obb.rotation_rad), std::sin(-obb.rotation_rad)};
+        // rotation_matrix[1] = {-std::sin(-obb.rotation_rad), std::cos(-obb.rotation_rad)};
 
-        // auto rotated_shadow2world = [&](auto v) { return transform_shadow2world(rotation_matrix * v); };
+        auto rotated_shadow2world = [&](auto v) { return transform_shadow2world(rotation_matrix * v); };
 
-        // glm::vec3 extend_points[4] = {
-        //     rotated_shadow2world(glm::vec2(smallest_obb_min.x,smallest_obb_min.y)),
-        //     rotated_shadow2world(glm::vec2(smallest_obb_min.x,smallest_obb_max.y)),
-        //     rotated_shadow2world(glm::vec2(smallest_obb_max.x,smallest_obb_max.y)),
-        //     rotated_shadow2world(glm::vec2(smallest_obb_max.x,smallest_obb_min.y)),
-        // };
-    
-        // for(int i = 0;i < 4;i++){
-        //     // ld->draw_line(extend_points[i], extend_points[(i + 1) % 4], 0xCC'CC'00'FF);
-        // }
+        glm::vec3 extend_points[4] = {
+            rotated_shadow2world(glm::vec2(obb.rotated_min.x, obb.rotated_min.y)),
+            rotated_shadow2world(glm::vec2(obb.rotated_min.x, obb.rotated_max.y)),
+            rotated_shadow2world(glm::vec2(obb.rotated_max.x, obb.rotated_max.y)),
+            rotated_shadow2world(glm::vec2(obb.rotated_max.x, obb.rotated_min.y)),
+        };
+
+        for (int i = 0; i < 4; i++) {
+            ld->draw_line(extend_points[i], extend_points[(i + 1) % 4], 0xCC'CC'00'FF);
+        }
+
+        ld->draw_line(rotated_shadow2world(glm::vec2((obb.rotated_max.x + obb.rotated_min.x) * 0.5, obb.rotated_max.y)), eye, 0x00'FF'00'FF);
+        // ld->draw_line(eye, eye + initial_up * 10.f, 0x99'88'88'00);
     }
 
-    return proj_view;
+    return ShadowMapCameraData{
+        .position  = eye,
+        .direction = direct_light_dir,
+        .up        = up,
+        .far       = shadow_z_max - shadow_z_min,
+        .width     = extend.x,
+        .height    = extend.y,
+    };
 }
 
 } // namespace vke
