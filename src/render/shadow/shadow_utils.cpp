@@ -120,7 +120,7 @@ ShadowOBB find_obb(auto&& hull) {
     return smallest_obb;
 }
 
-ShadowMapCameraData calculate_optimal_direct_shadow_map_frustum(const glm::mat4& inv_proj_view, float z_s, float z_e, glm::vec3 direct_light_dir, vke::LineDrawer* ld) {
+ShadowMapCameraData calculate_optimal_direct_shadow_map_frustum(const glm::mat4& inv_proj_view, float z_s, float z_e, glm::vec3 direct_light_dir,float shadow_z_far, vke::LineDrawer* ld) {
     assert(std::abs(glm::length(direct_light_dir) - 1.0) < 0.05 && "direct_light_dir must be normalized");
 
     glm::vec3 points[8] = {
@@ -228,11 +228,16 @@ ShadowMapCameraData calculate_optimal_direct_shadow_map_frustum(const glm::mat4&
         // ld->draw_line(eye, eye + initial_up * 10.f, 0x99'88'88'00);
     }
 
+    float far = shadow_z_max - shadow_z_min;
+    float far_excess = shadow_z_far - far;
+
+    eye += direct_light_dir * -far_excess;
+
     return ShadowMapCameraData{
         .position  = eye,
         .direction = direct_light_dir,
         .up        = up,
-        .far       = shadow_z_max - shadow_z_min,
+        .far       = shadow_z_far,
         .width     = extend.x,
         .height    = extend.y,
     };
