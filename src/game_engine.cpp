@@ -9,28 +9,39 @@
 
 namespace vke {
 
+static GameEngine* s_instance = nullptr;
+
 GameEngine::GameEngine(bool headless) {
     m_scene = std::make_unique<Scene>();
 
     if (!headless) {
         m_renderer = std::make_unique<RenderSystem>(this);
     }
+
+    assert(s_instance == nullptr);
+    s_instance = this;
 }
-GameEngine::~GameEngine() {}
+
+GameEngine::~GameEngine() {
+    assert(this == s_instance);
+    s_instance = nullptr;
+}
 
 void GameEngine::run() {
     auto prev_time = std::chrono::system_clock::now();
 
-    double time_counter       = 0.0;
-    double total_time_counter = 0.0;
+    double time_counter = 0.0;
     double longest_frame_time = 0.0;
     double fps = 0.0, fps_low = 0.0;
+
+
+    time_counter = 0.0;
 
     int frame_counter = 0;
     while (m_running) {
         auto now          = std::chrono::system_clock::now();
         double frame_time = static_cast<std::chrono::duration<double>>((now - prev_time)).count();
-        total_time_counter += frame_time;
+        m_run_time += frame_time;
         time_counter += frame_time;
         longest_frame_time = std::max(frame_time, longest_frame_time);
 
@@ -70,4 +81,6 @@ void GameEngine::run() {
 void GameEngine::default_render(RenderServer::FrameArgs& args) { m_renderer->render(args); }
 
 RenderServer* GameEngine::get_render_server() { return m_renderer->get_render_server(); }
+
+GameEngine* GameEngine::get_instance() {return s_instance;}
 } // namespace vke

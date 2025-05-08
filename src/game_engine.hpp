@@ -22,6 +22,10 @@ public:
     RenderServer* get_render_server();
     RenderSystem* get_renderer() { return m_renderer.get(); }
 
+    double get_runtime() const { return m_run_time; }
+
+    static GameEngine* get_instance();
+
 protected: // virtuals
     virtual void on_render(RenderServer::FrameArgs& args) { default_render(args); }
     virtual void on_update() {} // called before synchronizing with gpu.Good for physics
@@ -36,7 +40,7 @@ private:
 
     bool m_running     = true;
     float m_delta_time = 0.1f;
-    float m_run_time   = 0.0f;
+    double m_run_time  = 0.0f;
 };
 
 } // namespace vke
