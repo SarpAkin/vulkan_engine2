@@ -18,18 +18,16 @@
 
 namespace vke {
 
-u32 shadow_map_count         = 4;
-static bool update_proj_view = true;
 
 void ShadowManager::render_shadows(vke::CommandBuffer& cmd) {
     if (m_debug_menu_enabled) debug_menu();
     if (m_debug_draw_frustums) debug_draw_frustums();
 
-    if (update_proj_view) {
+    if (m_update_proj_view) {
         
         std::vector<IShadowMap::LateRasterData> raster_buffers;
         
-        for (int i = 0; i < shadow_map_count; i++) {
+        for (int i = 0; i < m_direct_shadow_map_count; i++) {
             if (m_shadow_map->requires_rerender(i)) {
                 m_shadow_map->render(cmd, i,&raster_buffers);
             }
@@ -42,7 +40,7 @@ void ShadowManager::render_shadows(vke::CommandBuffer& cmd) {
 ShadowManager::ShadowManager(RenderServer* render_server) {
     m_render_server = render_server;
 
-    m_shadow_map = std::make_unique<vke::DirectShadowMap>(m_render_server, 4096, shadow_map_count);
+    m_shadow_map = std::make_unique<vke::DirectShadowMap>(m_render_server, 4096, m_direct_shadow_map_count);
     m_shadow_map->set_camera_data({
         .position  = {-100, 100, 100},
         .direction = glm::normalize(glm::vec3(1, -1, 1)),
@@ -73,16 +71,14 @@ ShadowManager::~ShadowManager() {
 }
 vke::RCResource<IImageView> ShadowManager::get_direct_shadow_map_texture(u32 index) { return m_shadow_map->get_image_view(); }
 
-float csm_multiple_constant = 3.f;
-float max_shadow_distance = 500.f;
 
 void ShadowManager::debug_menu() {
     if (ImGui::BeginMenu("Shadow Manager", m_debug_menu_enabled)) {
         ImGui::Checkbox("draw shadow frustums", &m_debug_draw_frustums);
-        ImGui::Checkbox("update proj view", &update_proj_view);
+        ImGui::Checkbox("update proj view", &m_update_proj_view);
 
-        ImGui::SliderFloat("csm multiple constant", &csm_multiple_constant, 1.0f, 10.f);
-        ImGui::SliderFloat("max shadow distance", &max_shadow_distance, 100.0f, 1000.f);
+        ImGui::SliderFloat("csm multiple constant", &m_csm_multiple_constant, 1.0f, 10.f);
+        ImGui::SliderFloat("max shadow distance", &m_max_shadow_distance, 100.0f, 1000.f);
 
         ImGui::EndMenu();
     };
@@ -107,14 +103,14 @@ void ShadowManager::debug_draw_frustums() {
 }
 
 void ShadowManager::update_direct_cascaded_shadows(u32 index, glm::vec3 direction) {
-    if (!update_proj_view) return;
+    if (!m_update_proj_view) return;
 
     auto* player_camera = dynamic_cast<PerspectiveCamera*>(GameEngine::get_instance()->get_scene()->get_camera());
     u64 frame_index     = GameEngine::get_instance()->get_frame_counter();
 
 
 
-    float base_z_distance = max_shadow_distance / (std::pow(csm_multiple_constant, shadow_map_count) - 1.f);
+    float base_z_distance = m_max_shadow_distance / (std::pow(m_csm_multiple_constant, m_direct_shadow_map_count) - 1.f);
     float prev_z          = 1.0f;
     float prev_world_far  = 0.f;
 
@@ -128,10 +124,10 @@ void ShadowManager::update_direct_cascaded_shadows(u32 index, glm::vec3 directio
     bool updated_cascades[4]                = {true, false, false, false};
     updated_cascades[(frame_index % 3) + 1] = true;
 
-    m_min_z_for_csm.resize(shadow_map_count);
+    m_min_z_for_csm.resize(m_direct_shadow_map_count);
 
-    for (int i = 0; i < shadow_map_count; i++) {
-        float world_far = std::pow(csm_multiple_constant, i) * base_z_distance + prev_world_far;
+    for (int i = 0; i < m_direct_shadow_map_count; i++) {
+        float world_far = std::pow(m_csm_multiple_constant, i) * base_z_distance + prev_world_far;
         auto z          = calculate_clip_z(-world_far);
 
         m_min_z_for_csm[i] = z;

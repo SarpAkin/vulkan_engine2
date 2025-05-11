@@ -40,8 +40,13 @@ private:
     std::vector<float> m_min_z_for_csm;
 
     std::unique_ptr<vke::IShadowMap> m_shadow_map;
-    bool m_debug_draw_frustums = true;
+    bool m_debug_draw_frustums = false;
     bool m_debug_menu_enabled  = true;
+    bool m_update_proj_view    = true;
+
+    float m_csm_multiple_constant = 3.f;
+    float m_max_shadow_distance   = 500.f;
+    u32 m_direct_shadow_map_count = 4;
 };
 
 } // namespace vke
