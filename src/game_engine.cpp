@@ -37,7 +37,7 @@ void GameEngine::run() {
 
     time_counter = 0.0;
 
-    int frame_counter = 0;
+    int fps_frame_counter = 0;
     while (m_running) {
         auto now          = std::chrono::system_clock::now();
         double frame_time = static_cast<std::chrono::duration<double>>((now - prev_time)).count();
@@ -46,10 +46,10 @@ void GameEngine::run() {
         longest_frame_time = std::max(frame_time, longest_frame_time);
 
         if (time_counter > 1.0) {
-            fps                = static_cast<double>(frame_counter) / time_counter;
+            fps                = static_cast<double>(fps_frame_counter) / time_counter;
             fps_low            = 1 / longest_frame_time;
             time_counter       = 0.0;
-            frame_counter      = 0;
+            fps_frame_counter      = 0;
             longest_frame_time = 0.0;
         }
 
@@ -74,7 +74,8 @@ void GameEngine::run() {
             });
         }
 
-        frame_counter++;
+        fps_frame_counter++;
+        m_frame_counter++;
     }
 }
 

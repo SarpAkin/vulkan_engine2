@@ -23,6 +23,7 @@ public:
     RenderSystem* get_renderer() { return m_renderer.get(); }
 
     double get_runtime() const { return m_run_time; }
+    u64 get_frame_counter() const {return m_frame_counter;}
 
     static GameEngine* get_instance();
 
@@ -41,6 +42,7 @@ private:
     bool m_running     = true;
     float m_delta_time = 0.1f;
     double m_run_time  = 0.0f;
+    u64 m_frame_counter = 0;
 };
 
 } // namespace vke
