@@ -10,12 +10,6 @@
 
 namespace vke {
 
-void Camera::set_world_pos(const glm::dvec3& wpos) {
-    world_position = wpos;
-
-    update();
-}
-
 constexpr glm::mat4 z_flip_matrix = glm::mat4(
     1, 0, 0, 0,
     0, 1, 0, 0,
@@ -23,37 +17,34 @@ constexpr glm::mat4 z_flip_matrix = glm::mat4(
     0, 0, 1, 1 //
 );
 
-void Camera::update() {
-    // m_proj = perspective_custom(fov_deg, aspect_ratio, z_near, z_far);
+void Camera::set_world_pos(const glm::dvec3& world_pos) {
+    m_world_position = world_pos;
 
-    m_proj = z_flip_matrix * glm::perspectiveRH_ZO(fov_deg, aspect_ratio, z_near, z_far);
-
-    float yaw_sin   = std::sin(glm::radians(yaw));
-    float yaw_cos   = std::cos(glm::radians(yaw));
-    float pitch_sin = std::sin(glm::radians(pitch));
-    float pitch_cos = std::cos(glm::radians(pitch));
-
-    pitch_cos = std::max(0.001f, pitch_cos);
-
-    // z+ forward on yaw 0
-    forward = glm::vec3(
-        yaw_cos * pitch_cos,
-        pitch_sin,
-        yaw_sin * pitch_cos //
-    );
-
-    glm::vec3 local_pos = static_cast<glm::vec3>(world_position);
-
-    m_view = glm::lookAt(local_pos, local_pos + forward, UP);
-
-    m_proj_view = m_proj * m_view;
+    update();
 }
 
-void Camera::move_freecam(Window* window, float delta_time) {
+void Camera::update_view() {
+    glm::vec3 local_pos = m_world_position;
+    m_view              = glm::lookAt(local_pos, local_pos + forward(), up());
+}
+
+void Camera::update() {
+    update_view();
+    update_proj();
+
+    m_proj_view     = m_proj * m_view;
+    m_inv_proj_view = glm::inverse(m_proj_view);
+}
+
+void PerspectiveCamera::update_proj() {
+    m_proj = z_flip_matrix * glm::perspectiveRH_ZO(fov_deg, aspect_ratio, z_near, z_far);
+};
+
+void FreeCamera::move_freecam(Window* window, float delta_time) {
     static bool focused = false;
 
-    static float sensitivity_x    = 0.5;
-    static float sensitivity_y    = 0.5;
+    static float sensitivity_x  = 0.5;
+    static float sensitivity_y  = 0.5;
     static float speed          = 35.f;
     static float speed_vertical = 20;
     static float sprint_mul     = 15.f;
@@ -63,7 +54,6 @@ void Camera::move_freecam(Window* window, float delta_time) {
     ImGui::SliderFloat("vertical speed", &speed_vertical, 1.f, 100.f);
     ImGui::SliderFloat("speed multiplier", &sprint_mul, 1.f, 100.f);
     ImGui::End();
-
 
     if (window->is_key_pressed('"')) {
         window->lock_mouse();
@@ -75,35 +65,25 @@ void Camera::move_freecam(Window* window, float delta_time) {
         focused = false;
     }
 
-    if(!focused) return;
+    if (!focused) return;
 
     // printf("mouse delta: (%.2f,%.2f)\n", window->get_mouse_input().delta_x, window->get_mouse_input().delta_y);
     // printf("pitch,yaw: (%.1f,%.1f)\n",pitch,yaw);
     // printf("camera world position: (%.1f,%.1f,%.1f)\n", world_position.x, world_position.y, world_position.z);
 
-    yaw += window->get_mouse_input().delta_x * sensitivity_x;
-    pitch += window->get_mouse_input().delta_y * sensitivity_y;
-    pitch = std::clamp(pitch, -89.9f, 89.9f);
+    m_yaw_d += window->get_mouse_input().delta_x * sensitivity_x;
+    m_pitch_d += window->get_mouse_input().delta_y * sensitivity_y;
+    m_pitch_d = std::clamp(m_pitch_d, -89.9f, 89.9f);
 
-    float yaw_sin   = std::sin(glm::radians(yaw));
-    float yaw_cos   = std::cos(glm::radians(yaw));
-    float pitch_sin = std::sin(glm::radians(pitch));
-    float pitch_cos = std::cos(glm::radians(pitch));
-
-    // z+ forward on yaw 0
-    forward = glm::vec3(
-        yaw_cos * pitch_cos,
-        pitch_sin,
-        yaw_sin * pitch_cos //
-    );
+    set_rotation_euler(glm::radians(glm::vec3(-m_pitch_d, -m_yaw_d, 0)));
 
     int z_axis_move = (int)window->is_key_pressed('w') - (int)window->is_key_pressed('s');
     int x_axis_move = (int)window->is_key_pressed('d') - (int)window->is_key_pressed('a');
     int y_axis_move = (int)window->is_key_pressed(' ') - (int)window->is_key_pressed('c');
 
-    glm::vec3 z_axis = forward;
-    glm::vec3 x_axis = glm::normalize(glm::cross(UP, forward));
-    glm::vec3 y_axis = glm::normalize(glm::cross(z_axis, x_axis));
+    glm::vec3 z_axis = forward();
+    glm::vec3 x_axis = right();
+    glm::vec3 y_axis = up();
 
     glm::vec3 total_move = glm::vec3(0, 0, 0);
     total_move += z_axis * float(z_axis_move) * speed;
@@ -116,7 +96,11 @@ void Camera::move_freecam(Window* window, float delta_time) {
     // printf("delta time %.2f\n",delta_time);
     total_move *= delta_time;
 
-    world_position += total_move;
+    m_world_position += total_move;
 }
+
+void OrthographicCamera::update_proj() {
+    m_proj = z_flip_matrix * glm::orthoRH_ZO(-half_width, half_width, -half_height, half_height, z_near, z_far);
+};
 
 } // namespace vke

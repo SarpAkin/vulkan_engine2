@@ -11,21 +11,33 @@ namespace vke {
 
 class DirectShadowMap : public IShadowMap {
 public:
-    DirectShadowMap(RenderServer* render_server, u32 texture_size = 1024);
+    DirectShadowMap(RenderServer* render_server, u32 texture_size = 1024, u32 layers = 1);
 
     ~DirectShadowMap();
 
     ShadowMapType get_shadow_map_type() override { return ShadowMapType::DIRECT; }
-    IImageView* get_image_view() override { return m_shadow_map.get(); }
-    u32 get_shadow_map_array_size() override { return 1; }
-    glm::mat4 get_projection_view_matrix() override;
+    RCResource<IImageView> get_image_view(bool, u32) override { return m_shadow_map; }
+    u32 get_shadow_map_array_size() override { return m_layer_count; }
+    glm::mat4 get_projection_view_matrix(u32, u32) override;
+    void set_camera_data(const ShadowMapCameraData& camera_data, u32) override;
+
+    glm::dvec3 get_camera_position(u32 index = 0) override;
+    glm::vec3 get_camera_direction(u32 index = 0, u32 view_index = 0) override;
+
+    void render(vke::CommandBuffer& primary_buffer, u32,std::vector<LateRasterData>* raster_buffers) override;
+
+
+    bool requires_rerender(u32 index)const override{return m_shadow_maps_waiting_for_rerender[index];}
 
 private:
     vke::RCResource<vke::IImageView> m_shadow_map;
     std::unique_ptr<vke::Renderpass> m_shadow_pass;
-    std::unique_ptr<vke::Camera> m_camera;
     RenderServer* m_render_server;
-    std::string m_render_target_name;
+    ObjectRenderer* m_object_renderer;
+    std::vector<std::string> m_render_target_names;
+    std::vector<std::unique_ptr<vke::OrthographicCamera>> m_cameras;
+    std::vector<bool> m_shadow_maps_waiting_for_rerender;
+    u32 m_layer_count = 0;
 };
 
 } // namespace vke

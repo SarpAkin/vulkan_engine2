@@ -7,6 +7,10 @@
 #include "../object_renderer/object_renderer.hpp"
 #include "../object_renderer/resource_manager.hpp"
 
+#include "render/debug/line_drawer.hpp"
+
+#include "../shadow/shadow_manager.hpp"
+
 namespace vke {
 
 static DeferredRenderPipeline::DeferredRenderPass create_render_pass(Window* window) {
@@ -53,6 +57,7 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
     builder.add_binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3);
     builder.add_ubo(VK_SHADER_STAGE_FRAGMENT_BIT);
     builder.add_ssbo(VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_binding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1); // shadows
     m_deferred_set_layout = builder.build();
 
     pg_provider->set_layouts.emplace("vke::deferred_render_set", m_deferred_set_layout);
@@ -64,7 +69,9 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
 
     m_deferred_pipeline = m_render_server->get_pipeline_loader()->load("vke::post_deferred");
 
-    create_set();
+    for(int i = 0;i < FRAME_OVERLAP;i++){
+        create_set(i,false);
+    }
 }
 
 void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
@@ -86,6 +93,8 @@ void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
         .render_target_name = m_deferred_render_pass.render_target_name,
     });
 
+    m_render_server->get_line_drawer()->flush(*framely.gpass_cmd, m_camera, m_deferred_render_pass.subpass_name);
+
     framely.compute_cmd->end();
     framely.gpass_cmd->end();
 
@@ -102,7 +111,7 @@ void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
     deferred_pass->end(primary_cmd);
 
     args.main_pass_cmd->bind_pipeline(m_deferred_pipeline.get());
-    args.main_pass_cmd->bind_descriptor_set(0, m_deferred_set);
+    args.main_pass_cmd->bind_descriptor_set(0, m_deferred_set[m_render_server->get_frame_index()]);
 
     args.main_pass_cmd->draw(3, 1, 0, 0);
 }
@@ -110,7 +119,7 @@ void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
 DeferredRenderPipeline::~DeferredRenderPipeline() {
 }
 
-void DeferredRenderPipeline::create_set() {
+void DeferredRenderPipeline::create_set(int index, bool update) {
     IImageView* images[] = {
         m_deferred_render_pass.renderpass->get_attachment_view(m_deferred_render_pass.albedo_id),
         m_deferred_render_pass.renderpass->get_attachment_view(m_deferred_render_pass.normal_id),
@@ -118,17 +127,30 @@ void DeferredRenderPipeline::create_set() {
     };
 
     auto* object_renderer = m_render_server->get_object_renderer();
+    auto* light_manager   = object_renderer->get_light_manager();
+    auto* shadow_manager  = light_manager->get_shadow_manager();
 
     VkSampler sampler = object_renderer->get_resource_manager()->get_nearest_sampler();
 
+    IImageView* shadow_maps[] = {
+        shadow_manager->get_direct_shadow_map_texture(0).get(),
+    };
+
     vke::DescriptorSetBuilder builder;
     builder.add_image_samplers(images, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_FRAGMENT_BIT);
-    builder.add_ubo(object_renderer->get_view_buffer(m_deferred_render_pass.render_target_name), VK_SHADER_STAGE_FRAGMENT_BIT);
-    builder.add_ssbo(object_renderer->get_light_manager()->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
-    m_deferred_set = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
+    builder.add_ubo(object_renderer->get_view_buffer(m_deferred_render_pass.render_target_name, index), VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_ssbo(light_manager->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
+    builder.add_image_samplers(shadow_maps, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, shadow_manager->get_shadow_sampler(), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    if(!update){
+        m_deferred_set[index] = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
+    }else{
+        builder.update_set(m_deferred_set[index], m_deferred_set_layout);
+    }
 }
 
 void DeferredRenderPipeline::set_camera(Camera* camera) {
+    m_camera = camera;
     m_render_server->get_object_renderer()->set_camera(m_deferred_render_pass.render_target_name, camera);
 }
 
@@ -136,10 +158,17 @@ void DeferredRenderPipeline::check_for_resize(vke::CommandBuffer& cmd) {
     // return if the extends of renderpass and the window are same
     auto w_extends = m_render_server->get_window()->extend();
 
-    if (is_equal(m_deferred_render_pass.renderpass->extend(), w_extends)) return;
+    if (!is_equal(m_deferred_render_pass.renderpass->extend(), w_extends)){
+        m_deferred_render_pass.renderpass->resize(cmd, w_extends.width, w_extends.height);
 
-    m_deferred_render_pass.renderpass->resize(cmd, w_extends.width, w_extends.height);
+        m_sets_needing_update.set();
+    }
 
-    create_set();
+    int frame_index = m_render_server->get_frame_index();
+
+    if(m_sets_needing_update[frame_index]){
+        create_set(frame_index,true);
+        m_sets_needing_update[frame_index] = false;
+    }
 }
 } // namespace vke

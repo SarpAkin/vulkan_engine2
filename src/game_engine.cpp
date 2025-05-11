@@ -4,57 +4,52 @@
 #include "render/object_renderer/object_renderer.hpp"
 #include "render/render_pipeline/defered_render_pipeline.hpp"
 #include "render/render_server.hpp"
+#include "render/render_system.hpp"
 #include "scene/scene.hpp"
 
 namespace vke {
+
+static GameEngine* s_instance = nullptr;
 
 GameEngine::GameEngine(bool headless) {
     m_scene = std::make_unique<Scene>();
 
     if (!headless) {
-        m_render_server = std::make_unique<RenderServer>();
-        m_render_server->init();
-
-        const std::string render_target_name = "default";
-
-        auto obj_renderer = m_render_server->get_object_renderer();
-
-        obj_renderer->set_entt_registry(m_scene->get_registry());
-
-        obj_renderer->create_render_target(render_target_name, "vke::default_forward", true);
-        obj_renderer->set_camera(render_target_name, m_scene->get_camera());
-
-        m_render_pipeline = std::make_unique<DeferredRenderPipeline>(m_render_server.get());
-        m_render_pipeline->set_camera(m_scene->get_camera());
+        m_renderer = std::make_unique<RenderSystem>(this);
     }
 
+    assert(s_instance == nullptr);
+    s_instance = this;
 }
 
 GameEngine::~GameEngine() {
-    m_render_server->early_cleanup();
+    assert(this == s_instance);
+    s_instance = nullptr;
 }
 
 void GameEngine::run() {
     auto prev_time = std::chrono::system_clock::now();
 
-    double time_counter       = 0.0;
-    double total_time_counter = 0.0;
+    double time_counter = 0.0;
     double longest_frame_time = 0.0;
     double fps = 0.0, fps_low = 0.0;
 
-    int frame_counter = 0;
+
+    time_counter = 0.0;
+
+    int fps_frame_counter = 0;
     while (m_running) {
         auto now          = std::chrono::system_clock::now();
         double frame_time = static_cast<std::chrono::duration<double>>((now - prev_time)).count();
-        total_time_counter += frame_time;
+        m_run_time += frame_time;
         time_counter += frame_time;
         longest_frame_time = std::max(frame_time, longest_frame_time);
 
         if (time_counter > 1.0) {
-            fps                = static_cast<double>(frame_counter) / time_counter;
+            fps                = static_cast<double>(fps_frame_counter) / time_counter;
             fps_low            = 1 / longest_frame_time;
             time_counter       = 0.0;
-            frame_counter      = 0;
+            fps_frame_counter      = 0;
             longest_frame_time = 0.0;
         }
 
@@ -63,10 +58,10 @@ void GameEngine::run() {
 
         on_update();
 
-        if (m_render_server) {
-            if (!m_render_server->is_running()) break;
+        if (m_renderer) {
+            if (!m_renderer->get_render_server()->is_running()) break;
 
-            m_render_server->frame([&](RenderServer::FrameArgs& args) {
+            m_renderer->get_render_server()->frame([&](RenderServer::FrameArgs& args) {
                 static bool window_opened = true;
                 if (window_opened) {
                     ImGui::Begin("Stats", &window_opened);
@@ -79,18 +74,14 @@ void GameEngine::run() {
             });
         }
 
-        frame_counter++;
+        fps_frame_counter++;
+        m_frame_counter++;
     }
 }
 
-void GameEngine::default_render(RenderServer::FrameArgs& args) {
-    auto* cam    = get_scene()->get_camera();
-    auto* window = get_render_server()->get_window();
+void GameEngine::default_render(RenderServer::FrameArgs& args) { m_renderer->render(args); }
 
-    cam->aspect_ratio = static_cast<float>(window->width()) / static_cast<float>(window->height());
-    cam->move_freecam(window, get_delta_time());
-    cam->update();
+RenderServer* GameEngine::get_render_server() { return m_renderer->get_render_server(); }
 
-    m_render_pipeline->render(args);
-}
+GameEngine* GameEngine::get_instance() {return s_instance;}
 } // namespace vke

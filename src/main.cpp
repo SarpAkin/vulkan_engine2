@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include <iostream>
 #include <vke/vke.hpp>
 
 #include "game_engine.hpp"
@@ -46,14 +47,15 @@ public:
                 .scale    = {1, 1, 1},
             });
 
-        for (int i = 0; i < 30; ++i) {
+        for (int i = 0; i < 50; ++i) {
             vke::instantiate_prefab(*registry, m_prefabs["cube"],
                 vke::Transform{
-                    .position = glm::dvec3(rand() % 20, rand() % 20, rand() % 20),
+                    .position = glm::dvec3((rand() % 2000) - 1000, (rand() % 2000) -1000, (rand() % 2000) - 1000),
                     .rotation = random_quaternion(),
                     .scale    = glm::vec3(1),
                 });
         }
+
     }
 
     void on_update() override {
@@ -72,6 +74,9 @@ public:
 
         ImGui::Begin("instantiate");
 
+        auto player_pos = player->get_world_pos();
+        ImGui::Text("World Position (%lf,%lf,%lf)\n",player_pos.x,player_pos.y,player_pos.z);
+
         if (ImGui::CollapsingHeader("Light")) {
             static float range = 5.f, strength = 2.f;
             const float min_range = 0.1f, max_range = 100.f;
@@ -85,7 +90,7 @@ public:
 
             if (ImGui::Button("add light")) {
                 auto entity = registry->create();
-                registry->emplace<vke::Transform>(entity, vke::Transform{.position = player->world_position});
+                registry->emplace<vke::Transform>(entity, vke::Transform{.position = player->get_world_pos()});
                 registry->emplace<vke::CPointLight>(entity, vke::CPointLight{.color = glm::vec3(color[0], color[1], color[2]) * strength, .range = range});
             }
         }
@@ -103,12 +108,13 @@ public:
                 ImGui::EndListBox();
             }
 
-            static char buffer[64] = "r(0,0,0)";
+            static char buffer[128] = "r(0,0,0) (1,1,1) (0,0,0)";
             ImGui::InputText("coordinate", buffer, vke::array_len(buffer));
 
-            double x = 0, y = 0, z = 0, sx = 1.0, sy = 1.0, sz = 1.0;
-            char c = '\0';
-            if (int count = sscanf(buffer, "%c(%lf,%lf,%lf) (%lf,%lf,%lf)", &c, &x, &y, &z, &sx, &sy, &sz); count >= 4) {
+            double x = 0, y = 0, z = 0, sx = 1.0, sy = 1.0, sz = 1.0, rx = 0.0, ry = 0.0, rz = 0.0;
+            char c    = '\0';
+            int count = sscanf(buffer, "%c(%lf,%lf,%lf) (%lf,%lf,%lf) (%lf,%lf,%lf)", &c, &x, &y, &z, &sx, &sy, &sz, &rx, &ry, &rz);
+            if (count >= 4) {
                 vke::Transform t{
                     .position = {x, y, z},
                     .rotation = {},
@@ -116,11 +122,15 @@ public:
                 };
 
                 if (c == 'r') {
-                    t.position += player->world_position;
+                    t.position += player->get_world_pos();
                 }
 
                 if (count >= 7) {
                     t.scale = {sx, sy, sz};
+                }
+
+                if (count >= 10) {
+                    t.rotation = glm::quat(glm::radians(glm::vec3(rx, ry, rz)));
                 }
 
                 if (ImGui::Button("spawn")) {

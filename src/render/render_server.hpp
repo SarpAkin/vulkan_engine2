@@ -40,6 +40,7 @@ public:
     IPipelineLoader* get_pipeline_loader() { return m_pipeline_loader.get(); }
     Window* get_window() { return m_window.get(); }
     ObjectRenderer* get_object_renderer() { return m_object_renderer.get(); }
+    LineDrawer* get_line_drawer(){return m_line_drawer.get(); }
 
     void frame(std::function<void(FrameArgs& args)> render_function);
     bool is_running() { return m_running && m_window->is_open(); }
@@ -60,6 +61,7 @@ private:
     std::unique_ptr<vke::ObjectRenderer> m_object_renderer;
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     std::unique_ptr<vke::ImguiManager> m_imgui_manager;
+    std::unique_ptr<vke::LineDrawer> m_line_drawer;
 
     bool m_running              = true;
     bool m_early_cleanup_called = false;

@@ -41,6 +41,24 @@
       ]
     },
     {
+      "name": "vke::debug_line_draw_pipeline",
+      "renderpass": "vke::gpass",
+      "vertex_input": "vke::debug_line_vertex",
+      "depth_test": true,
+      "depth_write": true,
+      "polygon_mode": "FILL",
+      "topology_mode": "LINE_LIST",
+      "cull_mode": "BACK",
+      "compiler_definitions": {
+        "GPASS": ""
+      },
+      "set_layouts": {},
+      "shader_files": [
+        "debug_line.vert",
+        "debug_line.frag"
+      ]
+    },
+    {
       "name": "vke::shadowD16::default",
       "renderpass": "vke::shadowD16",
       "vertex_input": "vke::default_mesh",

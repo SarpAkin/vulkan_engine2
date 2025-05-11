@@ -35,6 +35,7 @@ public:
 
     void set_entt_registry(entt::registry* registry) override;
     void render(const RenderArguments& args) override;
+    void update_scene_data(CommandBuffer& cmd);
 
     void set_camera(const std::string& render_target, Camera* camera) { m_render_targets.at(render_target).camera = camera; }
 
@@ -43,7 +44,7 @@ public:
     void create_render_target(const std::string& name, const std::string& subpass_name, bool allow_indirect_render = false);
 
     LightBuffersManager* get_light_manager() { return m_light_manager.get(); }
-    IBuffer* get_view_buffer(const std::string& render_target_name) const;
+    IBuffer* get_view_buffer(const std::string& render_target_name,int frame_index) const;
 
 private:
     struct IndirectRenderBuffers;
@@ -110,6 +111,7 @@ private:
     vke::RenderServer* m_render_server = nullptr;
     entt::registry* m_registry         = nullptr;
 
+    glm::dvec3 m_render_origin = {0,0,0};
 private://indirect render related data
     RCResource<vke::IPipeline> m_cull_pipeline;
     RCResource<vke::IPipeline> m_indirect_draw_command_gen_pipeline;

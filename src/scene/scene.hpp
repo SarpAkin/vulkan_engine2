@@ -16,7 +16,7 @@ public:
     
 private:
     entt::registry m_registry;
-    Camera m_camera;
+    FreeCamera m_camera;
 };
 
 } // namespace vke

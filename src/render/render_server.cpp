@@ -5,6 +5,7 @@
 #include "render/imgui/imgui_manager.hpp"
 #include "render/object_renderer/object_renderer.hpp"
 #include "render/object_renderer/resource_manager.hpp"
+#include "render/debug/line_drawer.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/transform.hpp"
 #include "window/window_sdl.hpp"
@@ -71,6 +72,8 @@ void RenderServer::init() {
     //  auto materialID = m_object_renderer->create_material("vke::default", {}, "vke::default_material");
     //  auto meshID     = m_object_renderer->create_mesh(std::move(*vke::make_cube()));
     //  m_object_renderer->create_model(meshID, materialID,"cube");
+
+    m_line_drawer = std::make_unique<vke::LineDrawer>(this);
 }
 
 void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {

@@ -66,6 +66,19 @@ ObjectRenderer::~ObjectRenderer() {
     vkDestroyDescriptorSetLayout(device(), m_view_set_layout, nullptr);
 }
 
+static bool indirect_render_enabled = true;
+void ObjectRenderer::update_scene_data(CommandBuffer& cmd) {
+    m_light_manager->flush_pending_lights(cmd);
+    m_scene_data->updates_for_indirect_render(cmd);
+
+    static bool window_open             = true;
+    ImGui::Begin("ObjectRenderer", &window_open);
+    ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
+
+    ImGui::End();
+}
+
+
 void ObjectRenderer::render(const RenderArguments& args) {
     RenderState rs = {
         .cmd           = *args.subpass_cmd,
@@ -74,14 +87,8 @@ void ObjectRenderer::render(const RenderArguments& args) {
     };
 
     update_view_set(rs.render_target);
-    m_light_manager->flush_pending_lights(*args.compute_cmd);
 
-    static bool window_open             = true;
-    static bool indirect_render_enabled = true;
-    ImGui::Begin("ObjectRenderer", &window_open);
-    ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
 
-    ImGui::End();
 
     if (rs.render_target->indirect_render_buffers && indirect_render_enabled) {
         render_indirect(rs);
@@ -223,9 +230,11 @@ void ObjectRenderer::update_view_set(RenderTarget* target) {
     auto* ubo  = target->view_buffers[m_render_server->get_frame_index()].get();
     auto& data = ubo->mapped_data<ViewData>()[0];
 
-    data.proj_view      = target->camera->proj_view();
-    data.inv_proj_view  = glm::inverse(data.proj_view);
-    data.view_world_pos = dvec4(target->camera->world_position, 0.0);
+    auto proj_view = target->camera->proj_view(); 
+
+    data.proj_view      = proj_view;
+    data.inv_proj_view  = glm::inverse(proj_view);
+    data.view_world_pos = glm::dvec4(target->camera->get_world_pos(), 0.0);
 
     data.frustum = calculate_frustum(data.inv_proj_view);
 }
@@ -251,11 +260,10 @@ void ObjectRenderer::set_entt_registry(entt::registry* registry) {
     m_registry = registry;
 
     m_scene_data->set_registry(registry);
-    m_light_manager = std::make_unique<LightBuffersManager>(registry);
+    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server,registry);
 }
 
 void ObjectRenderer::render_indirect(RenderState& state) {
-    m_scene_data->updates_for_indirect_render(state.compute_cmd);
 
     auto ctx                  = VulkanContext::get_context();
     bool mesh_shaders_enabled = false;
@@ -437,7 +445,9 @@ void ObjectRenderer::initialize_scene_data() {
 
     m_scene_data = std::make_unique<SceneBuffersManager>(m_render_server, m_resource_manager.get());
 }
-IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name) const {
-    return m_render_targets.at(render_target_name).view_buffers[m_render_server->get_frame_index()].get();
+IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name,int frame_index) const {
+    assert(frame_index >= 0 && frame_index < FRAME_OVERLAP);
+    
+    return m_render_targets.at(render_target_name).view_buffers[frame_index].get();
 }
 } // namespace vke
