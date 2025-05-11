@@ -38,15 +38,17 @@ void RenderSystem::render(RenderServer::FrameArgs& args) {
     auto* cam    = dynamic_cast<FreeCamera*>(m_scene->get_camera());
     auto* window = get_render_server()->get_window();
 
+    cam->z_near = 0.01f;
     cam->aspect_ratio = static_cast<float>(window->width()) / static_cast<float>(window->height());
     cam->move_freecam(window, m_game_engine->get_delta_time());
     cam->update();
 
     auto* shadow_manager = m_render_server->get_object_renderer()->get_light_manager()->get_shadow_manager();
-    shadow_manager->render_shadows(*args.primary_cmd);
-
+    
     m_render_server->get_object_renderer()->update_scene_data(*args.primary_cmd);
-
+    //must be rendered after lights are updated 
+    shadow_manager->render_shadows(*args.primary_cmd);
+    
     m_render_pipeline->render(args);
 }
 
