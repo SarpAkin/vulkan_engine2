@@ -14,6 +14,7 @@ struct RenderState {
     const Mesh* mesh                            = nullptr;
     const ResourceManager::Material* material   = nullptr;
     ObjectRenderer::RenderTarget* render_target = nullptr;
+    const std::string& render_target_name;
 };
 
 } // namespace vke

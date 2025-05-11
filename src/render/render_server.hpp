@@ -24,7 +24,7 @@ public:
         vke::CommandBuffer* primary_cmd; // main_pass_cmd is called after
     };
 
-    struct CommandSubmitInfo{
+    struct CommandSubmitInfo {
         vke::SlimVec<vke::CommandBuffer*> cmd;
         vke::SlimVec<VkSemaphore> signal_semaphore;
         vke::SlimVec<VkSemaphore> wait_semaphores;
@@ -40,7 +40,8 @@ public:
     IPipelineLoader* get_pipeline_loader() { return m_pipeline_loader.get(); }
     Window* get_window() { return m_window.get(); }
     ObjectRenderer* get_object_renderer() { return m_object_renderer.get(); }
-    LineDrawer* get_line_drawer(){return m_line_drawer.get(); }
+    LineDrawer* get_line_drawer() { return m_line_drawer.get(); }
+    GPUTimingSystem* get_gpu_timing_system() { return m_timing_system.get(); }
 
     void frame(std::function<void(FrameArgs& args)> render_function);
     bool is_running() { return m_running && m_window->is_open(); }
@@ -48,11 +49,12 @@ public:
     int get_frame_index() const { return m_frame_index; }
 
     DescriptorPool* get_descriptor_pool() { return m_descriptor_pool.get(); }
-    CommandPool* get_framely_command_pool() { return m_framely_data[m_frame_index].cmd_pool.get()  ; }
+    CommandPool* get_framely_command_pool() { return m_framely_data[m_frame_index].cmd_pool.get(); }
 
-    void submit_cmd(CommandSubmitInfo&& info){
+    void submit_cmd(CommandSubmitInfo&& info) {
         m_main_queue_submit_infos.push_back(std::move(info));
     }
+
 private:
 private:
     std::unique_ptr<vke::Window> m_window;
@@ -62,6 +64,7 @@ private:
     std::unique_ptr<vke::DescriptorPool> m_descriptor_pool;
     std::unique_ptr<vke::ImguiManager> m_imgui_manager;
     std::unique_ptr<vke::LineDrawer> m_line_drawer;
+    std::unique_ptr<vke::GPUTimingSystem> m_timing_system;
 
     bool m_running              = true;
     bool m_early_cleanup_called = false;

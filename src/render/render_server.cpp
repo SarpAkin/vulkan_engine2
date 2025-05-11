@@ -10,6 +10,8 @@
 #include "scene/components/transform.hpp"
 #include "window/window_sdl.hpp"
 
+#include "render/debug/gpu_timing_system.hpp"
+
 #include <vke/pipeline_loader.hpp>
 #include <vke/util.hpp>
 #include <vke/vke.hpp>
@@ -74,6 +76,8 @@ void RenderServer::init() {
     //  m_object_renderer->create_model(meshID, materialID,"cube");
 
     m_line_drawer = std::make_unique<vke::LineDrawer>(this);
+
+    m_timing_system = std::make_unique<vke::GPUTimingSystem>(this);
 }
 
 void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
@@ -102,6 +106,8 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     top_cmd.reset();
     top_cmd.begin();
 
+    m_timing_system->begin_frame(top_cmd);
+
     auto args = FrameArgs{
         .main_pass_cmd = &main_renderpass_pass_cmd,
         .primary_cmd   = &top_cmd,
@@ -110,7 +116,11 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
 
     render_function(args);
 
+    m_timing_system->timestamp(top_cmd, "Imgui flush", VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
     m_imgui_manager->flush_frame(main_renderpass_pass_cmd);
+
+    m_timing_system->end_frame(top_cmd);
 
     main_renderpass_pass_cmd.end();
 

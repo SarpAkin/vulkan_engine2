@@ -10,10 +10,13 @@
 #include "scene/scene.hpp"
 #include "scene_buffers_manager.hpp"
 
+#include "render/debug/gpu_timing_system.hpp"
+
 #include "render_util.hpp"
 
 #include "render_state.hpp"
 
+#include <format>
 #include <vke/pipeline_loader.hpp>
 #include <vke/util.hpp>
 #include <vke/vke.hpp>
@@ -71,24 +74,22 @@ void ObjectRenderer::update_scene_data(CommandBuffer& cmd) {
     m_light_manager->flush_pending_lights(cmd);
     m_scene_data->updates_for_indirect_render(cmd);
 
-    static bool window_open             = true;
+    static bool window_open = true;
     ImGui::Begin("ObjectRenderer", &window_open);
     ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
 
     ImGui::End();
 }
 
-
 void ObjectRenderer::render(const RenderArguments& args) {
     RenderState rs = {
         .cmd           = *args.subpass_cmd,
         .compute_cmd   = *args.compute_cmd,
         .render_target = &m_render_targets.at(args.render_target_name),
+        .render_target_name = args.render_target_name,
     };
 
     update_view_set(rs.render_target);
-
-
 
     if (rs.render_target->indirect_render_buffers && indirect_render_enabled) {
         render_indirect(rs);
@@ -230,7 +231,7 @@ void ObjectRenderer::update_view_set(RenderTarget* target) {
     auto* ubo  = target->view_buffers[m_render_server->get_frame_index()].get();
     auto& data = ubo->mapped_data<ViewData>()[0];
 
-    auto proj_view = target->camera->proj_view(); 
+    auto proj_view = target->camera->proj_view();
 
     data.proj_view      = proj_view;
     data.inv_proj_view  = glm::inverse(proj_view);
@@ -260,13 +261,15 @@ void ObjectRenderer::set_entt_registry(entt::registry* registry) {
     m_registry = registry;
 
     m_scene_data->set_registry(registry);
-    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server,registry);
+    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server, registry);
 }
 
 void ObjectRenderer::render_indirect(RenderState& state) {
-
     auto ctx                  = VulkanContext::get_context();
+    auto* timer               = m_render_server->get_gpu_timing_system();
     bool mesh_shaders_enabled = false;
+
+    timer->timestamp(state.cmd, std::format("rendering start for render target: {}",state.render_target_name), VK_PIPELINE_STAGE_VERTEX_INPUT_BIT);
 
     struct PartEntry {
         u32 part_id;
@@ -353,6 +356,12 @@ void ObjectRenderer::render_indirect(RenderState& state) {
         assert(total_indirect_draws <= indirect_draw_capacity);
     }
 
+    timer->timestamp(state.cmd, std::format("rendering end for render target: {}",state.render_target_name), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+#pragma region indirect_cull
+
+    timer->timestamp(state.compute_cmd, std::format("cull start for render target: {}",state.render_target_name), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
     state.compute_cmd.fill_buffer(*draw_data->instance_count_buffer, 0);
 
     VkBufferMemoryBarrier buffer_barriers0[] = {
@@ -431,6 +440,8 @@ void ObjectRenderer::render_indirect(RenderState& state) {
         .dst_stage_mask         = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | (mesh_shaders_enabled ? VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT : 0u),
         .buffer_memory_barriers = buffer_barriers2,
     });
+
+    timer->timestamp(state.compute_cmd, std::format("cull end for render target: {}",state.render_target_name), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 }
 
 void ObjectRenderer::initialize_scene_data() {
@@ -445,9 +456,9 @@ void ObjectRenderer::initialize_scene_data() {
 
     m_scene_data = std::make_unique<SceneBuffersManager>(m_render_server, m_resource_manager.get());
 }
-IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name,int frame_index) const {
+IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name, int frame_index) const {
     assert(frame_index >= 0 && frame_index < FRAME_OVERLAP);
-    
+
     return m_render_targets.at(render_target_name).view_buffers[frame_index].get();
 }
 } // namespace vke
