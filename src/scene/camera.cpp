@@ -25,22 +25,20 @@ void Camera::set_world_pos(const glm::dvec3& world_pos) {
 
 void Camera::update_view() {
     glm::vec3 local_pos = m_world_position;
-    m_view = glm::lookAt(local_pos,local_pos + forward(),up());
+    m_view              = glm::lookAt(local_pos, local_pos + forward(), up());
 }
 
 void Camera::update() {
     update_view();
     update_proj();
 
-    m_proj_view = m_proj * m_view;
+    m_proj_view     = m_proj * m_view;
     m_inv_proj_view = glm::inverse(m_proj_view);
 }
-
 
 void PerspectiveCamera::update_proj() {
     m_proj = z_flip_matrix * glm::perspectiveRH_ZO(fov_deg, aspect_ratio, z_near, z_far);
 };
-
 
 void FreeCamera::move_freecam(Window* window, float delta_time) {
     static bool focused = false;
@@ -77,7 +75,7 @@ void FreeCamera::move_freecam(Window* window, float delta_time) {
     m_pitch_d += window->get_mouse_input().delta_y * sensitivity_y;
     m_pitch_d = std::clamp(m_pitch_d, -89.9f, 89.9f);
 
-    set_rotation_euler(glm::radians(glm::vec3(-m_pitch_d,-m_yaw_d,0)));
+    set_rotation_euler(glm::radians(glm::vec3(-m_pitch_d, -m_yaw_d, 0)));
 
     int z_axis_move = (int)window->is_key_pressed('w') - (int)window->is_key_pressed('s');
     int x_axis_move = (int)window->is_key_pressed('d') - (int)window->is_key_pressed('a');
@@ -102,8 +100,7 @@ void FreeCamera::move_freecam(Window* window, float delta_time) {
 }
 
 void OrthographicCamera::update_proj() {
-    m_proj = glm::ortho(half_width,half_width,half_height,half_height,z_near,z_far);
+    m_proj = z_flip_matrix * glm::orthoRH_ZO(-half_width, half_width, -half_height, half_height, z_near, z_far);
 };
-
 
 } // namespace vke
