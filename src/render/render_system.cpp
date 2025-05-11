@@ -38,7 +38,6 @@ void RenderSystem::render(RenderServer::FrameArgs& args) {
     auto* cam    = dynamic_cast<FreeCamera*>(m_scene->get_camera());
     auto* window = get_render_server()->get_window();
 
-    cam->z_near = 0.01f;
     cam->aspect_ratio = static_cast<float>(window->width()) / static_cast<float>(window->height());
     cam->move_freecam(window, m_game_engine->get_delta_time());
     cam->update();

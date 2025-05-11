@@ -55,7 +55,7 @@ public:
     void update_proj() override;
 
 public:
-    float fov_deg = 80.0, aspect_ratio = 1.0, z_near = 0.1, z_far = 3000.0;
+    float fov_deg = 80.0, aspect_ratio = 1.0, z_near = 0.01, z_far = 15000.0;
 };
 
 class FreeCamera : public PerspectiveCamera {
