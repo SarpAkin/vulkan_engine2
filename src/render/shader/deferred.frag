@@ -83,13 +83,13 @@ uint permutate(uint x) {
 
 vec2 calculate_direct_light_shadow(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 view_dir, int cascade_index) {
     // config
-    const float normal_offset_value = 0.055;
-    const float base_bias           = 0.001;
-// #define POISSON_SAMPLING
+    const float normal_offset_value = 0.010;
+    const float base_bias           = 0.00025;
+#define POISSON_SAMPLING
 #define WORLD_SPACE_SEED
 
     // normal offsetting
-    world_pos4.xyz += normal * (normal_offset_value * world_pos4.w);
+    world_pos4.xyz += normal * (normal_offset_value * world_pos4.w * (cascade_index + 1));
 
     vec4 shadow_pos4 = lights.directional_light.proj_view[cascade_index] * world_pos4;
     vec3 shadow_pos  = shadow_pos4.xyz / shadow_pos4.w;
@@ -109,28 +109,28 @@ vec2 calculate_direct_light_shadow(vec4 world_pos4, vec3 world_pos, vec3 normal,
 
     // shadow_uv = floor(shadow_uv * shadow_map_resolution) / shadow_map_resolution;
 
-    float bias = max((dot(lights.directional_light.dir.xyz, normal)), 0.1) * base_bias;
+    float bias = max((dot(lights.directional_light.dir.xyz, normal)), 0.1) * base_bias * (cascade_index + 1);
 
 #ifdef POISSON_SAMPLING
 
-// #ifndef WORLD_SPACE_SEED
-//     uint seed = (uint(gl_FragCoord.x * 7 + 123214) << 17) ^ uint(gl_FragCoord.y * 3 + 1336);
-// #else
-//     // uvec3 pos2 = uvec3(ivec3(shadow_pos * (100000)));
-//     uvec3 pos2 = uvec3(ivec3(world_pos * (10000)));
-//     uint seed  = permutate(permutate(pos2.x ^ permutate(pos2.y) ^ (gl_SubgroupInvocationID & 3)) ^ (pos2.z));
-// #endif
+#ifndef WORLD_SPACE_SEED
+    uint seed = (uint(gl_FragCoord.x * 7 + 123214) << 17) ^ uint(gl_FragCoord.y * 3 + 1336);
+#else
+    // uvec3 pos2 = uvec3(ivec3(shadow_pos * (100000)));
+    uvec3 pos2 = uvec3(ivec3(world_pos * (10000)));
+    uint seed  = permutate(permutate(pos2.x ^ permutate(pos2.y) ^ (gl_SubgroupInvocationID & 3)) ^ (pos2.z));
+#endif
 
-//     const uint sample_count = 4;
-//     float is_lit            = 0.0;
-//     vec2 poisson_mul        = vec2(1.0) / vec2(textureSize(shadow_maps[0], 0));
-//     for (int i = 0; i < sample_count; i++) {
-//         seed              = permutate(seed + i);
-//         vec2 poisson_disc = poisson_table[seed % poisson_table_size];
-//         is_lit += texture(shadow_maps[0], vec4(shadow_uv + poisson_disc * poisson_mul,cascade_index,shadow_pos.z + bias));
-//     }
+    const uint sample_count = 4;
+    float is_lit            = 0.0;
+    vec2 poisson_mul        = vec2(1.0) / vec2(textureSize(shadow_maps[0], 0));
+    for (int i = 0; i < sample_count; i++) {
+        seed              = permutate(seed + i);
+        vec2 poisson_disc = poisson_table[seed % poisson_table_size];
+        is_lit += texture(shadow_maps[0], vec4(shadow_uv + poisson_disc * poisson_mul,cascade_index,shadow_pos.z + bias));
+    }
 
-//     is_lit /= sample_count;
+    is_lit /= sample_count;
 #else
     float is_lit = texture(shadow_maps[0], vec4(shadow_uv,cascade_index,shadow_pos.z + bias));
 #endif
