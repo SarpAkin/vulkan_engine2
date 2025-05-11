@@ -21,4 +21,5 @@ class RenderSystem;
 class IShadowMap;
 class DirectShadowMap;
 class ShadowManager;
+class GPUTimingSystem;
 } // namespace vke
