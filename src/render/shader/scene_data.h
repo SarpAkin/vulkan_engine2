@@ -78,6 +78,7 @@ struct InstanceDrawParameter{
 };
 
 #define MAX_LIGHTS 15
+#define MAX_SHADOW_CASCADES 4
 
 struct PointLight {
     vec4 color;
@@ -88,7 +89,8 @@ struct PointLight {
 struct DirectionalLight {
     vec4 dir;
     vec4 color;
-    mat4 proj_view;
+    mat4 proj_view[MAX_SHADOW_CASCADES];
+    float min_zs_for_cascades[4];
 };
 
 // requires std430

@@ -140,6 +140,7 @@ std::vector<glm::vec3> calculate_camera_frustum(const glm::mat4& inv_proj_view, 
     return points;
 }
 
+//calculates the hull in shadow space
 std::vector<glm::vec2> calculate_hull(std::span<const glm::vec3> points, const glm::mat4& inital_shadow, float& z_min, float z_max) {
 
     float shadow_z_min = std::numeric_limits<float>::max(), shadow_z_max = std::numeric_limits<float>::min();
