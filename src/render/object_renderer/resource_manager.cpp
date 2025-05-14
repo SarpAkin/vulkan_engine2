@@ -241,6 +241,8 @@ RCResource<vke::IPipeline> ResourceManager::load_pipeline_cached(const std::stri
 }
 
 bool ResourceManager::bind_mesh(RenderState& state, MeshID id) {
+    // BENCHMARK_FUNCTION();
+
     if (state.bound_mesh_id == id) return true;
 
     if (auto it = m_meshes.find(id); it != m_meshes.end()) {
@@ -251,13 +253,15 @@ bool ResourceManager::bind_mesh(RenderState& state, MeshID id) {
     }
 
     state.cmd.bind_index_buffer(state.mesh->index_buffer.get(), state.mesh->index_type);
-    auto vbs = map_vec2small_vec<6>(state.mesh->vertex_buffers, [&](const auto& b) -> const IBufferSpan* { return b.get(); });
-    state.cmd.bind_vertex_buffer(std::span(vbs));
+    state.cmd.bind_vertex_buffer(state.mesh->vba_cache.handles(), state.mesh->vba_cache.offsets());
+    // state.cmd.bind_vertex_buffer(state.mesh->vertex_buffers);
 
     return true;
 }
 
 bool ResourceManager::bind_material(RenderState& state, MaterialID id) {
+    // BENCHMARK_FUNCTION();
+
     if (state.bound_material_id == id) return true;
 
     if (auto it = m_materials.find(id); it != m_materials.end()) {
