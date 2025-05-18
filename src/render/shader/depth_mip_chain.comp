@@ -1,0 +1,29 @@
+#version 450
+
+layout(local_size_x = 256) in;
+layout(local_size_y = 1) in;
+layout(local_size_z = 1) in;
+
+const uvec2 group_tile_size = uvec2(16, 16);
+
+layout(set = 0, binding = 0) uniform sampler2D inputTexture;
+layout(set = 0, binding = 1) uniform writeonly image2D output_texture;
+
+uvec2 decode_morton2_256(uint /*an 8bit input */ mc_) {
+    uint res = (mc_ | (mc_ << 15)) & 0x55555555;
+
+    res = (res | (res >> 1)) & 0x33333333;
+    res = (res | (res >> 2)) & 0x0f0f0f0f;
+    res = res | (res >> 4);
+
+    return uvec2(res & 0xFF, (res >> 16) & 0xFF);
+}
+
+void main() {
+    vec2 size = imageSize(output_texture);
+
+    uvec2 tex_pos = gl_WorkGroupID.xy * group_tile_size + decode_morton2_256(gl_LocalInvocationID.x);
+    vec2 uv       = vec2(tex_pos) / size;
+
+    imageStore(output_texture, ivec2(tex_pos), texture(inputTexture, uv));
+}

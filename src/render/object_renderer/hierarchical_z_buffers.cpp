@@ -17,11 +17,14 @@ vke::HierarchicalZBuffers::HierarchicalZBuffers(RenderServer* rd, IImageView* ta
     u32 mip_layer_count = static_cast<u32>(std::ceil(std::log2(std::max(width, height))));
 
     m_depth_chain = std::make_unique<vke::Image>(ImageArgs{
-        .format     = target->format(),
-        .width      = width,
-        .height     = height,
-        .mip_levels = mip_layer_count,
+        .format      = target->format(),
+        .usage_flags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+        .width       = width,
+        .height      = height,
+        .mip_levels  = mip_layer_count,
     });
+
+    m_are_images_new = true;
 
     get_or_create_shared_data();
 
@@ -55,7 +58,7 @@ void vke::HierarchicalZBuffers::get_or_create_shared_data() {
 
     VkSamplerReductionModeCreateInfoEXT create_info_reduction = {
         .sType         = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,
-        .reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN,
+        .reductionMode = VK_SAMPLER_REDUCTION_MODE_MAX, // we use max as we use reversed z buffering
     };
 
     sampler_info.pNext = &create_info_reduction;
@@ -67,13 +70,15 @@ void vke::HierarchicalZBuffers::get_or_create_shared_data() {
     builder.add_binding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1);
     VkDescriptorSetLayout set_layout = builder.build();
 
+    m_render_server->get_pipeline_loader()->get_pipeline_globals_provider()->set_layouts["vke::depth_mip_chain_set"] = set_layout;
+
     m_shared_data = std::make_shared<SharedData>(SharedData{
         .mip_pipeline         = m_render_server->get_pipeline_loader()->load("vke::depth_mip_pipeline"),
         .min_sampler          = sampler,
         .mip_chain_set_layout = set_layout,
     });
 
-    any_storage[key] = m_shared_data;
+    any_storage[key] = std::weak_ptr(m_shared_data);
 }
 
 void vke::HierarchicalZBuffers::create_sets() {
@@ -102,21 +107,21 @@ void vke::HierarchicalZBuffers::update_mips(vke::CommandBuffer& cmd) {
 
     cmd.bind_pipeline(m_shared_data->mip_pipeline.get());
 
-    auto barriers = vke::map_vec(m_mip_views, [&](auto& view) {
-        return VkImageMemoryBarrier{
+    VkImageMemoryBarrier barriers[] = {
+        VkImageMemoryBarrier{
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .srcAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
             .dstAccessMask    = VK_ACCESS_MEMORY_WRITE_BIT,
-            .oldLayout        = VK_IMAGE_LAYOUT_GENERAL,
-            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .image            = view->vke_image()->handle(),
-            .subresourceRange = view->get_subresource_range(),
-        };
-    });
+            .oldLayout        = m_are_images_new ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_GENERAL,
+            .image            = m_depth_chain->handle(),
+            .subresourceRange = m_depth_chain->get_subresource_range(),
+        },
+    };
 
     cmd.pipeline_barrier(PipelineBarrierArgs{
-        .src_stage_mask        = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .dst_stage_mask        = VK_SHADER_STAGE_COMPUTE_BIT,
+        .src_stage_mask        = m_are_images_new ? static_cast<VkPipelineStageFlags>(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT) : (VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT),
+        .dst_stage_mask        = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
         .image_memory_barriers = barriers,
     });
 
@@ -144,8 +149,8 @@ void vke::HierarchicalZBuffers::update_mips(vke::CommandBuffer& cmd) {
         };
 
         cmd.pipeline_barrier(PipelineBarrierArgs{
-            .src_stage_mask        = VK_SHADER_STAGE_COMPUTE_BIT,
-            .dst_stage_mask        = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            .src_stage_mask        = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            .dst_stage_mask        = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             .image_memory_barriers = barriers,
         });
     }
