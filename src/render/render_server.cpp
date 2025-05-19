@@ -32,6 +32,7 @@ void RenderServer::init() {
         },
         .features1_2 = {
             .shaderInt8 = true,
+            .samplerFilterMinmax = true,
         },
     };
 
