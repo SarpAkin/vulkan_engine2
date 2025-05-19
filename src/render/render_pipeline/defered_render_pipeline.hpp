@@ -13,7 +13,7 @@ public:
     struct DeferredRenderPass {
         std::unique_ptr<vke::Renderpass> renderpass;
         u32 albedo_id, normal_id, depth_id;
-        std::string subpass_name,render_target_name;
+        std::string subpass_name, render_target_name;
     };
 
     DeferredRenderPipeline(vke::RenderServer* render_server);
@@ -31,8 +31,10 @@ private:
 private:
     FramelyData& get_framely() { return m_framely[m_render_server->get_frame_index()]; }
 
-    void create_set(int index,bool update = false);
+    void create_set(int index, bool update = false);
     void check_for_resize(vke::CommandBuffer& cmd);
+
+    void create_hzb();
 
 private:
     std::vector<FramelyData> m_framely;
@@ -43,9 +45,10 @@ private:
 
     VkDescriptorSetLayout m_deferred_set_layout;
     VkDescriptorSet m_deferred_set[FRAME_OVERLAP];
-    std::bitset<FRAME_OVERLAP> m_sets_needing_update; 
+    std::bitset<FRAME_OVERLAP> m_sets_needing_update;
 
     vke::RCResource<vke::IPipeline> m_deferred_pipeline;
+    vke::RCResource<vke::HierarchicalZBuffers> m_hzb;
 };
 
 } // namespace vke

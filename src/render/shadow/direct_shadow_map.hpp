@@ -24,10 +24,9 @@ public:
     glm::dvec3 get_camera_position(u32 index = 0) override;
     glm::vec3 get_camera_direction(u32 index = 0, u32 view_index = 0) override;
 
-    void render(vke::CommandBuffer& primary_buffer, u32,std::vector<LateRasterData>* raster_buffers) override;
+    void render(vke::CommandBuffer& primary_buffer, u32, std::vector<LateRasterData>* raster_buffers) override;
 
-
-    bool requires_rerender(u32 index)const override{return m_shadow_maps_waiting_for_rerender[index];}
+    bool requires_rerender(u32 index) const override { return m_shadow_maps_waiting_for_rerender[index]; }
 
 private:
     vke::RCResource<vke::IImageView> m_shadow_map;
@@ -38,6 +37,8 @@ private:
     std::vector<std::unique_ptr<vke::OrthographicCamera>> m_cameras;
     std::vector<bool> m_shadow_maps_waiting_for_rerender;
     u32 m_layer_count = 0;
+    std::vector<std::unique_ptr<vke::IImageView>> m_sub_views;
+    std::vector<RCResource<HierarchicalZBuffers>> m_hz_buffers;
 };
 
 } // namespace vke
