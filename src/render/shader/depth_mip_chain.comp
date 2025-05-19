@@ -4,10 +4,17 @@ layout(local_size_x = 256) in;
 layout(local_size_y = 1) in;
 layout(local_size_z = 1) in;
 
+#extension GL_KHR_shader_subgroup_clustered : enable
+
 const uvec2 group_tile_size = uvec2(16, 16);
 
 layout(set = 0, binding = 0) uniform sampler2D inputTexture;
-layout(set = 0, binding = 1) uniform writeonly image2D output_texture;
+// output mip layers
+layout(set = 0, binding = 1) uniform writeonly image2D output_textures[5];
+
+layout(push_constant) uniform PC {
+    uint mip_count;
+};
 
 uvec2 decode_morton2_256(uint /*an 8bit input */ mc_) {
     uint res = (mc_ | (mc_ << 15)) & 0x55555555;
@@ -19,11 +26,49 @@ uvec2 decode_morton2_256(uint /*an 8bit input */ mc_) {
     return uvec2(res & 0xFF, (res >> 16) & 0xFF);
 }
 
+shared float mip2_buffer[16];
+
 void main() {
-    vec2 size = imageSize(output_texture);
+    vec2 size = imageSize(output_textures[0]);
 
     uvec2 tex_pos = gl_WorkGroupID.xy * group_tile_size + decode_morton2_256(gl_LocalInvocationID.x);
     vec2 uv       = vec2(tex_pos) / size;
 
-    imageStore(output_texture, ivec2(tex_pos), texture(inputTexture, uv));
+    float base_depth = texture(inputTexture, uv).x;
+    imageStore(output_textures[0], ivec2(tex_pos), base_depth.xxxx);
+
+    if (mip_count <= 1) return;
+
+    float mip1 = subgroupClusteredMin(base_depth, 4);
+    if (gl_SubgroupInvocationID.x % 4 == 0) {
+        imageStore(output_textures[1], ivec2(tex_pos) / 2, mip1.xxxx);
+    }
+
+    if (mip_count <= 2) return;
+
+    float mip2 = subgroupClusteredMin(base_depth, 16);
+    if (gl_SubgroupInvocationID.x % 16 == 0) {
+        imageStore(output_textures[2], ivec2(tex_pos) / 4, mip2.xxxx);
+        mip2_buffer[gl_LocalInvocationID.x / 16] = mip2;
+    }
+
+    if (mip_count <= 3) return;
+    if (gl_LocalInvocationID.x >= 16) return;
+
+    memoryBarrierShared();
+
+    mip2    = mip2_buffer[gl_LocalInvocationID.x];
+    tex_pos = gl_WorkGroupID.xy * group_tile_size + decode_morton2_256(gl_LocalInvocationID.x * 16);
+
+    float mip3 = subgroupClusteredMin(mip2, 4);
+    if (gl_SubgroupInvocationID.x % 4 == 0) {
+        imageStore(output_textures[3], ivec2(tex_pos) / 8, mip3.xxxx);
+    }
+
+    if (mip_count <= 4) return;
+
+    float mip4 = subgroupClusteredMin(mip2, 16);
+    if (gl_SubgroupInvocationID.x % 16 == 0) {
+        imageStore(output_textures[4], ivec2(tex_pos) / 16, mip4.xxxx);
+    }
 }

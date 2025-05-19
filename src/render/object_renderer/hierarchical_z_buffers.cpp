@@ -9,6 +9,8 @@
 
 namespace vke {
 
+#define MAX_MIPS_IN_ONE_PASS 5
+
 HierarchicalZBuffers::HierarchicalZBuffers(RenderServer* rd, IImageView* target) {
     m_render_server       = rd;
     m_target_depth_buffer = target;
@@ -17,6 +19,8 @@ HierarchicalZBuffers::HierarchicalZBuffers(RenderServer* rd, IImageView* target)
     u32 height = target->height() / 2;
 
     u32 mip_layer_count = static_cast<u32>(std::ceil(std::log2(std::max(width, height))));
+
+    if (mip_layer_count == 11 || mip_layer_count == 12) mip_layer_count = 10;
 
     m_depth_chain = std::make_unique<vke::Image>(ImageArgs{
         .format      = target->format(),
@@ -36,12 +40,12 @@ HierarchicalZBuffers::HierarchicalZBuffers(RenderServer* rd, IImageView* target)
         .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
         .magFilter    = VK_FILTER_LINEAR,
         .minFilter    = VK_FILTER_LINEAR,
-        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+        .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST,
         .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .maxLod = static_cast<float>(mip_layer_count),
-        .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+        .maxLod       = static_cast<float>(mip_layer_count),
+        .borderColor  = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
     };
 
     VkSamplerReductionModeCreateInfoEXT create_info_reduction = {
@@ -74,11 +78,11 @@ void HierarchicalZBuffers::get_or_create_shared_data() {
         .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
         .magFilter    = VK_FILTER_LINEAR,
         .minFilter    = VK_FILTER_LINEAR,
-        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+        .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST,
         .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        .maxLod = 16.f,
+        .maxLod       = 16.f,
     };
 
     VkSamplerReductionModeCreateInfoEXT create_info_reduction = {
@@ -92,7 +96,7 @@ void HierarchicalZBuffers::get_or_create_shared_data() {
 
     vke::DescriptorSetLayoutBuilder builder;
     builder.add_image_sampler(VK_SHADER_STAGE_COMPUTE_BIT);
-    builder.add_binding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1);
+    builder.add_binding(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, MAX_MIPS_IN_ONE_PASS);
     VkDescriptorSetLayout set_layout = builder.build();
 
     m_render_server->get_pipeline_loader()->get_pipeline_globals_provider()->set_layouts["vke::depth_mip_chain_set"] = set_layout;
@@ -111,23 +115,35 @@ void HierarchicalZBuffers::create_sets() {
 
     for (int i = 0; i < m_depth_chain->miplevel_count(); i++) {
         auto view = m_depth_chain->create_subview(SubViewArgs{
-            .base_miplevel = static_cast<u32>(i),
-            .view_type     = VK_IMAGE_VIEW_TYPE_2D,
+            .base_miplevel  = static_cast<u32>(i),
+            .miplevel_count = 1,
+            .view_type      = VK_IMAGE_VIEW_TYPE_2D,
         });
 
-        vke::DescriptorSetBuilder builder;
-        builder.add_image_sampler(i == 0 ? m_target_depth_buffer : m_mip_views.back().get(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_COMPUTE_BIT);
-        builder.add_storage_image(view.get(), VK_IMAGE_LAYOUT_GENERAL, VK_SHADER_STAGE_COMPUTE_BIT);
-        m_mip_sets.push_back(builder.build(m_render_server->get_descriptor_pool(), m_shared_data->mip_chain_set_layout));
-
         m_mip_views.push_back(std::move(view));
+    }
+
+    for (u32 i = 0; i < m_depth_chain->miplevel_count(); i += MAX_MIPS_IN_ONE_PASS) {
+        vke::DescriptorSetBuilder builder;
+        builder.add_image_sampler(i == 0 ? m_target_depth_buffer : m_mip_views[i - 1].get(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler, VK_SHADER_STAGE_COMPUTE_BIT);
+
+        // vke::SmallVec<vke::IImageView*,MAX_MIPS_IN_ONE_PASS> views;
+        std::vector<vke::IImageView*> views;
+        for (u32 j = i; j < std::min(m_depth_chain->miplevel_count(), i + MAX_MIPS_IN_ONE_PASS); j++) {
+            views.push_back(m_mip_views[j].get());
+        }
+
+        views.resize(MAX_MIPS_IN_ONE_PASS, views.back());
+
+        builder.add_storage_images(views, VK_IMAGE_LAYOUT_GENERAL, VK_SHADER_STAGE_COMPUTE_BIT);
+        m_mip_sets.push_back(builder.build(m_render_server->get_descriptor_pool(), m_shared_data->mip_chain_set_layout));
     }
 }
 
 void HierarchicalZBuffers::update_mips(vke::CommandBuffer& cmd) {
     const glm::vec2 subgroup_size = {16, 16};
 
-    assert(m_mip_sets.size() == m_mip_views.size());
+    // assert(m_mip_sets.size() == m_mip_views.size());
 
     cmd.bind_pipeline(m_shared_data->mip_pipeline.get());
 
@@ -152,13 +168,21 @@ void HierarchicalZBuffers::update_mips(vke::CommandBuffer& cmd) {
     for (int i = 0; i < m_mip_sets.size(); i++) {
         cmd.bind_descriptor_set(0, m_mip_sets[i]);
 
-        auto target_view = m_mip_views[i].get();
+        u32 base_mip_level = i * MAX_MIPS_IN_ONE_PASS;
+        u32 mip_count      = std::min<u32>(m_mip_views.size() - base_mip_level, MAX_MIPS_IN_ONE_PASS);
 
-        auto [ex, ey] = target_view->extend();
+        auto target_view0 = m_mip_views[base_mip_level].get();
+
+        auto [ex, ey] = target_view0->extend();
 
         auto [sx, sy] = vke::calculate_dispatch_size(ex, ey, subgroup_size.x, subgroup_size.y);
 
+        cmd.push_constant(&mip_count);
+
         cmd.dispatch(sx, sy, 1);
+
+        auto base_range       = target_view0->get_subresource_range();
+        base_range.levelCount = mip_count;
 
         VkImageMemoryBarrier barriers[] = {
             VkImageMemoryBarrier{
@@ -167,8 +191,8 @@ void HierarchicalZBuffers::update_mips(vke::CommandBuffer& cmd) {
                 .dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
                 .oldLayout        = VK_IMAGE_LAYOUT_GENERAL,
                 .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                .image            = target_view->vke_image()->handle(),
-                .subresourceRange = target_view->get_subresource_range(),
+                .image            = target_view0->vke_image()->handle(),
+                .subresourceRange = base_range,
             },
         };
 
@@ -179,7 +203,6 @@ void HierarchicalZBuffers::update_mips(vke::CommandBuffer& cmd) {
         });
     }
 }
-
 
 HierarchicalZBuffers::~HierarchicalZBuffers() {
     vkDestroySampler(device(), m_cull_sampler, nullptr);
