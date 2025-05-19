@@ -34,8 +34,10 @@ struct Frustum{
 struct ViewData {
     mat4 proj_view;
     mat4 inv_proj_view;
+    mat4 old_proj_view;
     dvec4 view_world_pos;
     Frustum frustum;
+    uvec4 is_hzb_culling_enabled;
 };
 
 struct MaterialData {

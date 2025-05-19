@@ -21,11 +21,17 @@ class LightBuffersManager;
 
 struct RenderState;
 
+struct RenderTargetArguments{
+    bool allow_indirect_render = true;
+    bool allow_hzb_culling = false;
+};
+
 class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
 public:
     constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;
 
 public:
+
 public:
     ObjectRenderer(RenderServer* render_server);
     ~ObjectRenderer();
@@ -38,10 +44,11 @@ public:
     void update_scene_data(CommandBuffer& cmd);
 
     void set_camera(const std::string& render_target, Camera* camera) { m_render_targets.at(render_target).camera = camera; }
+    void set_hzb(const std::string& render_target, HierarchicalZBuffers* hzb);
 
     ResourceManager* get_resource_manager() { return m_resource_manager.get(); }
 
-    void create_render_target(const std::string& name, const std::string& subpass_name, bool allow_indirect_render = false);
+    void create_render_target(const std::string& name, const std::string& subpass_name,const RenderTargetArguments& render_target_arguments = {});
 
     LightBuffersManager* get_light_manager() { return m_light_manager.get(); }
     IBuffer* get_view_buffer(const std::string& render_target_name,int frame_index) const;
@@ -62,6 +69,7 @@ public:
         std::unique_ptr<IndirectRenderBuffers> indirect_render_buffers;
 
         SetIndices set_indices;
+        bool is_view_set_needs_update[FRAME_OVERLAP];
     };
 
 private:
@@ -81,6 +89,8 @@ private:
         std::unique_ptr<vke::Buffer> instance_count_buffer;
 
         std::unique_ptr<vke::GrowableBuffer> instance_draw_parameters;
+    
+        vke::HierarchicalZBuffers* hzb = nullptr;
     };
 
 private:
@@ -94,6 +104,8 @@ private: // rendering
 
 private:
     void initialize_scene_data();
+
+    void update_view_descriptor_set(RenderTarget* rd, u32 frame_index);
 
 private:
     FramelyData m_framely_data[FRAME_OVERLAP];

@@ -27,7 +27,7 @@ public:
 
 public: // getters
     VkSampler get_nearest_sampler() { return m_nearest_sampler; }
-
+    IImageView* get_null_texture() { return m_null_texture; }
     VkDescriptorSetLayout get_material_set_layout() const { return m_material_set_layout; }
     UpdatedResources& get_updated_resource() { return m_updates; }
     // id getters
