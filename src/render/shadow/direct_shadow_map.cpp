@@ -49,17 +49,17 @@ DirectShadowMap::DirectShadowMap(RenderServer* render_server, u32 texture_size, 
 
         m_cameras.push_back(std::move(camera));
 
-        auto sub_view = dynamic_cast<vke::Image*>(m_shadow_map.get())->create_subview(SubViewArgs{
-            .base_layer  = static_cast<u32>(i),
-            .layer_count = 1,
-            .view_type   = VK_IMAGE_VIEW_TYPE_2D,
-        });
-
-        m_hz_buffers.push_back(std::make_unique<HierarchicalZBuffers>(m_render_server, sub_view.get()));
-
-        m_sub_views.push_back(std::move(sub_view));
-
-        m_object_renderer->set_hzb(render_target_name, m_hz_buffers.back().get());
+        if(false){
+            auto sub_view = dynamic_cast<vke::Image*>(m_shadow_map.get())->create_subview(SubViewArgs{
+                .base_layer  = static_cast<u32>(i),
+                .layer_count = 1,
+                .view_type   = VK_IMAGE_VIEW_TYPE_2D,
+            });
+    
+            m_hz_buffers.push_back(std::make_unique<HierarchicalZBuffers>(m_render_server, sub_view.get()));
+            m_sub_views.push_back(std::move(sub_view));
+            m_object_renderer->set_hzb(render_target_name, m_hz_buffers.back().get());
+        }
 
         m_render_target_names.push_back(std::move(render_target_name));
     }
