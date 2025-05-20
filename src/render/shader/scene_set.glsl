@@ -62,4 +62,6 @@ layout(set = VIEW_SET, binding = 9, std430) IF_NOT_COMPUTE(readonly) buffer Buff
     InstanceDrawParameter instance_draw_parameters[];
 };
 
+layout(set = VIEW_SET,binding = 10) uniform sampler2D hzb;
+
 #endif

@@ -42,7 +42,49 @@ bool is_visible(in AABB boundary, in vec3 position, in vec4 rotation, in vec3 si
         }
     }
 
-    return true;
+    // return true;
+
+#pragma region hzb culling
+    if (scene_view.is_hzb_culling_enabled.x != 1) return true;
+
+    vec4 c_center  = scene_view.old_proj_view * vec4(center, 1.0);
+    vec4 c_right   = scene_view.old_proj_view * vec4(right, 0.0);
+    vec4 c_up      = scene_view.old_proj_view * vec4(up, 0.0);
+    vec4 c_forward = scene_view.old_proj_view * vec4(forward, 0.0);
+
+    // it only has to be outside of (-1,1)
+    vec3 clip_min = vec3(1E10);
+    vec3 clip_max = -clip_min;
+
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                vec4 sum = c_center;
+                sum += i == 0 ? -c_right : c_right;
+                sum += j == 0 ? -c_up : c_up;
+                sum += k == 0 ? -c_forward : c_forward;
+
+                vec3 c_pos = sum.xyz /sum.w;
+                clip_min   = min(clip_min, c_pos);
+                clip_max   = max(clip_max, c_pos);
+            }
+        }
+    }
+
+    clip_min.xy = clip_min.xy * 0.5 + 0.5;
+    clip_max.xy = clip_max.xy * 0.5 + 0.5;
+
+    vec3 clip_size   = (clip_max - clip_min);
+    vec3 clip_center = (clip_max + clip_min) * 0.5;
+
+    vec2 hzb_texture_size = textureSize(hzb, 0);
+
+    float level = floor(log2(max(clip_size.x * hzb_texture_size.x, clip_size.y * hzb_texture_size.y)));
+
+    float depth = textureLod(hzb, clip_center.xy, level).x;
+
+    // 1 is closer to screen while 0 is far
+    return clip_max.z >= depth;
 }
 
 mat4 make_model_matrix(in InstanceData instance, vec3 relative_pos) {

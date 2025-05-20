@@ -3,6 +3,7 @@
 #include <format>
 #include <vke/pipeline_loader.hpp>
 
+#include "render/object_renderer/hierarchical_z_buffers.hpp"
 #include "render/object_renderer/object_renderer.hpp"
 #include "render/object_renderer/resource_manager.hpp"
 #include "render/render_server.hpp"
@@ -41,13 +42,26 @@ DirectShadowMap::DirectShadowMap(RenderServer* render_server, u32 texture_size, 
 
         auto render_target_name = std::format("DirectShadowMapPass_{}:{}", base_shadow_map_index, i);
 
-        m_render_server->get_object_renderer()->create_render_target(render_target_name, shadowD16, true);
+        m_render_server->get_object_renderer()->create_render_target(render_target_name, shadowD16, {true});
 
         auto camera = std::make_unique<vke::OrthographicCamera>();
         m_object_renderer->set_camera(render_target_name, camera.get());
 
-        m_render_target_names.push_back(std::move(render_target_name));
         m_cameras.push_back(std::move(camera));
+
+        if(false){
+            auto sub_view = dynamic_cast<vke::Image*>(m_shadow_map.get())->create_subview(SubViewArgs{
+                .base_layer  = static_cast<u32>(i),
+                .layer_count = 1,
+                .view_type   = VK_IMAGE_VIEW_TYPE_2D,
+            });
+    
+            m_hz_buffers.push_back(std::make_unique<HierarchicalZBuffers>(m_render_server, sub_view.get()));
+            m_sub_views.push_back(std::move(sub_view));
+            m_object_renderer->set_hzb(render_target_name, m_hz_buffers.back().get());
+        }
+
+        m_render_target_names.push_back(std::move(render_target_name));
     }
 }
 

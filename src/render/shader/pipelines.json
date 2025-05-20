@@ -116,6 +116,17 @@
       "shader_files": [
         "indirect_draw_gen.comp"
       ]
+    },
+    {
+      "name": "vke::depth_mip_pipeline",
+      "compiler_definitions": {},
+      "set_layouts": {
+        "vke::depth_mip_chain_set": 0
+      },
+      "shader_files": [
+        "depth_mip_chain.comp"
+      ]
     }
+
   ]
 }

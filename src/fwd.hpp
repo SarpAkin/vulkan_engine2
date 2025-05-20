@@ -22,4 +22,5 @@ class IShadowMap;
 class DirectShadowMap;
 class ShadowManager;
 class GPUTimingSystem;
+class HierarchicalZBuffers; 
 } // namespace vke
