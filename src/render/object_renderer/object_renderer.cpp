@@ -78,10 +78,30 @@ void ObjectRenderer::update_scene_data(CommandBuffer& cmd) {
     m_light_manager->flush_pending_lights(cmd);
     m_scene_data->updates_for_indirect_render(cmd);
 
-    static bool window_open = true;
-    ImGui::Begin("ObjectRenderer", &window_open);
-    ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
+    debug_menu();
+}
 
+void ObjectRenderer::debug_menu() {
+    static bool window_open = true;
+    if (ImGui::Begin("ObjectRenderer", &window_open)) {
+        ImGui::Checkbox("indirect render enabled", &indirect_render_enabled);
+
+        auto max_part_id = m_scene_data->get_part_max_id();
+
+        for (auto& [rd_name, rd] : m_render_targets) {
+            u64 total_instance_count = 0;
+
+            if (!rd.indirect_render_buffers) continue;
+            if (!rd.indirect_render_buffers->host_instance_count_buffers[m_render_server->get_frame_index()]) continue;
+
+            auto data = rd.indirect_render_buffers->host_instance_count_buffers[m_render_server->get_frame_index()]->mapped_data_as_span<u32>();
+            for (int i = 0; i < max_part_id; i++) {
+                total_instance_count += data[i];
+            }
+
+            ImGui::Text("total instance draw count for %s : %ld", rd_name.c_str(), total_instance_count);
+        }
+    }
     ImGui::End();
 }
 
@@ -176,7 +196,7 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
         auto usage                     = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         target.indirect_render_buffers = std::make_unique<IndirectRenderBuffers>(IndirectRenderBuffers{
             .indirect_draw_buffer     = std::make_unique<vke::Buffer>(usage | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, sizeof(VkDrawIndexedIndirectCommand) * indirect_draw_capacity, false),
-            .instance_count_buffer    = std::make_unique<vke::Buffer>(usage, sizeof(u32) * part_capacity, false),
+            .instance_count_buffer    = std::make_unique<vke::Buffer>(usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, sizeof(u32) * part_capacity, false),
             .instance_draw_parameters = std::make_unique<vke::GrowableBuffer>(usage, sizeof(InstanceDrawParameter) * instance_capacity, false),
         });
 
@@ -185,6 +205,9 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
         });
         vke::set_array(target.indirect_render_buffers->instance_draw_parameter_location_buffer, [&] {
             return std::make_unique<vke::Buffer>(usage, sizeof(glm::uvec2) * part_capacity, true);
+        });
+        vke::set_array(target.indirect_render_buffers->host_instance_count_buffers, [&] {
+            return std::make_unique<vke::Buffer>(usage, sizeof(uint) * part_capacity, true);
         });
     }
 
@@ -264,7 +287,7 @@ void ObjectRenderer::update_view_set(RenderTarget* target) {
     }
 
     if (target->indirect_render_buffers ? target->indirect_render_buffers->hzb != nullptr : false) {
-        data.old_proj_view          = target->indirect_render_buffers->hzb->get_hzb_proj_view();
+        data.old_proj_view            = target->indirect_render_buffers->hzb->get_hzb_proj_view();
         data.is_hzb_culling_enabled.x = 1;
     } else {
         data.is_hzb_culling_enabled.x = 0;
@@ -477,14 +500,20 @@ void ObjectRenderer::render_indirect(RenderState& state) {
     };
 
     state.compute_cmd.pipeline_barrier({
-        .src_stage_mask         = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        .dst_stage_mask         = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | (mesh_shaders_enabled ? VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT : 0u),
+        .src_stage_mask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .dst_stage_mask = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT //
+                          | (mesh_shaders_enabled ? VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT : 0u)     //
+                          | (m_query_indirect_render_counters ? VK_PIPELINE_STAGE_TRANSFER_BIT : 0u),
         .buffer_memory_barriers = buffer_barriers2,
     });
 
+    if (m_query_indirect_render_counters) {
+        state.compute_cmd.copy_buffer(draw_data->instance_count_buffer->subspan(0), draw_data->host_instance_count_buffers[m_render_server->get_frame_index()]->subspan(0));
+    }
+
     timer->timestamp(state.compute_cmd, std::format("cull end for render target: {}", state.render_target_name), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-    if(draw_data->hzb) {
+    if (draw_data->hzb) {
         draw_data->hzb->update_hzb_proj_view(state.render_target->camera->proj_view());
     }
 }

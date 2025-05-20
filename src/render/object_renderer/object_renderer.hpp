@@ -88,6 +88,8 @@ private:
         std::unique_ptr<vke::Buffer> instance_draw_parameter_location_buffer[FRAME_OVERLAP];
         std::unique_ptr<vke::Buffer> instance_count_buffer;
 
+        std::unique_ptr<vke::Buffer> host_instance_count_buffers[FRAME_OVERLAP];
+
         std::unique_ptr<vke::GrowableBuffer> instance_draw_parameters;
     
         vke::HierarchicalZBuffers* hzb = nullptr;
@@ -106,6 +108,8 @@ private:
     void initialize_scene_data();
 
     void update_view_descriptor_set(RenderTarget* rd, u32 frame_index);
+
+    void debug_menu();
 
 private:
     FramelyData m_framely_data[FRAME_OVERLAP];
@@ -130,6 +134,8 @@ private://indirect render related data
 
     std::unique_ptr<SceneBuffersManager> m_scene_data;
     std::unique_ptr<LightBuffersManager> m_light_manager;
+
+    bool m_query_indirect_render_counters = true;
 };
 
 } // namespace vke
