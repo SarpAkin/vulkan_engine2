@@ -38,6 +38,7 @@ struct ViewData {
     dvec4 view_world_pos;
     Frustum frustum;
     uvec4 is_hzb_culling_enabled;
+    vec4 frame_times; //x is delta y is the running time of the game
 };
 
 struct MaterialData {
