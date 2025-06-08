@@ -26,4 +26,7 @@ class HierarchicalZBuffers;
 
 //components
 class Transform;
+//ui
+class IMenu;
+class InstantiateMenu;
 } // namespace vke
