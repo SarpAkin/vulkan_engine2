@@ -23,4 +23,7 @@ class DirectShadowMap;
 class ShadowManager;
 class GPUTimingSystem;
 class HierarchicalZBuffers; 
+
+//components
+class Transform;
 } // namespace vke
