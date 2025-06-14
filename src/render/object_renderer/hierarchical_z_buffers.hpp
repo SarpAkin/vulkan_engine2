@@ -23,7 +23,7 @@ public:
     glm::mat4 get_hzb_proj_view() const { return m_hzb_proj_view; }
 
     vke::IImageView* get_mips() { return m_depth_chain.get(); }
-    VkSampler get_sampler() { return m_cull_sampler; }
+    VkSampler get_sampler() { return m_shared_data->cull_sampler; }
 
 private:
     void get_or_create_shared_data();
@@ -33,7 +33,10 @@ private:
     struct SharedData {
         vke::RCResource<vke::IPipeline> mip_pipeline;
         VkSampler min_sampler;
+        VkSampler cull_sampler;
         VkDescriptorSetLayout mip_chain_set_layout;
+        vke::VulkanContext* context = nullptr;
+        ~SharedData();
     };
 
     vke::RenderServer* m_render_server;
@@ -46,7 +49,6 @@ private:
     std::vector<VkDescriptorSet> m_mip_sets;
     std::vector<std::unique_ptr<vke::IImageView>> m_mip_views;
 
-    VkSampler m_cull_sampler;
 
     glm::mat4 m_hzb_proj_view;
 

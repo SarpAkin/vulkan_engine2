@@ -11,6 +11,33 @@ namespace vke {
 
 #define MAX_MIPS_IN_ONE_PASS 5
 
+
+static VkSampler create_cull_sampler(VkDevice device,int mip_layer_count = 12){
+    VkSamplerCreateInfo sampler_info{
+        .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter    = VK_FILTER_LINEAR,
+        .minFilter    = VK_FILTER_LINEAR,
+        .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .maxLod       = static_cast<float>(mip_layer_count),
+        .borderColor  = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+    };
+
+    VkSamplerReductionModeCreateInfoEXT create_info_reduction = {
+        .sType         = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,
+        .reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN, // we use max as we use reversed z buffering
+    };
+
+    sampler_info.pNext = &create_info_reduction;
+
+    VkSampler sampler;
+    VK_CHECK(vkCreateSampler(device, &sampler_info, nullptr, &sampler));
+
+    return sampler;
+}
+
 HierarchicalZBuffers::HierarchicalZBuffers(RenderServer* rd, IImageView* target) {
     m_render_server       = rd;
     m_target_depth_buffer = target;
@@ -35,27 +62,6 @@ HierarchicalZBuffers::HierarchicalZBuffers(RenderServer* rd, IImageView* target)
     get_or_create_shared_data();
 
     create_sets();
-
-    VkSamplerCreateInfo sampler_info{
-        .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .magFilter    = VK_FILTER_LINEAR,
-        .minFilter    = VK_FILTER_LINEAR,
-        .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST,
-        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .maxLod       = static_cast<float>(mip_layer_count),
-        .borderColor  = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
-    };
-
-    VkSamplerReductionModeCreateInfoEXT create_info_reduction = {
-        .sType         = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT,
-        .reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN, // we use max as we use reversed z buffering
-    };
-
-    sampler_info.pNext = &create_info_reduction;
-
-    VK_CHECK(vkCreateSampler(m_render_server->get_device(), &sampler_info, nullptr, &m_cull_sampler));
 }
 
 void HierarchicalZBuffers::get_or_create_shared_data() {
@@ -104,6 +110,7 @@ void HierarchicalZBuffers::get_or_create_shared_data() {
     m_shared_data = std::make_shared<SharedData>(SharedData{
         .mip_pipeline         = m_render_server->get_pipeline_loader()->load("vke::depth_mip_pipeline"),
         .min_sampler          = sampler,
+        .cull_sampler = create_cull_sampler(device()),
         .mip_chain_set_layout = set_layout,
     });
 
@@ -205,6 +212,12 @@ void HierarchicalZBuffers::update_mips(vke::CommandBuffer& cmd) {
 }
 
 HierarchicalZBuffers::~HierarchicalZBuffers() {
-    vkDestroySampler(device(), m_cull_sampler, nullptr);
+}
+
+HierarchicalZBuffers::SharedData::~SharedData() {
+    if(context){
+        vkDestroySampler(context->get_device(), min_sampler, nullptr);
+        vkDestroySampler(context->get_device(),cull_sampler,nullptr);
+    }
 }
 } // namespace vke
