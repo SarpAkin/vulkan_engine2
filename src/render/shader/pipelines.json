@@ -13,7 +13,8 @@
       "compiler_definitions": {},
       "set_layouts": {
         "vke::object_renderer::view_set": 0,
-        "vke::object_renderer::material_set": 1
+        "vke::indirect_scene_set_layout": 1,
+        "vke::object_renderer::material_set": 2
       },
       "shader_files": [
         "default.vert",
@@ -33,7 +34,8 @@
       "compiler_definitions": {},
       "set_layouts": {
         "vke::object_renderer::view_set": 0,
-        "vke::object_renderer::material_set": 1
+        "vke::indirect_scene_set_layout": 1,
+        "vke::object_renderer::material_set": 2
       },
       "shader_files": [
         "default.vert",
@@ -69,11 +71,12 @@
       "cull_mode": "BACK",
       "depth_op": "LESS_OR_EQUAL",
       "compiler_definitions": {
-        "SHADOW_PASS":""
+        "SHADOW_PASS": ""
       },
       "set_layouts": {
         "vke::object_renderer::view_set": 0,
-        "vke::object_renderer::material_set": 1
+        "vke::indirect_scene_set_layout": 1,
+        "vke::object_renderer::material_set": 2
       },
       "shader_files": [
         "default.vert"
@@ -96,12 +99,12 @@
         "deferred.frag"
       ]
     },
-
     {
       "name": "vke::object_renderer::cull_shader",
       "compiler_definitions": {},
       "set_layouts": {
-        "vke::object_renderer::view_set": 0
+        "vke::object_renderer::view_set": 0,
+        "vke::indirect_scene_set_layout": 1
       },
       "shader_files": [
         "cull_shader.comp"
@@ -111,7 +114,8 @@
       "name": "vke::object_renderer::indirect_draw_gen",
       "compiler_definitions": {},
       "set_layouts": {
-        "vke::object_renderer::view_set": 0
+        "vke::object_renderer::view_set": 0,
+        "vke::indirect_scene_set_layout": 1
       },
       "shader_files": [
         "indirect_draw_gen.comp"
@@ -127,6 +131,5 @@
         "depth_mip_chain.comp"
       ]
     }
-
   ]
 }

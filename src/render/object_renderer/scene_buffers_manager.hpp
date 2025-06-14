@@ -25,7 +25,6 @@ public:
 
 public:
     void updates_for_indirect_render(vke::CommandBuffer& compute_cmd);
-    void flush_pending_entities(vke::CommandBuffer& cmd, StencilBuffer& stencil);
 
     void set_registry(entt::registry* registry);
 
@@ -40,6 +39,10 @@ public: // getters
 
     const std::unordered_map<RenderModelID, i32>& get_model_instance_counters() const { return m_model_instance_counters; }
     const auto& get_model_part_sub_allocations() const { return m_model_part_sub_allocations; }
+
+    entt::registry* get_registry() const { return m_registry; }
+private:
+    void flush_pending_entities(vke::CommandBuffer& cmd, StencilBuffer& stencil);
 
 private:
     void connect_registry_callbacks();

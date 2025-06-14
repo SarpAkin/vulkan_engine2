@@ -70,7 +70,6 @@ void RenderServer::init() {
     m_object_renderer = std::make_unique<ObjectRenderer>(this);
 
     m_object_renderer->get_resource_manager()->set_subpass_type("vke::default_forward", MaterialSubpassType::FORWARD);
-    m_object_renderer->create_default_pbr_pipeline();
     // Creating a cube model
     //  auto materialID = m_object_renderer->create_material("vke::default", {}, "vke::default_material");
     //  auto meshID     = m_object_renderer->create_mesh(std::move(*vke::make_cube()));

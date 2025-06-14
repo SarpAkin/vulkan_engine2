@@ -240,46 +240,52 @@ RCResource<vke::IPipeline> ResourceManager::load_pipeline_cached(const std::stri
     return pipeline;
 }
 
-bool ResourceManager::bind_mesh(RenderState& state, MeshID id) {
+bool ResourceManager::bind_mesh(BindState* state, MeshID id) {
     // BENCHMARK_FUNCTION();
 
-    if (state.bound_mesh_id == id) return true;
+    if (state->bound_mesh_id == id) return true;
 
     if (auto it = m_meshes.find(id); it != m_meshes.end()) {
-        state.mesh = &it->second;
+        state->mesh = &it->second;
     } else {
         LOG_ERROR("failed to bind mesh with id %d", id.id);
         return false;
     }
 
-    state.cmd.bind_index_buffer(state.mesh->index_buffer.get(), state.mesh->index_type);
-    state.cmd.bind_vertex_buffer(state.mesh->vba_cache.handles(), state.mesh->vba_cache.offsets());
-    // state.cmd.bind_vertex_buffer(state.mesh->vertex_buffers);
+    state->cmd.bind_index_buffer(state->mesh->index_buffer.get(), state->mesh->index_type);
+    state->cmd.bind_vertex_buffer(state->mesh->vba_cache.handles(), state->mesh->vba_cache.offsets());
+    // state->cmd.bind_vertex_buffer(state->mesh->vertex_buffers);
 
     return true;
 }
 
-bool ResourceManager::bind_material(RenderState& state, MaterialID id) {
+bool ResourceManager::bind_material(BindState* state, MaterialID id) {
     // BENCHMARK_FUNCTION();
 
-    if (state.bound_material_id == id) return true;
+    if (state->bound_material_id == id) return true;
 
     if (auto it = m_materials.find(id); it != m_materials.end()) {
-        state.material = &it->second;
+        state->material = &it->second;
     } else {
         LOG_ERROR("failed to bind material with id %d", id.id);
         return false;
     }
 
-    auto pipeline = state.material->multi_pipeline->pipelines.at(state.render_target->renderpass_name).get();
+    auto pipeline = state->material->multi_pipeline->pipelines.at(state->rd_info->subpass_name).get();
 
-    if (state.bound_pipeline != pipeline) {
-        state.bound_pipeline = pipeline;
-        state.cmd.bind_pipeline(state.bound_pipeline);
+    if (state->bound_pipeline != pipeline) {
+        state->bound_pipeline = pipeline;
+        state->cmd.bind_pipeline(state->bound_pipeline);
     }
-    state.cmd.bind_descriptor_set(state.render_target->set_indices.material_set, state.material->material_set);
+    state->cmd.bind_descriptor_set(state->rd_info->set_indices.material_set, state->material->material_set);
 
     return true;
 }
 
+ResourceManager::BindState ResourceManager::create_bindstate(vke::CommandBuffer& cmd, const RenderTargetInfo* target_info) {
+    return BindState{
+        .cmd = cmd,
+        .rd_info = target_info,
+    };
+};
 } // namespace vke

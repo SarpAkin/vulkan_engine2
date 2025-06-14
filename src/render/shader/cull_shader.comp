@@ -7,6 +7,7 @@
 #include "quat_util.glsl"
 #include "scene_data.h"
 #include "scene_set.glsl"
+#include "view_set.glsl"
 
 layout(local_size_x = 128) in;
 layout(local_size_y = 1) in;
@@ -114,7 +115,7 @@ void main() {
     boundary.center_point = model.aabb_offset;
     boundary.half_size    = model.aabb_half_size;
 
-    if (!is_visible(boundary, relative_pos, instance.rotation, instance.size)) return;
+    // if (!is_visible(boundary, relative_pos, instance.rotation, instance.size)) return;
 
     mat4 model_matrix = make_model_matrix(instance, relative_pos);
 
