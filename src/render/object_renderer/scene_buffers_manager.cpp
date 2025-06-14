@@ -27,7 +27,9 @@ SceneBuffersManager::SceneBuffersManager(RenderServer* render_server, ResourceMa
 }
 
 SceneBuffersManager::~SceneBuffersManager() {
-    disconnect_registry_callbacks();
+    if(m_registry){
+        disconnect_registry_callbacks();
+    }
 }
 
 auto create_model_matrix_getter(entt::registry* registry) {
@@ -86,6 +88,8 @@ void SceneBuffersManager::flush_pending_entities(vke::CommandBuffer& cmd, Stenci
 }
 
 void SceneBuffersManager::updates_for_indirect_render(vke::CommandBuffer& cmd) {
+    assert(m_registry != nullptr && "registry can not be null");
+    
     auto& resource_updates = m_resource_manager->get_updated_resource();
 
     StencilBuffer stencil;

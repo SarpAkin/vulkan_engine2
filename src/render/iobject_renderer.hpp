@@ -76,8 +76,9 @@ struct RenderArguments {
 struct SetIndices {
     // int scene_set           = 0;
     int view_set            = 0;
-    int material_set        = 1;
+    int material_set        = 2;
     int render_pipeline_set = 3;
+    int render_system_set = 1;
 };
 
 // This class is responsible for managing :

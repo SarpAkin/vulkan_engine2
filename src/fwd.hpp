@@ -23,6 +23,7 @@ class DirectShadowMap;
 class ShadowManager;
 class GPUTimingSystem;
 class HierarchicalZBuffers; 
+class SceneBuffersManager;
 
 //components
 class Transform;
