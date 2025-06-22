@@ -7,6 +7,9 @@
 #include "render/render_system.hpp"
 #include "scene/scene.hpp"
 
+#include "scene/ui/instantiate_menu.hpp"
+#include "ui/imenu.hpp"
+
 namespace vke {
 
 static GameEngine* s_instance = nullptr;
@@ -20,6 +23,10 @@ GameEngine::GameEngine(bool headless) {
 
     assert(s_instance == nullptr);
     s_instance = this;
+
+    m_menus = {
+        std::make_shared<InstantiateMenu>(this),
+    };
 }
 
 GameEngine::~GameEngine() {
@@ -30,10 +37,9 @@ GameEngine::~GameEngine() {
 void GameEngine::run() {
     auto prev_time = std::chrono::system_clock::now();
 
-    double time_counter = 0.0;
+    double time_counter       = 0.0;
     double longest_frame_time = 0.0;
     double fps = 0.0, fps_low = 0.0;
-
 
     time_counter = 0.0;
 
@@ -49,7 +55,7 @@ void GameEngine::run() {
             fps                = static_cast<double>(fps_frame_counter) / time_counter;
             fps_low            = 1 / longest_frame_time;
             time_counter       = 0.0;
-            fps_frame_counter      = 0;
+            fps_frame_counter  = 0;
             longest_frame_time = 0.0;
         }
 
@@ -70,6 +76,10 @@ void GameEngine::run() {
                     ImGui::End();
                 }
 
+                for (auto& menu : m_menus) {
+                    menu->draw_menu();
+                }
+
                 on_render(args);
             });
         }
@@ -83,5 +93,5 @@ void GameEngine::default_render(RenderServer::FrameArgs& args) { m_renderer->ren
 
 RenderServer* GameEngine::get_render_server() { return m_renderer->get_render_server(); }
 
-GameEngine* GameEngine::get_instance() {return s_instance;}
+GameEngine* GameEngine::get_instance() { return s_instance; }
 } // namespace vke

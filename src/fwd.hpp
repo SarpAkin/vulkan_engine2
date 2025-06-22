@@ -22,4 +22,12 @@ class IShadowMap;
 class DirectShadowMap;
 class ShadowManager;
 class GPUTimingSystem;
+class HierarchicalZBuffers; 
+class SceneBuffersManager;
+
+//components
+class Transform;
+//ui
+class IMenu;
+class InstantiateMenu;
 } // namespace vke

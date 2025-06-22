@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <any>
 #include <vke/fwd.hpp>
 #include <vke/vke.hpp>
 
@@ -55,6 +56,11 @@ public:
         m_main_queue_submit_infos.push_back(std::move(info));
     }
 
+    auto& get_any_storage() { return m_custom_any_storage; }
+    const auto& get_any_storage() const { return m_custom_any_storage; }
+
+    VkDevice get_device() const { return device(); }
+
 private:
 private:
     std::unique_ptr<vke::Window> m_window;
@@ -65,6 +71,8 @@ private:
     std::unique_ptr<vke::ImguiManager> m_imgui_manager;
     std::unique_ptr<vke::LineDrawer> m_line_drawer;
     std::unique_ptr<vke::GPUTimingSystem> m_timing_system;
+
+    std::unordered_map<std::string, std::any> m_custom_any_storage;
 
     bool m_running              = true;
     bool m_early_cleanup_called = false;

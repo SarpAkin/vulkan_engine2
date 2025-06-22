@@ -13,6 +13,7 @@
 namespace vke {
 
 struct RenderState;
+struct RenderTargetInfo;
 
 class ResourceManager : vke::DeviceGetter {
 public:
@@ -21,13 +22,23 @@ public:
     struct RenderModel;
     struct UpdatedResources;
 
+    struct BindState {
+        vke::CommandBuffer& cmd;
+        MaterialID bound_material_id              = 0;
+        MeshID bound_mesh_id                      = 0;
+        IPipeline* bound_pipeline                 = nullptr;
+        const Mesh* mesh                          = nullptr;
+        const ResourceManager::Material* material = nullptr;
+        const RenderTargetInfo* rd_info                 = nullptr;
+    };
+
 public:
     ResourceManager(RenderServer* render_server);
     ~ResourceManager();
 
 public: // getters
     VkSampler get_nearest_sampler() { return m_nearest_sampler; }
-
+    IImageView* get_null_texture() { return m_null_texture; }
     VkDescriptorSetLayout get_material_set_layout() const { return m_material_set_layout; }
     UpdatedResources& get_updated_resource() { return m_updates; }
     // id getters
@@ -76,8 +87,10 @@ public: // creation
     void bind_name2model(RenderModelID id, const std::string& name);
 
 public: // render state binding
-    bool bind_mesh(RenderState& state, MeshID id);
-    bool bind_material(RenderState& state, MaterialID id);
+    BindState create_bindstate(vke::CommandBuffer& cmd,const RenderTargetInfo* target_info);
+
+    bool bind_mesh(BindState* state, MeshID id);
+    bool bind_material(BindState* state, MaterialID id);
 
 private:
     void calculate_boundary(RenderModel& model);

@@ -7,6 +7,8 @@
 #include "../object_renderer/object_renderer.hpp"
 #include "../object_renderer/resource_manager.hpp"
 
+#include "../object_renderer/hierarchical_z_buffers.hpp"
+
 #include "render/debug/line_drawer.hpp"
 #include "render/debug/gpu_timing_system.hpp"
 
@@ -63,16 +65,23 @@ DeferredRenderPipeline::DeferredRenderPipeline(vke::RenderServer* render_server)
 
     pg_provider->set_layouts.emplace("vke::deferred_render_set", m_deferred_set_layout);
 
-    auto resource_manager = render_server->get_object_renderer()->get_resource_manager();
+    auto object_renderer  = m_render_server->get_object_renderer();
+    auto resource_manager = object_renderer->get_resource_manager();
     resource_manager->add_pipeline2multi_pipeline("vke::object_renderer::pbr_pipeline", "vke::gpass::default");
 
-    m_render_server->get_object_renderer()->create_render_target(m_deferred_render_pass.render_target_name, m_deferred_render_pass.subpass_name, true);
+    object_renderer->create_render_target(m_deferred_render_pass.render_target_name, m_deferred_render_pass.subpass_name,
+        {
+            .allow_indirect_render = true,
+            .allow_hzb_culling     = true,
+        });
 
     m_deferred_pipeline = m_render_server->get_pipeline_loader()->load("vke::post_deferred");
 
-    for(int i = 0;i < FRAME_OVERLAP;i++){
-        create_set(i,false);
+    for (int i = 0; i < FRAME_OVERLAP; i++) {
+        create_set(i, false);
     }
+
+    create_hzb();
 }
 
 void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
@@ -146,9 +155,9 @@ void DeferredRenderPipeline::create_set(int index, bool update) {
     builder.add_ssbo(light_manager->get_get_lights_buffer(), VK_SHADER_STAGE_FRAGMENT_BIT);
     builder.add_image_samplers(shadow_maps, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, shadow_manager->get_shadow_sampler(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    if(!update){
+    if (!update) {
         m_deferred_set[index] = builder.build(m_render_server->get_descriptor_pool(), m_deferred_set_layout);
-    }else{
+    } else {
         builder.update_set(m_deferred_set[index], m_deferred_set_layout);
     }
 }
@@ -162,17 +171,24 @@ void DeferredRenderPipeline::check_for_resize(vke::CommandBuffer& cmd) {
     // return if the extends of renderpass and the window are same
     auto w_extends = m_render_server->get_window()->extend();
 
-    if (!is_equal(m_deferred_render_pass.renderpass->extend(), w_extends)){
+    if (!is_equal(m_deferred_render_pass.renderpass->extend(), w_extends)) {
         m_deferred_render_pass.renderpass->resize(cmd, w_extends.width, w_extends.height);
-
+        
+        create_hzb();
         m_sets_needing_update.set();
     }
 
     int frame_index = m_render_server->get_frame_index();
 
-    if(m_sets_needing_update[frame_index]){
-        create_set(frame_index,true);
+    if (m_sets_needing_update[frame_index]) {
+        create_set(frame_index, true);
         m_sets_needing_update[frame_index] = false;
     }
+}
+
+void DeferredRenderPipeline::create_hzb() {
+    m_hzb = std::make_unique<HierarchicalZBuffers>(m_render_server,m_deferred_render_pass.renderpass->get_attachment_view(m_deferred_render_pass.depth_id));
+    m_render_server->get_object_renderer()->set_hzb(m_deferred_render_pass.render_target_name, m_hzb.get());
+
 }
 } // namespace vke

@@ -10,6 +10,9 @@
 #include <glm/vec3.hpp>
 #include <vke/fwd.hpp>
 
+#include <vke/util.hpp>
+#include <vke/vke.hpp>
+
 namespace vke {
 
 struct AABB {
@@ -27,16 +30,60 @@ struct AABB {
     glm::vec3 mip_point() const { return start + half_size(); }
 };
 
+
+// this is for caching vkBuffers and their offsets that normally comes from IBufferSpan's virtual getters called at CommandBuffer::bind_vertex_buffers when an array it is passed.
+// it avoids costly virtual calls by caching them 
+class VertexBufferArrayCache {
+public:
+    VertexBufferArrayCache(auto&& ibuffer_ptrs /*an itertable of IBufferSpan* or std::unique_ptr<IBufferSpan> */) {
+        reset(ibuffer_ptrs);
+    }
+
+    void reset(auto&& ibuffer_ptrs /*an itertable of IBufferSpan* or std::unique_ptr<IBufferSpan> */) {
+        m_handles.clear();
+        m_offsets.clear();
+
+        if constexpr (requires { ibuffer_ptrs.size(); }) {
+            m_handles.reserve(ibuffer_ptrs.size());
+            m_offsets.reserve(ibuffer_ptrs.size());
+        }
+
+        for (const auto& ptr : ibuffer_ptrs) {
+            m_handles.push_back(ptr->handle());
+            m_offsets.push_back(static_cast<VkDeviceSize>(ptr->byte_offset()));
+        }
+    }
+
+    VertexBufferArrayCache() {}
+
+    VertexBufferArrayCache(const VertexBufferArrayCache&)                = default;
+    VertexBufferArrayCache& operator=(const VertexBufferArrayCache&)     = default;
+    VertexBufferArrayCache(VertexBufferArrayCache&&) noexcept            = default;
+    VertexBufferArrayCache& operator=(VertexBufferArrayCache&&) noexcept = default;
+
+    std::span<const VkBuffer> handles() const { return m_handles; }
+    std::span<const VkDeviceSize> offsets() const { return m_offsets; }
+
+private:
+    vke::SlimVec<VkBuffer> m_handles;
+    vke::SlimVec<VkDeviceSize> m_offsets;
+};
+
 struct Mesh {
     struct Vertex {
         glm::vec3 pos;
         u32 color;
     };
     std::unique_ptr<vke::IBufferSpan> index_buffer;
-    std::vector<std::unique_ptr<vke::IBufferSpan>> vertex_buffers;
+    vke::SlimVec<std::unique_ptr<vke::IBufferSpan>> vertex_buffers;
+
     VkIndexType index_type = VK_INDEX_TYPE_NONE_KHR;
     uint32_t index_count; // if index_type is VK_INDEX_TYPE_NONE than it means vertex_count
     AABB boundary;
+
+    VertexBufferArrayCache vba_cache;
+
+    void update_vba() { vba_cache.reset(vertex_buffers); }
 
 public:
     Mesh()                                 = default;

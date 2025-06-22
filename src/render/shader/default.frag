@@ -1,6 +1,7 @@
 #version 450
 
 #include "scene_set.glsl"
+#include "view_set.glsl"
 #include "material_set.glsl"
 
 layout(location = 0) in vec3 f_color;

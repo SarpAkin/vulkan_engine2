@@ -49,6 +49,7 @@ Mesh MeshBuilder::build(vke::CommandBuffer* buffer) const {
 
     mesh.boundary = m_boundary;
 
+    mesh.update_vba();
     return mesh;
 }
 } // namespace vke
