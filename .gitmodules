@@ -10,3 +10,6 @@
 [submodule "submodules/imgui"]
 	path = submodules/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "submodules/flecs"]
+	path = submodules/flecs
+	url = https://github.com/SanderMertens/flecs

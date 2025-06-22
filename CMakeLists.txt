@@ -4,6 +4,7 @@ project(vke_playground)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Set the library name and source files
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")
@@ -30,12 +31,14 @@ find_package(Vulkan REQUIRED)
 add_executable("1.out" ${SRC_FILES})
 
 add_subdirectory(submodules/vke_core)
+add_subdirectory(submodules/flecs)
 
 include_directories(
     src/
     
     submodules/glm
     submodules/entt/src
+    submodules/flecs/include
     submodules/imgui
 )
 
@@ -45,6 +48,15 @@ include_directories(
 target_link_libraries("1.out"
     ${Vulkan_LIBRARIES} 
     vke
+    flecs
     ${SDL2_LIBRARIES}
 )
 
+
+if(CMAKE_BUILD_TYPE STREQUAL "DebugOnlyEngine")
+    target_compile_options("1.out" PRIVATE -O0 -g)
+
+    set_target_properties(vke PROPERTIES
+        COMPILE_FLAGS "-O3 -g"
+    )
+endif()
