@@ -28,7 +28,7 @@ struct RenderTargetArguments {
     bool allow_hzb_culling     = false;
 };
 
-class ObjectRenderer final : public IObjectRenderer, DeviceGetter {
+class ObjectRenderer final : public DeviceGetter {
 public:
     constexpr static int MATERIAL_SET_IMAGE_COUNT = 4;
 
@@ -42,8 +42,8 @@ public:
 
     RenderServer* get_render_server() const { return m_render_server; }
 
-    void set_entt_registry(entt::registry* registry) override;
-    void render(const RenderArguments& args) override;
+    void set_entt_registry(flecs::world* registry);
+    void render(const RenderArguments& args);
     void update_scene_data(CommandBuffer& cmd);
 
     void set_camera(const std::string& render_target, Camera* camera);
@@ -105,7 +105,7 @@ private:
     std::unique_ptr<ResourceManager> m_resource_manager;
 
     vke::RenderServer* m_render_server = nullptr;
-    entt::registry* m_registry         = nullptr;
+    flecs::world* m_world         = nullptr;
 
     glm::dvec3 m_render_origin = {0, 0, 0};
 

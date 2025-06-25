@@ -2,16 +2,15 @@
 
 #include <entt/entt.hpp>
 
+#include <flecs.h>
+#include <flecs/addons/flecs_cpp.h>
+
 #include "scene/components/components.hpp"
 
 #include "render/shader/scene_data.h"
 #include "resource_manager.hpp"
 
 namespace vke {
-
-struct InstanceComponent {
-    const InstanceID id;
-};
 
 SceneBuffersManager::SceneBuffersManager(RenderServer* render_server, ResourceManager* resource_manager) : m_model_part_buffer_sub_allocator(part_capacity) {
     m_render_server    = render_server;
@@ -27,21 +26,15 @@ SceneBuffersManager::SceneBuffersManager(RenderServer* render_server, ResourceMa
 }
 
 SceneBuffersManager::~SceneBuffersManager() {
-    if(m_registry){
-        disconnect_registry_callbacks();
-    }
 }
 
-auto create_model_matrix_getter(entt::registry* registry) {
-    auto transform_view = registry->view<Transform>();
-    auto parent_view    = registry->view<CParent>();
+auto create_model_matrix_getter(flecs::world* registry) {
+    return vke::make_y_combinator([=](auto&& self, flecs::entity e) -> glm::mat4 {
+        glm::mat4 model_mat = e.get<Transform>()->local_model_matrix();
 
-    return vke::make_y_combinator([=](auto&& self, entt::entity e) -> glm::mat4 {
-        glm::mat4 model_mat = transform_view->get(e).local_model_matrix();
+        auto parent = e.parent();
 
-        if (parent_view.contains(e)) {
-            auto parent = parent_view->get(e).parent;
-
+        if (parent.is_valid()) {
             model_mat = self(parent) * model_mat;
         }
 
@@ -52,16 +45,12 @@ auto create_model_matrix_getter(entt::registry* registry) {
 static glm::vec4 quat2vec4(const glm::quat& q) { return glm::vec4(q.x, q.y, q.z, q.w); }
 
 void SceneBuffersManager::flush_pending_entities(vke::CommandBuffer& cmd, StencilBuffer& stencil) {
-    auto renderable_view         = m_registry->view<Renderable, Transform>();
-    auto instance_component_view = m_registry->view<InstanceComponent>();
-
-    auto model_matrix_getter = create_model_matrix_getter(m_registry);
+    auto model_matrix_getter = create_model_matrix_getter(m_world);
 
     auto instance_capacity = m_instance_buffer->item_size<InstanceData>();
 
-    for (auto entity : m_pending_entities_for_register) {
-        auto [model, _] = renderable_view.get(entity);
-        auto model_id   = model.model_id;
+    m_handle_manager->flush_and_register_handles([&](flecs::entity entity,InstanceHandleID instance_id){
+        auto model_id   = entity.get<Renderable>()->model_id;
         m_model_instance_counters[model_id] += 1;
 
         auto model_matrix = model_matrix_getter(entity);
@@ -73,8 +62,7 @@ void SceneBuffersManager::flush_pending_entities(vke::CommandBuffer& cmd, Stenci
             .size           = t.scale,
             .model_id       = model_id.id,
         };
-
-        auto instance_id = m_instance_id_manager.new_id();
+        
         if (instance_id.id >= instance_capacity) {
             auto* instance_buffer = m_instance_buffer.get();
             instance_buffer->resize((instance_buffer->byte_size() * 3) / 2);
@@ -82,13 +70,11 @@ void SceneBuffersManager::flush_pending_entities(vke::CommandBuffer& cmd, Stenci
         }
 
         stencil.copy_data(m_instance_buffer->subspan_item<InstanceData>(instance_id.id, 1), &instance_data, 1);
-    }
-
-    m_pending_entities_for_register.clear();
+    });
 }
 
 void SceneBuffersManager::updates_for_indirect_render(vke::CommandBuffer& cmd) {
-    assert(m_registry != nullptr && "registry can not be null");
+    assert(m_world != nullptr && "registry can not be null");
     
     auto& resource_updates = m_resource_manager->get_updated_resource();
 
@@ -193,43 +179,9 @@ void SceneBuffersManager::updates_for_indirect_render(vke::CommandBuffer& cmd) {
     });
 }
 
-void SceneBuffersManager::connect_registry_callbacks() {
-    m_registry->on_construct<Renderable>().connect<&SceneBuffersManager::renderable_component_creation_callback>(this);
-    m_registry->on_update<Renderable>().connect<&SceneBuffersManager::renderable_component_update_callback>(this);
-    m_registry->on_destroy<Renderable>().connect<&SceneBuffersManager::renderable_component_destroy_callback>(this);
-}
+void SceneBuffersManager::set_world(flecs::world* world) {
+    m_world = world;
 
-void SceneBuffersManager::disconnect_registry_callbacks() {
-    m_registry->on_construct<Renderable>().disconnect(this);
-    m_registry->on_update<Renderable>().disconnect(this);
-    m_registry->on_destroy<Renderable>().disconnect(this);
-}
-
-void SceneBuffersManager::renderable_component_creation_callback(entt::registry& r, entt::entity e) {
-    if (r.get<Renderable>(e).model_id == 0) {
-        LOG_WARNING("zero model id skipping adding to indirect renderer\n");
-        return;
-    }
-    m_pending_entities_for_register.push_back(e);
-}
-
-void SceneBuffersManager::renderable_component_update_callback(entt::registry&, entt::entity e) {
-    printf("entity %d's renderable component has been modified\n", e);
-    TODO();
-}
-
-void SceneBuffersManager::renderable_component_destroy_callback(entt::registry& r, entt::entity e) {
-    auto instance = r.try_get<InstanceComponent>(e);
-    if (instance == nullptr) return;
-
-    m_pending_instances_for_destruction.push_back(instance->id);
-}
-
-void SceneBuffersManager::set_registry(entt::registry* registry) {
-    if (m_registry) disconnect_registry_callbacks();
-
-    m_registry = registry;
-
-    connect_registry_callbacks();
+    m_handle_manager = std::make_unique<GPUHandleIDManager<Renderable>>(world);
 }
 } // namespace vke

@@ -21,7 +21,7 @@ RenderSystem::RenderSystem(GameEngine* game_engine) {
 
     auto obj_renderer = m_render_server->get_object_renderer();
 
-    obj_renderer->set_entt_registry(m_scene->get_registry());
+    obj_renderer->set_entt_registry(m_scene->get_world());
 
     obj_renderer->create_render_target(render_target_name, "vke::default_forward", {true});
     obj_renderer->set_camera(render_target_name, m_scene->get_camera());

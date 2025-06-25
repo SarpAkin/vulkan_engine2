@@ -6,8 +6,7 @@
 #include "scene/scene.hpp"
 #include <imgui.h>
 
-
-namespace vke{
+namespace vke {
 
 void InstantiateMenu::draw_menu() {
     auto* registry = m_game_engine->get_scene()->get_registry();
@@ -72,7 +71,7 @@ void InstantiateMenu::draw_menu() {
             }
 
             if (ImGui::Button("spawn")) {
-                vke::instantiate_prefab(*registry, m_game_engine->get_prefabs()[m_selected_prefab], t);
+                m_game_engine->instantiate_prefab(m_selected_prefab, t);
             }
 
         } else {

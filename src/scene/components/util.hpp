@@ -1,5 +1,7 @@
 #pragma once
 
+#include <flecs.h>
+
 #include <entt/entt.hpp>
 
 namespace vke{

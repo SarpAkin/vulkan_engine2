@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vke/fwd.hpp>
 
-#include <entt/fwd.hpp>
+#include <flecs.h>
 
 #include "fwd.hpp"
 #include "render/iobject_renderer.hpp"
