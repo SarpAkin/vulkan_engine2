@@ -114,8 +114,15 @@ flecs::entity GameEngine::instantiate_prefab(const std::string& prefab_name, std
 
     auto entity = world->entity().is_a(prefab);
 
-    if(transform){
-        entity.set<Transform>(transform.value());
+    auto* rel_transform = entity.get<RelativeTransform>();
+
+    auto t1 = transform.value_or(Transform::IDENTITY);
+
+    if (rel_transform) {
+        entity.set<Transform>(t1 * static_cast<Transform>(*rel_transform));
+        entity.remove<RelativeTransform>();
+    } else {
+        entity.set<Transform>(t1);
     }
 
     return entity;
