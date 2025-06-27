@@ -154,10 +154,6 @@ ObjectRenderer::FramelyData& ObjectRenderer::get_framely() {
 void ObjectRenderer::create_default_pbr_pipeline() {
 }
 
-void on_renderable_construct(entt::registry& r, entt::entity e) {
-
-    printf("entity %d has been attached renderable component\n", e);
-}
 
 void ObjectRenderer::set_world(flecs::world* world) {
     if (m_world != nullptr) {
