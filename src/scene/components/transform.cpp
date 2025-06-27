@@ -59,4 +59,15 @@ Transform::operator RelativeTransform() const {
         scale,
     };
 }
+
+Transform Transform::operator*(const Transform& other) const {
+    return Transform::decompose_from_matrix(local_model_matrix() * other.local_model_matrix());
+}
+
+const Transform Transform::IDENTITY = {
+    .position = {0, 0, 0},
+    .rotation = glm::quat(1, 0, 0, 0),
+    .scale    = {1, 1, 1},
+};
+
 } // namespace vke

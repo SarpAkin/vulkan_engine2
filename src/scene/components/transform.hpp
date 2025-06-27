@@ -19,8 +19,12 @@ struct Transform {
 
     static Transform decompose_from_matrix(const glm::mat4& mat);
 
+    Transform operator*(const Transform& t) const;
+
     // Cast to RelativeTransform
     explicit operator RelativeTransform() const;
+
+    const static Transform IDENTITY;
 };
 
 struct RelativeTransform {
