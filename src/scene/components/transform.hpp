@@ -36,7 +36,7 @@ struct RelativeTransform {
         };
     }
 
-    glm::mat4 get_model_matrix() { return static_cast<Transform>(*this).local_model_matrix(); }
+    glm::mat4 get_model_matrix() const{ return static_cast<Transform>(*this).local_model_matrix(); }
     static RelativeTransform decompose_from_matrix(const glm::mat4& mat) { return static_cast<RelativeTransform>(Transform::decompose_from_matrix(mat)); }
 };
 
