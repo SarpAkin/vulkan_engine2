@@ -102,7 +102,7 @@ public:
     void set_indicies(std::span<uint16_t> span);
     void set_indicies(std::span<uint32_t> span);
 
-    Mesh build(vke::CommandBuffer* = nullptr) const;
+    Mesh build(vke::CommandBuffer* = nullptr,StencilBuffer* stencil = nullptr) const;
 
 private:
     std::span<glm::vec3> m_positions       = {};
