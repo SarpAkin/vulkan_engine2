@@ -30,7 +30,19 @@ SceneBuffersManager::~SceneBuffersManager() {
 
 auto create_model_matrix_getter(flecs::world* registry) {
     return vke::make_y_combinator([=](auto&& self, flecs::entity e) -> glm::mat4 {
-        glm::mat4 model_mat = e.get<Transform>()->local_model_matrix();
+        auto transform = e.get<Transform>();
+        if(transform){
+            return transform->local_model_matrix();
+        } 
+        
+        glm::mat4 model_mat;
+
+        auto* relative_transform = e.get<RelativeTransform>();
+        if(relative_transform){
+            model_mat = relative_transform->get_model_matrix();
+        }else{
+            model_mat = glm::mat4(1);
+        }
 
         auto parent = e.parent();
 
