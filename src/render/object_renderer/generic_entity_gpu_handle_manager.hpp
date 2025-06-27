@@ -34,6 +34,12 @@ public:
 
     }
 
+    ~GPUHandleIDManager(){
+        for(auto& o : m_observers){
+            o.destruct();
+        }
+    }
+
     void flush_and_register_handles(auto&& func) {
         for (auto& ent_id : m_new_entities) {
             auto e = flecs::entity(*m_world, ent_id);
