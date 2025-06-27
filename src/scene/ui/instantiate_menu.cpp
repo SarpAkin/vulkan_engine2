@@ -9,9 +9,9 @@
 namespace vke {
 
 void InstantiateMenu::draw_menu() {
-    auto* registry = m_game_engine->get_scene()->get_registry();
-    auto* window   = m_game_engine->get_render_server()->get_window();
-    auto* player   = m_game_engine->get_scene()->get_camera();
+    auto* world  = m_game_engine->get_scene()->get_world();
+    auto* window = m_game_engine->get_render_server()->get_window();
+    auto* player = m_game_engine->get_scene()->get_camera();
 
     ImGui::Begin("instantiate");
 
@@ -28,9 +28,9 @@ void InstantiateMenu::draw_menu() {
         }
 
         if (ImGui::Button("add light")) {
-            auto entity = registry->create();
-            registry->emplace<vke::Transform>(entity, vke::Transform{.position = player->get_world_pos()});
-            registry->emplace<vke::CPointLight>(entity, vke::CPointLight{.color = glm::vec3(m_picker_color[0], m_picker_color[1], m_picker_color[2]) * m_light_strength, .range = m_light_range});
+            auto entity = world->entity();
+            entity.set<vke::Transform>(vke::Transform{.position = player->get_world_pos()});
+            entity.set<vke::CPointLight>(vke::CPointLight{.color = glm::vec3(m_picker_color[0], m_picker_color[1], m_picker_color[2]) * m_light_strength, .range = m_light_range});
         }
     }
 
