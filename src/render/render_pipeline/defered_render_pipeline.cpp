@@ -10,6 +10,7 @@
 #include "../object_renderer/hierarchical_z_buffers.hpp"
 
 #include "render/debug/line_drawer.hpp"
+#include "render/debug/gpu_timing_system.hpp"
 
 #include "../shadow/shadow_manager.hpp"
 
@@ -118,6 +119,9 @@ void DeferredRenderPipeline::render(RenderServer::FrameArgs& args) {
 
     deferred_pass->set_external(false);
     deferred_pass->end(primary_cmd);
+
+    auto* timer =  m_render_server->get_gpu_timing_system();
+    timer->timestamp(*args.main_pass_cmd, "pre deferred", VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     args.main_pass_cmd->bind_pipeline(m_deferred_pipeline.get());
     args.main_pass_cmd->bind_descriptor_set(0, m_deferred_set[m_render_server->get_frame_index()]);

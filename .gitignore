@@ -6,3 +6,4 @@ build/
 perf*
 imgui.*
 CMakePresets.json
+.clangd

@@ -18,7 +18,7 @@ public:
     void register_render_target(const std::string& render_target_name) override;
     void render(RenderArguments&) override;
     void update(vke::CommandBuffer& cmd) override;
-    void set_registry(entt::registry* reg) override;
+    void set_world(flecs::world* reg) override;
 
 private:
     void create_descriptor_set_for_irb(IndirectRenderBuffers& irb);

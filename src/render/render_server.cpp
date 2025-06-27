@@ -120,8 +120,6 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
 
     m_imgui_manager->flush_frame(main_renderpass_pass_cmd);
 
-    m_timing_system->end_frame(top_cmd);
-
     main_renderpass_pass_cmd.end();
 
     m_window_renderpass->set_external(true);
@@ -130,6 +128,8 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     top_cmd.execute_secondaries(&main_renderpass_pass_cmd);
 
     m_window_renderpass->end(top_cmd);
+
+    m_timing_system->end_frame(top_cmd);
 
     top_cmd.end();
 

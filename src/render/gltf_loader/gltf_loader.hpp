@@ -1,10 +1,18 @@
 #pragma once
 
-#include <entt/fwd.hpp>
 
-#include "render/object_renderer/object_renderer.hpp"
+#include <flecs.h>
+#include <flecs/addons/flecs_cpp.h>
+#include <string>
 
-namespace vke{
+#include "fwd.hpp"
+#include <optional>
+#include <vke/fwd.hpp>
 
-void load_gltf_file(vke::CommandBuffer& cmd,entt::registry* registry,ObjectRenderer* renderer, const std::string& file_path);
-}
+
+namespace vke {
+
+
+std::optional<flecs::entity> load_gltf_file(vke::CommandBuffer& cmd, flecs::world*, ObjectRenderer* renderer, const std::string& file_path);
+
+} // namespace vke

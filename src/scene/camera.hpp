@@ -1,6 +1,5 @@
 #pragma once
 
-#include "entt/entity/fwd.hpp"
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -44,7 +43,6 @@ protected:
 protected:
     glm::quat m_rotation        = {};
     glm::dvec3 m_world_position = {0, 0, 0};
-    entt::registry* m_registry  = nullptr;
 
     glm::mat4 m_proj, m_view, m_proj_view, m_inv_proj_view;
 };

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "glm/ext/vector_float3.hpp"
-#include <entt/fwd.hpp>
 #include <vke/fwd.hpp>
 #include <vke/util.hpp>
 
@@ -48,7 +47,7 @@ public:
 
 // Component for rendering
 struct Renderable {
-    const RenderModelID model_id;
+    RenderModelID model_id;
 };
 
 struct CPointLight {
@@ -89,7 +88,6 @@ struct SetIndices {
 //  It is not CONCURRENT
 class IObjectRenderer {
 public:
-    virtual void set_entt_registry(entt::registry* registry) = 0;
     virtual void render(const RenderArguments& cmd)          = 0;
 
 public:

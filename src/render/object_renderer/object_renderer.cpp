@@ -154,23 +154,19 @@ ObjectRenderer::FramelyData& ObjectRenderer::get_framely() {
 void ObjectRenderer::create_default_pbr_pipeline() {
 }
 
-void on_renderable_construct(entt::registry& r, entt::entity e) {
 
-    printf("entity %d has been attached renderable component\n", e);
-}
-
-void ObjectRenderer::set_entt_registry(entt::registry* registry) {
-    if (m_registry != nullptr) {
+void ObjectRenderer::set_world(flecs::world* world) {
+    if (m_world != nullptr) {
         // handle registry change
         TODO();
     }
-    m_registry = registry;
+    m_world = world;
 
     for(auto& rs : m_render_systems){
-        rs->set_registry(registry);
+        rs->set_world(m_world);
     }
 
-    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server, registry);
+    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server, world);
 }
 
 

@@ -25,9 +25,14 @@ public:
     double get_runtime() const { return m_run_time; }
     u64 get_frame_counter() const { return m_frame_counter; }
 
-    std::unordered_map<std::string, entt::registry>& get_prefabs() { return m_prefabs; }
+    std::unordered_map<std::string, flecs::entity>& get_prefabs() { return m_prefabs; }
 
     static GameEngine* get_instance();
+
+    void load_gltf(vke::CommandBuffer& cmd, const std::string& file_path, const std::string& prefab_name);
+    flecs::entity instantiate_prefab(const std::string& prefab_name,std::optional<Transform> transform);
+
+    flecs::world* get_world();
 
 protected: // virtuals
     virtual void on_render(RenderServer::FrameArgs& args) { default_render(args); }
@@ -41,7 +46,7 @@ protected:
 private:
     std::unique_ptr<vke::Scene> m_scene;
     std::unique_ptr<vke::RenderSystem> m_renderer;
-    std::unordered_map<std::string, entt::registry> m_prefabs;
+    std::unordered_map<std::string, flecs::entity> m_prefabs;
     std::vector<std::shared_ptr<IMenu>> m_menus;
 
     bool m_running      = true;
