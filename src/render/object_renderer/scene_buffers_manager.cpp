@@ -1,6 +1,5 @@
 #include "scene_buffers_manager.hpp"
 
-#include <entt/entt.hpp>
 
 #include <flecs.h>
 #include <flecs/addons/flecs_cpp.h>

@@ -35,7 +35,6 @@ glm::quat random_quaternion() {
 class Game1 : public vke::GameEngine {
 public:
     void populate_scene() {
-        auto* registry = get_scene()->get_registry();
         // auto cube_mesh_id = get_render_server()->get_object_renderer()->get_model_id("cube");
 
         vke::VulkanContext::get_context()->immediate_submit([&](vke::CommandBuffer& cmd) {

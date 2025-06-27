@@ -159,7 +159,7 @@ void on_renderable_construct(entt::registry& r, entt::entity e) {
     printf("entity %d has been attached renderable component\n", e);
 }
 
-void ObjectRenderer::set_entt_registry(flecs::world* world) {
+void ObjectRenderer::set_world(flecs::world* world) {
     if (m_world != nullptr) {
         // handle registry change
         TODO();
@@ -170,7 +170,7 @@ void ObjectRenderer::set_entt_registry(flecs::world* world) {
         rs->set_world(m_world);
     }
 
-    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server, nullptr);
+    m_light_manager = std::make_unique<LightBuffersManager>(m_render_server, world);
 }
 
 

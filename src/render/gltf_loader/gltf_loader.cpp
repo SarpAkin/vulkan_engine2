@@ -1,6 +1,5 @@
 #include "gltf_loader.hpp"
 
-#include <entt/entt.hpp>
 #include <filesystem>
 #include <flecs/addons/flecs_cpp.h>
 

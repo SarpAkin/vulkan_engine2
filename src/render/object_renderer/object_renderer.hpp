@@ -42,7 +42,7 @@ public:
 
     RenderServer* get_render_server() const { return m_render_server; }
 
-    void set_entt_registry(flecs::world* registry);
+    void set_world(flecs::world* registry);
     void render(const RenderArguments& args);
     void update_scene_data(CommandBuffer& cmd);
 

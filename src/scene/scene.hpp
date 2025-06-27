@@ -1,7 +1,6 @@
 #pragma once
 
 #include "camera.hpp"
-#include <entt/entt.hpp>
 
 #include <flecs.h>
 #include <flecs/addons/flecs_cpp.h>
