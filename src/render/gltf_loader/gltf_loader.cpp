@@ -195,7 +195,12 @@ std::optional<flecs::entity> load_gltf_file(vke::CommandBuffer& cmd, flecs::worl
             transform.position[0] = static_cast<float>(node.translation[0]);
             transform.position[1] = static_cast<float>(node.translation[1]);
             transform.position[2] = static_cast<float>(node.translation[2]);
+        }else{
+            transform.position = {0,0,0};
         }
+
+        transform.scale = {1,1,1};
+        transform.rotation = glm::quat(1,0,0,0);
 
         assert(node.rotation.empty());
         assert(node.scale.empty());
