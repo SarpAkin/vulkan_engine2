@@ -62,6 +62,8 @@ std::optional<flecs::entity> load_gltf_file(vke::CommandBuffer& cmd, flecs::worl
 
     auto* resource_manager = renderer->get_resource_manager();
 
+    StencilBuffer stencil = StencilBuffer(1 << 21);
+
     std::string registered_name_prefix = file_path + "$";
 
     auto make_name = [&](const std::string& base_name) {
@@ -168,7 +170,7 @@ std::optional<flecs::entity> load_gltf_file(vke::CommandBuffer& cmd, flecs::worl
 
         set_indicies(builder, primitive.indices);
 
-        return resource_manager->create_mesh(builder.build());
+        return resource_manager->create_mesh(builder.build(&cmd, &stencil));
     };
 
     auto model_ids = vke::map_vec(model.meshes, [&](const tg::Mesh& mesh) {
@@ -194,12 +196,12 @@ std::optional<flecs::entity> load_gltf_file(vke::CommandBuffer& cmd, flecs::worl
             transform.position[0] = static_cast<float>(node.translation[0]);
             transform.position[1] = static_cast<float>(node.translation[1]);
             transform.position[2] = static_cast<float>(node.translation[2]);
-        }else{
-            transform.position = {0,0,0};
+        } else {
+            transform.position = {0, 0, 0};
         }
 
-        transform.scale = {1,1,1};
-        transform.rotation = glm::quat(1,0,0,0);
+        transform.scale    = {1, 1, 1};
+        transform.rotation = glm::quat(1, 0, 0, 0);
 
         assert(node.rotation.empty());
         assert(node.scale.empty());
@@ -232,6 +234,10 @@ std::optional<flecs::entity> load_gltf_file(vke::CommandBuffer& cmd, flecs::worl
         return e;
     });
 
-    return convert_node(0);
+    auto res  = convert_node(0);
+
+    stencil.flush_copies(cmd);
+
+    return res;
 }
 } // namespace vke
