@@ -48,7 +48,7 @@ public:
 
 // Component for rendering
 struct Renderable {
-    const RenderModelID model_id;
+    RenderModelID model_id;
 };
 
 struct CPointLight {

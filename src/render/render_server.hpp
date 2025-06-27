@@ -11,7 +11,6 @@
 #include "common.hpp" // IWYU pragma: export
 #include "render/iobject_renderer.hpp"
 
-#include <entt/entt.hpp>
 
 namespace vke {
 class ObjectRenderer;

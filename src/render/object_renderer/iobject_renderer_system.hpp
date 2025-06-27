@@ -1,10 +1,11 @@
 #pragma once
 
+#include <string>
 #include <vke/fwd.hpp>
 
 #include "../iobject_renderer.hpp"
+#include "fwd.hpp"
 
-#include <string>
 namespace vke {
 
 class IObjectRendererSystem {
@@ -16,7 +17,7 @@ public:
     virtual void render(RenderArguments&)                                      = 0;
 
     virtual void update(vke::CommandBuffer& cmd) = 0;
-    virtual void set_registry(entt::registry* reg) {}
+    virtual void set_world(flecs::world* reg) {}
 
 private:
 };

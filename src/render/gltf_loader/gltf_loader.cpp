@@ -1,9 +1,11 @@
 #include "gltf_loader.hpp"
 
-#include <entt/entt.hpp>
 #include <filesystem>
+#include <flecs/addons/flecs_cpp.h>
 
+#include "flecs/addons/cpp/world.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
+#include "render/object_renderer/object_renderer.hpp"
 #include "render/object_renderer/resource_manager.hpp"
 #include "tiny_gltf.h"
 
@@ -54,9 +56,9 @@ static bool load_gltf_into_model(tg::Model& model, const std::string& file_path)
     return true;
 }
 
-void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer* renderer, const std::string& file_path) {
+std::optional<flecs::entity> load_gltf_file(vke::CommandBuffer& cmd, flecs::world* world, ObjectRenderer* renderer, const std::string& file_path) {
     tg::Model model;
-    if (!load_gltf_into_model(model, file_path)) return;
+    if (!load_gltf_into_model(model, file_path)) return std::nullopt;
 
     auto* resource_manager = renderer->get_resource_manager();
 
@@ -178,42 +180,58 @@ void load_gltf_file(CommandBuffer& cmd, entt::registry* registry, ObjectRenderer
     });
 
     auto create_transformation_from_node = [&](tg::Node& node) {
-        glm::mat4 mat(1);
         if (node.matrix.size() == 16) {
+            glm::mat4 mat(1);
             for (int i = 0; i < 16; i++) {
                 mat[i / 4][i % 4] = static_cast<float>(node.matrix[i]);
             }
-            return mat;
+            return RelativeTransform::decompose_from_matrix(mat);
         }
+
+        RelativeTransform transform;
 
         if (node.translation.size() == 3) {
-            mat[3][0] = static_cast<float>(node.translation[0]);
-            mat[3][1] = static_cast<float>(node.translation[1]);
-            mat[3][2] = static_cast<float>(node.translation[2]);
+            transform.position[0] = static_cast<float>(node.translation[0]);
+            transform.position[1] = static_cast<float>(node.translation[1]);
+            transform.position[2] = static_cast<float>(node.translation[2]);
+        }else{
+            transform.position = {0,0,0};
         }
 
-        return mat;
+        transform.scale = {1,1,1};
+        transform.rotation = glm::quat(1,0,0,0);
+
+        assert(node.rotation.empty());
+        assert(node.scale.empty());
+
+        return transform;
     };
 
-    auto convert_node = vke::make_y_combinator([&](auto& self, int node_index, const glm::mat4& t) -> void {
-        auto& node         = model.nodes.at(node_index);
-        auto transform_mat = t * create_transformation_from_node(node);
+    auto convert_node = vke::make_y_combinator([&](auto& self, int node_index, std::optional<flecs::entity> parent = std::nullopt) -> flecs::entity {
+        auto& node     = model.nodes.at(node_index);
+        auto transform = create_transformation_from_node(node);
 
-        auto transform = Transform::decompose_from_matrix(transform_mat);
-        
+        auto e = world->prefab();
+
+        if (parent.has_value()) {
+            e.child_of(parent.value());
+        }
+
+        e.set<RelativeTransform>(transform);
+
         if (node.mesh != -1) {
-            auto model_id  = model_ids[node.mesh];
-            auto entity = registry->create();
-            registry->emplace<Transform>(entity, transform);
-            registry->emplace<Renderable>(entity, Renderable{model_ids.at(node.mesh)});
+            auto model_id = model_ids[node.mesh];
+
+            e.set<Renderable>(Renderable{model_ids.at(node.mesh)});
         }
 
         for (auto child_index : node.children) {
-            self(child_index, transform_mat);
+            self(child_index, e);
         }
+
+        return e;
     });
 
-    convert_node(0, glm::mat4(1));
+    return convert_node(0);
 }
-
 } // namespace vke

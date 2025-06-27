@@ -304,7 +304,7 @@ void IndirectModelRenderer::initialize_pipelines() {
     resource_manager->create_multi_target_pipeline(ObjectRenderer::pbr_pipeline_name, pipelines);
 }
 
-void IndirectModelRenderer::set_registry(entt::registry* reg) {
-    m_scene_data->set_registry(reg);
+void IndirectModelRenderer::set_world(flecs::world* reg) {
+    m_scene_data->set_world(reg);
 };
 } // namespace vke

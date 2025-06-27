@@ -1,10 +1,12 @@
 #include "game_engine.hpp"
 
 #include "imgui.h"
+#include "render/gltf_loader/gltf_loader.hpp"
 #include "render/object_renderer/object_renderer.hpp"
 #include "render/render_pipeline/defered_render_pipeline.hpp"
 #include "render/render_server.hpp"
 #include "render/render_system.hpp"
+#include "scene/components/transform.hpp"
 #include "scene/scene.hpp"
 
 #include "scene/ui/instantiate_menu.hpp"
@@ -94,4 +96,40 @@ void GameEngine::default_render(RenderServer::FrameArgs& args) { m_renderer->ren
 RenderServer* GameEngine::get_render_server() { return m_renderer->get_render_server(); }
 
 GameEngine* GameEngine::get_instance() { return s_instance; }
+
+void GameEngine::load_gltf(vke::CommandBuffer& cmd, const std::string& file_path, const std::string& prefab_name) {
+    auto entity = vke::load_gltf_file(cmd, m_scene->get_world(), m_renderer->get_render_server()->get_object_renderer(), file_path);
+    if (!entity) {
+        LOG_ERROR("failed to load prefab %s. gltf file path : %s", prefab_name.c_str(), file_path.c_str());
+        return;
+    }
+    entity->set_name(prefab_name.c_str());
+    // m_prefabs.emplace(std::make_pair(prefab_name, entity.value()));
+    m_prefabs[prefab_name] = entity.value();
+}
+
+flecs::entity GameEngine::instantiate_prefab(const std::string& prefab_name, std::optional<Transform> transform) {
+    auto prefab = m_prefabs.at(prefab_name);
+    auto world  = m_scene->get_world();
+
+    auto entity = world->entity().is_a(prefab);
+
+    auto* rel_transform = entity.get<RelativeTransform>();
+
+    auto t1 = transform.value_or(Transform::IDENTITY);
+
+    if (rel_transform) {
+        entity.set<Transform>(t1 * static_cast<Transform>(*rel_transform));
+        entity.remove<RelativeTransform>();
+    } else {
+        entity.set<Transform>(t1);
+    }
+
+    return entity;
+}
+
+flecs::world* GameEngine::get_world() {
+    return m_scene->get_world();
+}
+
 } // namespace vke

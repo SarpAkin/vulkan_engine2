@@ -1,10 +1,10 @@
 #pragma once
 
-#include <entt/entt.hpp>
+#include <flecs.h>
+
 
 namespace vke{
 
 class Transform;
 
-entt::entity instantiate_prefab(entt::registry& scene, const entt::registry& prefab,const std::optional<Transform>& t);
 }

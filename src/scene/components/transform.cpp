@@ -1,6 +1,6 @@
 #include "transform.hpp"
 
-namespace vke{
+namespace vke {
 
 void decompose_matrix(const glm::mat4& matrix, glm::vec3& translation, glm::quat& rotation, glm::vec3& scale) {
     // Extract translation
@@ -23,7 +23,7 @@ void decompose_matrix(const glm::mat4& matrix, glm::vec3& translation, glm::quat
     rotation = glm::quat_cast(rotationMatrix);
 }
 
-glm::mat4 Transform::local_model_matrix(const glm::dvec3& pivot_position) {
+glm::mat4 Transform::local_model_matrix(const glm::dvec3& pivot_position) const {
     auto rel_position = glm::vec3(position - pivot_position);
 
     glm::mat3 mat(1);
@@ -34,7 +34,7 @@ glm::mat4 Transform::local_model_matrix(const glm::dvec3& pivot_position) {
     mat = glm::mat3_cast(rotation) * mat;
 
     glm::mat4 mat4 = mat;
-    mat4[3] = glm::vec4(rel_position,1.0);
+    mat4[3]        = glm::vec4(rel_position, 1.0);
 
     return mat4;
 }
@@ -51,4 +51,23 @@ Transform Transform::decompose_from_matrix(const glm::mat4& mat) {
         .scale    = scale,
     };
 }
+
+Transform::operator RelativeTransform() const {
+    return RelativeTransform{
+        glm::vec3(position), // Cast double to float
+        rotation,
+        scale,
+    };
+}
+
+Transform Transform::operator*(const Transform& other) const {
+    return Transform::decompose_from_matrix(local_model_matrix() * other.local_model_matrix());
+}
+
+const Transform Transform::IDENTITY = {
+    .position = {0, 0, 0},
+    .rotation = glm::quat(1, 0, 0, 0),
+    .scale    = {1, 1, 1},
+};
+
 } // namespace vke

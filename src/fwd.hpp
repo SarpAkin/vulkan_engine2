@@ -22,12 +22,17 @@ class IShadowMap;
 class DirectShadowMap;
 class ShadowManager;
 class GPUTimingSystem;
-class HierarchicalZBuffers; 
+class HierarchicalZBuffers;
 class SceneBuffersManager;
 
-//components
+// components
 class Transform;
-//ui
+// ui
 class IMenu;
 class InstantiateMenu;
 } // namespace vke
+
+namespace flecs {
+struct world;
+struct entity;
+}
