@@ -2,10 +2,10 @@
 
 #include "mesh/mesh_util.hpp"
 #include "mesh/shapes.hpp"
+#include "render/debug/line_drawer.hpp"
 #include "render/imgui/imgui_manager.hpp"
 #include "render/object_renderer/object_renderer.hpp"
 #include "render/object_renderer/resource_manager.hpp"
-#include "render/debug/line_drawer.hpp"
 #include "scene/camera.hpp"
 #include "scene/components/transform.hpp"
 #include "window/window_sdl.hpp"
@@ -31,7 +31,7 @@ void RenderServer::init() {
             .sparseResidencyBuffer = true,
         },
         .features1_2 = {
-            .shaderInt8 = true,
+            .shaderInt8          = true,
             .samplerFilterMinmax = true,
         },
     };
@@ -155,19 +155,19 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     vke::SmallVec<VkSubmitInfo, 8UL> submit_infos;
     submit_infos.reserve(submit_info_datas.size() + 1);
 
-    for(int i = 0;i < submit_info_datas.size();i++){
-        const auto& [cmds,waits] = submit_info_datas[i];
-        auto& signals = m_main_queue_submit_infos[i].signal_semaphore;
+    for (int i = 0; i < submit_info_datas.size(); i++) {
+        const auto& [cmds, waits] = submit_info_datas[i];
+        auto& signals             = m_main_queue_submit_infos[i].signal_semaphore;
 
         submit_infos.push_back(VkSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 
-            .waitSemaphoreCount = static_cast<u32>(waits.size()),
-            .pWaitSemaphores = waits.data(),
-            .commandBufferCount = static_cast<u32>(cmds.size()),
-            .pCommandBuffers = cmds.data(),
+            .waitSemaphoreCount   = static_cast<u32>(waits.size()),
+            .pWaitSemaphores      = waits.data(),
+            .commandBufferCount   = static_cast<u32>(cmds.size()),
+            .pCommandBuffers      = cmds.data(),
             .signalSemaphoreCount = static_cast<u32>(signals.size()),
-            .pSignalSemaphores = signals.data(),
+            .pSignalSemaphores    = signals.data(),
         });
     }
 
@@ -189,6 +189,9 @@ void RenderServer::frame(std::function<void(FrameArgs& args)> render_function) {
     m_main_queue_submit_infos.clear();
 
     if (!m_window->surface()->present()) {
+        VK_CHECK(vkDeviceWaitIdle(device()));
+        m_window->surface()->recrate_swapchain();
+    } else if (!is_equal(m_window->extend(), m_window->surface()->extend())) {
         VK_CHECK(vkDeviceWaitIdle(device()));
         m_window->surface()->recrate_swapchain();
     }
