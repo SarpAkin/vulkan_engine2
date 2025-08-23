@@ -17,7 +17,7 @@ public:
     HierarchicalZBuffers(RenderServer* rd, IImageView* target);
     ~HierarchicalZBuffers();
 
-    void update_mips(vke::CommandBuffer& cmd);
+    void update_mips(vke::CommandBuffer& compute_cmd);
     void update_hzb_proj_view(const glm::mat4& m) { m_hzb_proj_view = m; }
 
     glm::mat4 get_hzb_proj_view() const { return m_hzb_proj_view; }

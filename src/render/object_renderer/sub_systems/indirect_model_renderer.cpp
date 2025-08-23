@@ -3,6 +3,7 @@
 #include <vke/pipeline_loader.hpp>
 #include <vke/vke_builders.hpp>
 
+#include "imgui.h"
 #include "render/object_renderer/render_state.hpp"
 #include "render/render_server.hpp"
 
@@ -23,6 +24,38 @@ IndirectModelRenderer::IndirectModelRenderer(ObjectRenderer* object_renderer) {
     initialize_scene_data();
     initialize_pipelines();
 }
+
+struct IndirectModelRenderer::DebugMenuData {
+    bool menu_open = false;
+};
+
+void IndirectModelRenderer::debug_menu() {
+    if (!m_debug_menu_data) {
+        m_debug_menu_data = std::make_unique<DebugMenuData>(DebugMenuData{
+            .menu_open = false,
+        });
+    }
+
+    if (ImGui::Begin("IndirectModelRenderer", &m_debug_menu_data->menu_open)) {
+        m_query_indirect_render_counters = true;
+
+        ImGui::Text("Stats");
+        for (const auto& [rd_name, data] : m_indirect_render_buffers) {
+            u64 sum       = 0;
+            auto counters = data.host_instance_count_buffers[m_render_server->get_frame_index()]->mapped_data_as_span<u32>();
+            for (auto counter : counters) {
+                sum += counter;
+            }
+
+            ImGui::Text("render target \"%s\": %ld", rd_name.c_str(), sum);
+        }
+
+    } else {
+        m_query_indirect_render_counters = false;
+    }
+    ImGui::End();
+}
+
 IndirectModelRenderer::~IndirectModelRenderer() {}
 
 void IndirectModelRenderer::register_render_target(const std::string& render_target_name) {
@@ -104,7 +137,7 @@ void IndirectModelRenderer::render(RenderArguments& args) {
         .mode = 1,
     };
 
-    //bind the sets for the subpass cmd
+    // bind the sets for the subpass cmd
     cmd.bind_descriptor_set(rd_info->set_indices.view_set, rd_info->view_sets[m_render_server->get_frame_index()]);
     cmd.bind_descriptor_set(rd_info->set_indices.render_system_set, draw_data->indirect_render_sets[m_render_server->get_frame_index()]);
 
@@ -163,7 +196,7 @@ void IndirectModelRenderer::render(RenderArguments& args) {
 
     compute_cmd.bind_pipeline(m_cull_pipeline.get());
 
-    //bind the sets for the compute cmd
+    // bind the sets for the compute cmd
     compute_cmd.bind_descriptor_set(rd_info->set_indices.view_set, rd_info->view_sets[m_render_server->get_frame_index()]);
     compute_cmd.bind_descriptor_set(rd_info->set_indices.render_system_set, draw_data->indirect_render_sets[m_render_server->get_frame_index()]);
 
@@ -233,6 +266,8 @@ void IndirectModelRenderer::render(RenderArguments& args) {
 }
 
 void IndirectModelRenderer::update(vke::CommandBuffer& cmd) {
+    debug_menu();
+    
     m_scene_data->updates_for_indirect_render(cmd);
 }
 
