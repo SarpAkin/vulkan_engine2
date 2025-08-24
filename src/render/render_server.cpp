@@ -48,7 +48,7 @@ void RenderServer::init() {
     m_imgui_manager = std::make_unique<ImguiManager>(m_window.get(), m_window_renderpass.get(), 0);
     dynamic_cast<WindowSDL*>(m_window.get())->set_imgui_manager(m_imgui_manager.get());
 
-    m_pipeline_loader = vke::IPipelineLoader::make_debug_loader("src/");
+    m_pipeline_loader = vke::IPipelineLoader::make_debug_loader("./");
 
     auto pg_provider = std::make_unique<vke::PipelineGlobalsProvider>();
     pg_provider->subpasses.emplace("vke::default_forward", std::make_unique<SubpassDetails>(*m_window_renderpass->get_subpass(0)));
