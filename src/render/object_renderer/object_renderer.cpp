@@ -52,7 +52,6 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
     pg_provider->set_layouts["vke::object_renderer::material_set"] = m_resource_manager->get_material_set_layout();
     pg_provider->set_layouts["vke::object_renderer::view_set"]     = m_view_set_layout;
 
-
     for (auto& framely : m_framely_data) {
     }
 
@@ -67,7 +66,7 @@ static bool indirect_render_enabled = true;
 void ObjectRenderer::update_scene_data(CommandBuffer& cmd) {
     m_light_manager->flush_pending_lights(cmd);
 
-    for(auto& rs : m_render_systems){
+    for (auto& rs : m_render_systems) {
         rs->update(cmd);
     }
 }
@@ -78,7 +77,17 @@ void ObjectRenderer::render(const RenderArguments& args) {
 
     auto args_copy = args;
 
-    for(auto& rs : m_render_systems){
+    if(rd->hzb){
+        m_render_server->get_gpu_timing_system()->timestamp(*args.compute_cmd, "hzb mip building start", VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        //update proj view must be called after than update view set.
+        //update view set requires the old value
+        rd->hzb->update_hzb_proj_view(rd->info.camera->proj_view());
+        rd->hzb->update_mips(*args.compute_cmd);
+
+        m_render_server->get_gpu_timing_system()->timestamp(*args.compute_cmd, "hzb mip building end", VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    }
+
+    for (auto& rs : m_render_systems) {
         rs->render(args_copy);
     }
 }
@@ -98,7 +107,7 @@ void ObjectRenderer::create_render_target(const std::string& name, const std::st
 
     m_render_targets[name] = std::move(target);
 
-    for(auto& rs : m_render_systems){
+    for (auto& rs : m_render_systems) {
         rs->register_render_target(name);
     }
 }
@@ -154,7 +163,6 @@ ObjectRenderer::FramelyData& ObjectRenderer::get_framely() {
 void ObjectRenderer::create_default_pbr_pipeline() {
 }
 
-
 void ObjectRenderer::set_world(flecs::world* world) {
     if (m_world != nullptr) {
         // handle registry change
@@ -162,13 +170,12 @@ void ObjectRenderer::set_world(flecs::world* world) {
     }
     m_world = world;
 
-    for(auto& rs : m_render_systems){
+    for (auto& rs : m_render_systems) {
         rs->set_world(m_world);
     }
 
     m_light_manager = std::make_unique<LightBuffersManager>(m_render_server, world);
 }
-
 
 IBuffer* ObjectRenderer::get_view_buffer(const std::string& render_target_name, int frame_index) const {
     assert(frame_index >= 0 && frame_index < FRAME_OVERLAP);
@@ -190,4 +197,5 @@ void ObjectRenderer::set_camera(const std::string& render_target, Camera* camera
 void ObjectRenderer::create_render_systems() {
     add_render_system(std::make_unique<vke::IndirectModelRenderer>(this));
 }
+
 } // namespace vke

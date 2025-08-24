@@ -27,6 +27,7 @@ private:
     void initialize_scene_data();
     void initialize_pipelines();
 
+    void debug_menu();
 private:
     struct IndirectRenderBuffers {
         std::unique_ptr<vke::Buffer> indirect_draw_buffer;
@@ -47,6 +48,7 @@ private:
         VkDescriptorSet indirect_render_sets[2];
     };
 
+    struct DebugMenuData;
 private:
     ObjectRenderer* m_object_renderer = nullptr;
     RenderServer* m_render_server     = nullptr;
@@ -58,6 +60,8 @@ private:
 
     RCResource<vke::IPipeline> m_cull_pipeline;
     RCResource<vke::IPipeline> m_indirect_draw_command_gen_pipeline;
+
+    std::unique_ptr<DebugMenuData> m_debug_menu_data;
 
     bool m_query_indirect_render_counters = true;
 };
