@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.30)
 project(vke_playground)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
 
 # Set the library name and source files
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")
@@ -34,12 +35,13 @@ add_subdirectory(submodules/vke_core)
 add_subdirectory(submodules/flecs)
 
 include_directories(
-    src/
-    
     submodules/glm
     submodules/entt/src
     submodules/flecs/include
     submodules/imgui
+    PRIVATE
+    src/
+    pch/
 )
 
 # Optionally, specify additional linker options or dependencies
@@ -52,11 +54,13 @@ target_link_libraries("1.out"
     ${SDL2_LIBRARIES}
 )
 
+# Precompiled headers
+target_precompile_headers("1.out" PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:pch.hpp>")
 
-if(CMAKE_BUILD_TYPE STREQUAL "DebugOnlyEngine")
-    target_compile_options("1.out" PRIVATE -O0 -g)
+# if(CMAKE_BUILD_TYPE STREQUAL "DebugOnlyEngine")
+#     target_compile_options("1.out" PRIVATE -O0 -g)
 
-    set_target_properties(vke PROPERTIES
-        COMPILE_FLAGS "-O3 -g"
-    )
-endif()
+#     set_target_properties(vke PROPERTIES
+#         COMPILE_FLAGS "-O3 -g"
+#     )
+# endif()
