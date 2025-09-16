@@ -12,6 +12,7 @@
 
 #include "render/debug/gpu_timing_system.hpp"
 
+#include <filesystem>
 #include <vke/pipeline_loader.hpp>
 #include <vke/util.hpp>
 #include <vke/vke.hpp>
@@ -48,11 +49,14 @@ void RenderServer::init() {
     m_imgui_manager = std::make_unique<ImguiManager>(m_window.get(), m_window_renderpass.get(), 0);
     dynamic_cast<WindowSDL*>(m_window.get())->set_imgui_manager(m_imgui_manager.get());
 
-    m_pipeline_loader = vke::IPipelineLoader::make_debug_loader("./");
+    fs::path vke_engine_path = "submodules/vke_engine/"; 
+
+    m_pipeline_loader = vke::IPipelineLoader::make_debug_loader({"./src/",vke_engine_path / "src/render/shader"});
 
     auto pg_provider = std::make_unique<vke::PipelineGlobalsProvider>();
     pg_provider->subpasses.emplace("vke::default_forward", std::make_unique<SubpassDetails>(*m_window_renderpass->get_subpass(0)));
     pg_provider->vertex_input_descriptions.emplace("vke::default_mesh", vke::make_default_vertex_layout());
+    pg_provider->shader_compiler->add_system_include_dir("submodules/vke_engine/src/render/shader/include/");
 
     m_pipeline_loader->set_pipeline_globals_provider(std::move(pg_provider));
 

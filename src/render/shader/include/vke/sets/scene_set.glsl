@@ -56,6 +56,4 @@ layout(set = SCENE_SET, binding = 8, std430) readonly buffer BufferS4_MeshData {
     MeshData meshes[];
 };
 
-
-
 #endif

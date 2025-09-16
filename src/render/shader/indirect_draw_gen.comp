@@ -4,8 +4,8 @@
 #define COMPUTE_SHADER
 #endif
 
-#include "scene_data.h"
-#include "scene_set.glsl"
+#include <vke/sets/scene_set.glsl>
+
 
 #extension GL_EXT_debug_printf : enable
 

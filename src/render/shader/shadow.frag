@@ -1,12 +1,11 @@
 #version 450
 
-#include "material_set.glsl"
-#include "scene_set.glsl"
+#include <vke/sets/material_set.glsl>
+#include <vke/sets/scene_set.glsl>
+#include <vke/sets/view_set.glsl>
 
-layout(location = 0) in vec3 f_color;
-layout(location = 1) in vec2 f_texture_coord;
-layout(location = 2) in vec3 f_normal;
-layout(location = 3) in vec3 f_position;
+#include <vke/fs_io/default.glsl>
+#include <vke/fs_output/default.glsl>
 
 void main() {
 #ifdef ALPHA_DISCARD

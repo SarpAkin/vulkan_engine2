@@ -1,17 +1,11 @@
 #version 450
 
-#include "scene_set.glsl"
-#include "view_set.glsl"
-#include "material_set.glsl"
+#include <vke/sets/material_set.glsl>
+#include <vke/sets/scene_set.glsl>
+#include <vke/sets/view_set.glsl>
 
-layout(location = 0) in vec3 f_color;
-layout(location = 1) in vec2 f_texture_coord;
-layout(location = 2) in vec3 f_normal;
-layout(location = 3) in vec3 f_position;
-
-layout(location = 0) out vec4 o_color;
-
-
+#include <vke/fs_io/default.glsl>
+#include <vke/fs_output/default.glsl>
 
 #define LIGHT
 #ifdef LIGHT
@@ -33,7 +27,7 @@ layout(location = 0) out vec4 o_color;
 float calculate_light_strength(vec3 light_dir, vec3 normal, vec3 view_dir);
 
 vec3 calculate_total_light(vec3 world_pos, vec3 normal, vec3 view_dir) {
-    return vec3(0,0,0);
+    return vec3(0, 0, 0);
     // vec3 total_light = vec3(0);
 
     // //calculate point lights
@@ -52,12 +46,11 @@ vec3 calculate_total_light(vec3 world_pos, vec3 normal, vec3 view_dir) {
     //         // total_light += normalize(light_dir);
     //     }
 
-        
     // }
 
     // //calculate directional light
     // total_light += calculate_light_strength(lights.directional_light.dir.xyz, normal, view_dir) * lights.directional_light.color.xyz;
-    
+
     // //add ambient light
     // total_light += lights.ambient_light.xyz;
 
@@ -70,7 +63,7 @@ vec3 calculate_total_light(vec3 world_pos, vec3 normal, vec3 view_dir) {
 
 // light_dir is from light to surface
 float calculate_light_strength(vec3 light_dir, vec3 normal, vec3 view_dir) {
-    float diffuse  = clamp(dot(normal, -light_dir), 0.05, 1.0);
+    float diffuse = clamp(dot(normal, -light_dir), 0.05, 1.0);
     diffuse *= 0.9;
 
     vec3 reflect_dir = reflect(-light_dir, normal);
@@ -84,22 +77,22 @@ void main() {
     vec3 view_pos = vec3(scene_view.view_world_pos.xyz);
     vec3 view_dir = normalize(f_position - view_pos);
 
-    vec3 albedo = texture(textures[0], f_texture_coord).xyz;
+    vec3 albedo = texture(textures[0], f_uvs).xyz;
 
-    o_color = vec4(albedo, 1);
-    // o_color = vec4(1);
+    o_albedo = vec4(albedo, 1);
+    // o_albedo = vec4(1);
 
     vec3 light = calculate_total_light(f_position, f_normal, view_dir);
 
-    o_color = vec4(albedo * light, 1.0);
+    o_albedo = vec4(albedo * light, 1.0);
 
-    // o_color = vec4(f_normal * 0.5 + 0.5, 1) * vec4(0,1,0,1);
-    // o_color.y = step(0.6,o_color.y);
-    // o_color = vec4(f_normal * 0.5 + 0.5, 1);
-    // o_color = vec4(f_normal , 1);
-    // o_color = vec4(light ,1.0);
+    // o_albedo = vec4(f_normal * 0.5 + 0.5, 1) * vec4(0,1,0,1);
+    // o_albedo.y = step(0.6,o_albedo.y);
+    // o_albedo = vec4(f_normal * 0.5 + 0.5, 1);
+    // o_albedo = vec4(f_normal , 1);
+    // o_albedo = vec4(light ,1.0);
 
-    // o_color = vec4(vec3(dot(f_normal,-light)),1.0);
+    // o_albedo = vec4(vec3(dot(f_normal,-light)),1.0);
 
-    // o_color = vec4(view_dir * 0.5 + 0.5,1.0);
+    // o_albedo = vec4(view_dir * 0.5 + 0.5,1.0);
 }

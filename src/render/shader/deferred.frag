@@ -5,7 +5,8 @@
 
 #define PI 3.141592653589793
 
-#include "scene_data.h"
+#include <vke/sets/scene_data.h>
+#include <vke/util/hash.glsl>
 
 layout(set = DEFERRED_SET, binding = 0) uniform sampler2D textures[3];
 
@@ -72,14 +73,7 @@ float quad_average(float n) {
     return n;
 }
 
-uint permutate(uint x) {
-    x = (x ^ 61) ^ (x >> 16);
-    x *= 9;
-    x ^= (x >> 4);
-    x *= 0x27d4eb2d;
-    x ^= (x >> 15);
-    return x;
-}
+uint permutate(uint x) { return hash(x); }
 
 vec2 calculate_direct_light_shadow(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 view_dir, int cascade_index) {
     // config
@@ -90,13 +84,14 @@ vec2 calculate_direct_light_shadow(vec4 world_pos4, vec3 world_pos, vec3 normal,
 
     // normal offsetting
     world_pos4.xyz += normal * (normal_offset_value * world_pos4.w * (cascade_index + 1));
+    // world_pos4 = vec4(world_pos + normal * (normal_offset_value * (cascade_index + 1)), 1.0);
 
     vec4 shadow_pos4 = lights.directional_light.proj_view[cascade_index] * world_pos4;
     vec3 shadow_pos  = shadow_pos4.xyz / shadow_pos4.w;
 
     vec2 dist2border2 = 1.0 - abs(shadow_pos.xy);
     float dist2border = min(dist2border2.x, dist2border2.y);
-    dist2border = 1.0;
+    dist2border       = 1.0;
 
     if (dist2border < 0.f) {
         return vec2(0.0, dist2border);
@@ -104,7 +99,7 @@ vec2 calculate_direct_light_shadow(vec4 world_pos4, vec3 world_pos, vec3 normal,
 
     // shadow_pos.z = .0;
 
-    vec2 shadow_uv              = vec2(shadow_pos.xy * 0.5 + 0.5);
+    vec2 shadow_uv = vec2(shadow_pos.xy * 0.5 + 0.5);
     // float shadow_map_resolution = 4096;
 
     // shadow_uv = floor(shadow_uv * shadow_map_resolution) / shadow_map_resolution;
@@ -127,20 +122,20 @@ vec2 calculate_direct_light_shadow(vec4 world_pos4, vec3 world_pos, vec3 normal,
     for (int i = 0; i < sample_count; i++) {
         seed              = permutate(seed + i);
         vec2 poisson_disc = poisson_table[seed % poisson_table_size];
-        is_lit += texture(shadow_maps[0], vec4(shadow_uv + poisson_disc * poisson_mul,cascade_index,shadow_pos.z + bias));
+        is_lit += texture(shadow_maps[0], vec4(shadow_uv + poisson_disc * poisson_mul, cascade_index, shadow_pos.z + bias));
     }
 
     is_lit /= sample_count;
 #else
-    float is_lit = texture(shadow_maps[0], vec4(shadow_uv,cascade_index,shadow_pos.z + bias));
+    float is_lit = texture(shadow_maps[0], vec4(shadow_uv, cascade_index, shadow_pos.z + bias));
 #endif
 
     return vec2(is_lit, dist2border);
 }
 
-int determine_cascade_index(float clip_z){
-    for(int i = 0;i < 4;i++){
-        if(clip_z > lights.directional_light.min_zs_for_cascades[i]){
+int determine_cascade_index(float clip_z) {
+    for (int i = 0; i < 4; i++) {
+        if (clip_z > lights.directional_light.min_zs_for_cascades[i]) {
             return i;
         }
     }
@@ -171,7 +166,7 @@ vec3 calculate_direct_light(vec4 world_pos4, vec3 world_pos, vec3 normal, vec3 v
     // }
 
     int cascade = determine_cascade_index(clip.z);
-    is_lit = calculate_direct_light_shadow(world_pos4, world_pos, normal, view_dir, cascade).x;
+    is_lit      = calculate_direct_light_shadow(world_pos4, world_pos, normal, view_dir, cascade).x;
 
     is_lit = quad_average(is_lit);
 
@@ -257,4 +252,5 @@ void main() {
     // o_color = vec4(pow(texture(textures[2],f_uv).x,1).xxx,1.0);
     // o_color = mix(o_color, debug_color, 1.0);
     // o_color = vec4(albedo,1.0);
+    // o_color = vec4(normal,1.0);
 }
