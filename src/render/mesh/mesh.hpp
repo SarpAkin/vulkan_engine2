@@ -30,9 +30,8 @@ struct AABB {
     glm::vec3 mip_point() const { return start + half_size(); }
 };
 
-
 // this is for caching vkBuffers and their offsets that normally comes from IBufferSpan's virtual getters called at CommandBuffer::bind_vertex_buffers when an array it is passed.
-// it avoids costly virtual calls by caching them 
+// it avoids costly virtual calls by caching them
 class VertexBufferArrayCache {
 public:
     VertexBufferArrayCache(auto&& ibuffer_ptrs /*an itertable of IBufferSpan* or std::unique_ptr<IBufferSpan> */) {
@@ -102,7 +101,9 @@ public:
     void set_indicies(std::span<uint16_t> span);
     void set_indicies(std::span<uint32_t> span);
 
-    Mesh build(vke::CommandBuffer* = nullptr,StencilBuffer* stencil = nullptr) const;
+    Mesh build(vke::CommandBuffer* = nullptr, StencilBuffer* stencil = nullptr) const;
+
+    void calculate_boundary();
 
 private:
     std::span<glm::vec3> m_positions       = {};
@@ -110,7 +111,7 @@ private:
     std::span<glm::vec2> m_texture_coords  = {};
     std::span<uint8_t> m_indicies_in_bytes = {};
     VkIndexType m_index_type;
-    AABB m_boundary = {};
+    AABB m_boundary = AABB{.start = glm::vec3(NAN), .end = glm::vec3(NAN)};
 };
 
 } // namespace vke
