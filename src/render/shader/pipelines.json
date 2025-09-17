@@ -17,8 +17,8 @@
         "vke::object_renderer::material_set": 2
       },
       "shader_files": [
-        "default.vert",
-        "default.frag"
+        "@vke/default.vert",
+        "@vke/default.frag"
       ]
     },
     {
@@ -38,8 +38,8 @@
         "vke::object_renderer::material_set": 2
       },
       "shader_files": [
-        "default.vert",
-        "gpass.frag"
+        "@vke/default.vert",
+        "@vke/gpass.frag"
       ]
     },
     {
@@ -56,8 +56,8 @@
       },
       "set_layouts": {},
       "shader_files": [
-        "debug_line.vert",
-        "debug_line.frag"
+        "@vke/debug_line.vert",
+        "@vke/debug_line.frag"
       ]
     },
     {
@@ -79,7 +79,7 @@
         "vke::object_renderer::material_set": 2
       },
       "shader_files": [
-        "default.vert"
+        "@vke/default.vert"
       ]
     },
     {
@@ -95,8 +95,8 @@
         "vke::deferred_render_set": 0
       },
       "shader_files": [
-        "deferred.vert",
-        "deferred.frag"
+        "@vke/deferred.vert",
+        "@vke/deferred.frag"
       ]
     },
     {
@@ -107,7 +107,7 @@
         "vke::indirect_scene_set_layout": 1
       },
       "shader_files": [
-        "cull_shader.comp"
+        "@vke/cull_shader.comp"
       ]
     },
     {
@@ -118,7 +118,7 @@
         "vke::indirect_scene_set_layout": 1
       },
       "shader_files": [
-        "indirect_draw_gen.comp"
+        "@vke/indirect_draw_gen.comp"
       ]
     },
     {
@@ -128,8 +128,8 @@
         "vke::depth_mip_chain_set": 0
       },
       "shader_files": [
-        "depth_mip_chain.comp"
-      ]
+        "@vke/depth_mip_chain.comp"
+      ] 
     }
   ]
 }

@@ -49,14 +49,18 @@ void RenderServer::init() {
     m_imgui_manager = std::make_unique<ImguiManager>(m_window.get(), m_window_renderpass.get(), 0);
     dynamic_cast<WindowSDL*>(m_window.get())->set_imgui_manager(m_imgui_manager.get());
 
-    fs::path vke_engine_path = "submodules/vke_engine/"; 
+    fs::path vke_engine_path = "submodules/vke_engine/";
 
-    m_pipeline_loader = vke::IPipelineLoader::make_debug_loader({"./src/",vke_engine_path / "src/render/shader"});
+    m_pipeline_loader = vke::IPipelineLoader::make_debug_loader(IPipelineLoader::DebugLoaderArguments{
+        .pipeline_search_paths = {"./src/", vke_engine_path / "src/render/shader"},
+        .shader_lib_paths      = {vke_engine_path / "src/render/shader/shader_lib"},
+        .reloadable = true,
+    });
 
     auto pg_provider = std::make_unique<vke::PipelineGlobalsProvider>();
     pg_provider->subpasses.emplace("vke::default_forward", std::make_unique<SubpassDetails>(*m_window_renderpass->get_subpass(0)));
     pg_provider->vertex_input_descriptions.emplace("vke::default_mesh", vke::make_default_vertex_layout());
-    pg_provider->shader_compiler->add_system_include_dir("submodules/vke_engine/src/render/shader/include/");
+    pg_provider->shader_compiler->add_system_include_dir((vke_engine_path / "src/render/shader/include/").string());
 
     m_pipeline_loader->set_pipeline_globals_provider(std::move(pg_provider));
 
