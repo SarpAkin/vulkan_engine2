@@ -25,6 +25,7 @@ void RenderServer::init() {
     vke::ContextConfig config{
         .app_name    = "app0",
         .features1_0 = {
+            .tessellationShader    = true,
             .shaderFloat64         = true,
             .shaderInt64           = true,
             .shaderInt16           = true,
