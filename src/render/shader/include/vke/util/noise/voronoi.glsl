@@ -3,14 +3,6 @@
 
 #include "../hash.glsl"
 
-vec3 uint2vec3(uint i) {
-    return vec3(
-        float((i >> 00) & 0x3FF) / 1023.0,
-        float((i >> 10) & 0x7FF) / 2047.0,
-        float((i >> 21) & 0x7FF) / 2047.0 //
-    );
-}
-
 vec2 voronoi_noise(vec3 pos, uint seed) {
     uvec3 cell = uvec3(ivec3(floor(pos)));
     vec3 f     = fract(pos);

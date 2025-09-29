@@ -12,4 +12,12 @@ uint hash(uint x) {
     return x;
 }
 
+vec3 uint2vec3(uint i) {
+    return vec3(
+        float((i >> 00) & 0x3FF) / 1023.0,
+        float((i >> 10) & 0x7FF) / 2047.0,
+        float((i >> 21) & 0x7FF) / 2047.0 //
+    );
+}
+
 #endif
