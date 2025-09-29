@@ -1,9 +1,13 @@
 #ifndef SCENE_SET_H
 #define SCENE_SET_H
 
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_ARB_gpu_shader_int64 : enable
+#extension GL_ARB_gpu_shader_fp64 : require
+
+
 #include "scene_data.h"
 
-#extension GL_EXT_scalar_block_layout : require
 
 #ifndef SCENE_SET
 #define SCENE_SET 1

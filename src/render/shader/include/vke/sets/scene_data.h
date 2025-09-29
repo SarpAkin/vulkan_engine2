@@ -10,6 +10,7 @@
 using namespace glm;
 #else
 #extension GL_ARB_gpu_shader_int64 : enable
+#extension GL_ARB_gpu_shader_fp64 : require
 
 #endif
 
