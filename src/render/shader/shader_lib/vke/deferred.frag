@@ -224,6 +224,12 @@ layout(location = 0) in vec2 f_uv;
 
 layout(location = 0) out vec4 o_color;
 
+vec3 norm2col(vec3 n){
+    // return n*0.5+0.5;
+    return (n * inversesqrt(max(abs(n),0.01))) * 0.5 + 0.5;
+}
+
+
 void main() {
     vec3 albedo = texture(textures[0], f_uv).xyz;
     vec3 normal = texture(textures[1], f_uv).xyz;
@@ -252,5 +258,6 @@ void main() {
     // o_color = vec4(pow(texture(textures[2],f_uv).x,1).xxx,1.0);
     // o_color = mix(o_color, debug_color, 1.0);
     // o_color = vec4(albedo,1.0);
-    // o_color = vec4(normal,1.0);
+    // o_color = vec4(norm2col(normal),1.0);
+
 }
