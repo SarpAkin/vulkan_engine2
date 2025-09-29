@@ -23,36 +23,36 @@ vec3 grad_vec572(uint hash) {
             vec3(01, -1, 00),
             vec3(-1, -1, 00),
 
-            vec3(01, 00, 01),
-            vec3(-1, 00, 01),
-            vec3(01, 00, -1),
-            vec3(-1, 00, -1),
+        vec3(01, 00, 01),
+        vec3(-1, 00, 01),
+        vec3(01, 00, -1),
+        vec3(-1, 00, -1),
 
-            vec3(00, 01, 01),
-            vec3(00, -1, 01),
-            vec3(00, 01, -1),
-            vec3(00, -1, -1),
+        vec3(00, 01, 01),
+        vec3(00, -1, 01),
+        vec3(00, 01, -1),
+        vec3(00, -1, -1),
 
-            vec3(01, 01, 00), // 0 u v
-            vec3(00, -1, 01), // v u 0
-            vec3(-1, 01, 00), // 0 u v
-            vec3(00, -1, -1), // v u 0
-        };
+        vec3(01, 01, 00), // 0 u v
+        vec3(00, -1, 01), // v u 0
+        vec3(-1, 01, 00), // 0 u v
+        vec3(00, -1, -1), // v u 0
+    };
 
     return table[hash & 15];
 }
 
 float grad572(uint hash, float x, float y, float z) {
     return dot(vec3(x, y, z), grad_vec572(hash));
-    uint h = hash & 15; // CONVERT LO 4 BITS OF HASH CODE
+    uint h  = hash & 15;     // CONVERT LO 4 BITS OF HASH CODE
     float u = h < 8 ? x : y; // INTO 12 GRADIENT DIRECTIONS.
     float v = h < 4 ? y : ((h == 12 || h == 14) ? x : z);
     return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
 }
 
 float perlin_noise(vec3 p, uint seed) {
-    uvec3 I = uvec3(ivec3(floor(p)));
-    vec3 F = fract(p);
+    uvec3 I    = uvec3(ivec3(floor(p)));
+    vec3 F     = fract(p);
     vec3 faded = fade572(F);
     float x = F.x, y = F.y, z = F.z;
 
@@ -70,7 +70,7 @@ float perlin_noise(vec3 p, uint seed) {
 }
 
 vec4 perlin_noise_gradient2(vec3 p, uint seed) {
-    const float h = 0.001;
+    const float h  = 0.001;
     const float ih = 1000;
 
     float v = perlin_noise(p, seed);
@@ -82,9 +82,9 @@ vec4 perlin_noise_gradient2(vec3 p, uint seed) {
 }
 
 vec4 perlin_noise_gradient(vec3 p, uint seed) {
-    uvec3 I = uvec3(ivec3(floor(p)));
-    vec3 F = fract(p);
-    vec3 faded = fade572(F);
+    uvec3 I      = uvec3(ivec3(floor(p)));
+    vec3 F       = fract(p);
+    vec3 faded   = fade572(F);
     vec3 d_faded = d_fade572(F);
     float x = F.x, y = F.y, z = F.z;
 
@@ -119,43 +119,28 @@ vec4 perlin_noise_gradient(vec3 p, uint seed) {
     n += vw * (dot011 - dot001 - dot010 + dot000);
     n += uvw * (dot111 - dot011 - dot101 + dot001 - dot110 + dot010 + dot100 - dot000);
 
-    float dx = g000.x;
-    dx += u * (g100.x - g000.x);
-    dx += v * (g010.x - g000.x);
-    dx += w * (g001.x - g000.x);
-    dx += uv * (g110.x - g010.x - g100.x + g000.x);
-    dx += uw * (g101.x - g001.x - g100.x + g000.x);
-    dx += vw * (g011.x - g001.x - g010.x + g000.x);
-    dx += uvw * (g111.x - g011.x - g101.x + g001.x - g110.x + g010.x + g100.x - g000.x);
+    vec3 d_base = g000;
+    d_base += u * (g100 - g000);
+    d_base += v * (g010 - g000);
+    d_base += w * (g001 - g000);
+    d_base += uv * (g110 - g010 - g100 + g000);
+    d_base += uw * (g101 - g001 - g100 + g000);
+    d_base += vw * (g011 - g001 - g010 + g000);
+    d_base += uvw * (g111 - g011 - g101 + g001 - g110 + g010 + g100 - g000);
 
+    float dx = d_base.x;
     dx += du * (dot100 - dot000);
     dx += du * v * (dot110 - dot010 - dot100 + dot000);
     dx += du * w * (dot101 - dot001 - dot100 + dot000);
     dx += du * vw * (dot111 - dot011 - dot101 + dot001 - dot110 + dot010 + dot100 - dot000);
 
-    float dy = g000.y;
-    dy += u * (g100.y - g000.y);
-    dy += v * (g010.y - g000.y);
-    dy += w * (g001.y - g000.y);
-    dy += uv * (g110.y - g010.y - g100.y + g000.y);
-    dy += uw * (g101.y - g001.y - g100.y + g000.y);
-    dy += vw * (g011.y - g001.y - g010.y + g000.y);
-    dy += uvw * (g111.y - g011.y - g101.y + g001.y - g110.y + g010.y + g100.y - g000.y);
-
+    float dy = d_base.y;
     dy += dv * (dot010 - dot000);
     dy += dv * u * (dot110 - dot010 - dot100 + dot000);
     dy += dv * w * (dot011 - dot001 - dot010 + dot000);
     dy += dv * uw * (dot111 - dot011 - dot101 + dot001 - dot110 + dot010 + dot100 - dot000);
 
-    float dz = g000.z;
-    dz += u * (g100.z - g000.z);
-    dz += v * (g010.z - g000.z);
-    dz += w * (g001.z - g000.z);
-    dz += uv * (g110.z - g010.z - g100.z + g000.z);
-    dz += uw * (g101.z - g001.z - g100.z + g000.z);
-    dz += vw * (g011.z - g001.z - g010.z + g000.z);
-    dz += uvw * (g111.z - g011.z - g101.z + g001.z - g110.z + g010.z + g100.z - g000.z);
-
+    float dz = d_base.z;
     dz += dw * (dot001 - dot000);
     dz += dw * u * (dot101 - dot001 - dot100 + dot000);
     dz += dw * v * (dot011 - dot001 - dot010 + dot000);
@@ -167,10 +152,10 @@ vec4 perlin_noise_gradient(vec3 p, uint seed) {
 float layered_perlin_noise(vec3 p, uint seed, uint levels) {
     float total = 0.0;
 
-    float freq = 1.0, amp = 0.5 /* we set amp to 0.5 to compensate for the added range*/ ;
+    float freq = 1.0, amp = 0.5 /* we set amp to 0.5 to compensate for the added range*/;
 
     for (int i = 0; i < levels; i++) {
-        total += perlin_noise(p * freq, seed + i);
+        total += perlin_noise(p * freq, seed + i) * amp;
         freq *= 2.0;
         amp *= 0.5;
     }
@@ -182,10 +167,11 @@ float layered_perlin_noise(vec3 p, uint seed, uint levels) {
 vec4 layered_perlin_noise_gradient(vec3 p, uint seed, uint levels) {
     vec4 total = vec4(0.0);
 
-    float freq = 1.0, amp = 0.5 /* we set amp to 0.5 to compensate for the added range*/ ;
+    float freq = 1.0, amp = 0.5 /* we set amp to 0.5 to compensate for the added range*/;
 
     for (int i = 0; i < levels; i++) {
-        total += perlin_noise_gradient(p * freq, seed + i);
+        total += perlin_noise_gradient(p * freq, seed + i) * amp;
+        // total += vec4(1.0,0,0,0) * amp;
         freq *= 2.0;
         amp *= 0.5;
     }
