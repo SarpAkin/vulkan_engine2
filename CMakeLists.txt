@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.30)
-project(vke_playground)
+cmake_minimum_required(VERSION 3.24)
+project(vke_engine)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
@@ -23,13 +23,14 @@ list(APPEND SRC_FILES
 )
 
 
+set(VKE_ENGINE_INCLUDE "include")
+
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
 find_package(Vulkan REQUIRED)
 
-# Create the shared library
-add_executable("1.out" ${SRC_FILES})
+add_library("vke_engine" ${SRC_FILES})
 
 add_subdirectory(submodules/vke_core)
 add_subdirectory(submodules/flecs)
@@ -47,7 +48,7 @@ include_directories(
 # Optionally, specify additional linker options or dependencies
 # target_link_libraries(${LIBRARY_NAME} <dependency>)
 
-target_link_libraries("1.out"
+target_link_libraries(vke_engine PUBLIC
     ${Vulkan_LIBRARIES} 
     vke
     flecs
@@ -55,10 +56,19 @@ target_link_libraries("1.out"
 )
 
 # Precompiled headers
-target_precompile_headers("1.out" PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:pch.hpp>")
+target_precompile_headers("vke_engine" PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:pch.hpp>")
+
+target_include_directories(vke_engine PUBLIC 
+    submodules/glm
+    submodules/flecs/include
+    submodules/imgui
+    include/
+    src/
+)
+
 
 # if(CMAKE_BUILD_TYPE STREQUAL "DebugOnlyEngine")
-#     target_compile_options("1.out" PRIVATE -O0 -g)
+#     target_compile_options(vke_engine PRIVATE -O0 -g)
 
 #     set_target_properties(vke PROPERTIES
 #         COMPILE_FLAGS "-O3 -g"

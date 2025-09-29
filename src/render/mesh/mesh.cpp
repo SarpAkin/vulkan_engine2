@@ -1,5 +1,6 @@
 #include "mesh.hpp"
 
+#include <cmath>
 #include <cstring>
 #include <vke/util.hpp>
 #include <vke/vke.hpp>
@@ -57,9 +58,23 @@ Mesh MeshBuilder::build(vke::CommandBuffer* cmd, StencilBuffer* stencil) const {
         mesh.index_count = m_positions.size();
     }
 
+    assert(!std::isnan(m_boundary.start.x) && "set the boundary or calculate the boundary");
+
     mesh.boundary = m_boundary;
 
     mesh.update_vba();
     return mesh;
+}
+
+void MeshBuilder::calculate_boundary() {
+    glm::vec3 min = glm::vec3(INFINITY), max = glm::vec3(-INFINITY);
+
+    for (const auto& p : m_positions) {
+        min = glm::min(p, min);
+        max = glm::max(p, max);
+    }
+
+    m_boundary.start = min;
+    m_boundary.end   = max;
 }
 } // namespace vke
