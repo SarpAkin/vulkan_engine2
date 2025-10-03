@@ -224,11 +224,18 @@ layout(location = 0) in vec2 f_uv;
 
 layout(location = 0) out vec4 o_color;
 
-vec3 norm2col(vec3 n){
+vec3 norm2col(vec3 n) {
     // return n*0.5+0.5;
-    return (n * inversesqrt(max(abs(n),0.01))) * 0.5 + 0.5;
-}
 
+    const int bmin = 10, bmax = 70;
+    if (gl_FragCoord.x >= bmin && gl_FragCoord.x <= bmax && gl_FragCoord.y >= bmin && gl_FragCoord.y <= bmax) {
+        if (gl_FragCoord.x == bmin || gl_FragCoord.x == bmax) return vec3(0);
+        if (gl_FragCoord.y == bmin || gl_FragCoord.y == bmax) return vec3(0);
+        n = view.frustum.planes[0].xyz;
+    }
+
+    return (n * inversesqrt(max(abs(n), 0.01))) * 0.5 + 0.5;
+}
 
 void main() {
     vec3 albedo = texture(textures[0], f_uv).xyz;
