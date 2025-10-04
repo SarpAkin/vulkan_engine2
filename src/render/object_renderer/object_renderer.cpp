@@ -49,7 +49,6 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
 
     m_resource_manager = std::make_unique<ResourceManager>(render_server);
 
-    pg_provider->set_layouts["vke::object_renderer::material_set"] = m_resource_manager->get_material_set_layout();
     pg_provider->set_layouts["vke::object_renderer::view_set"]     = m_view_set_layout;
 
     for (auto& framely : m_framely_data) {

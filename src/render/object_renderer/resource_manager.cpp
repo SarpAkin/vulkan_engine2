@@ -10,10 +10,8 @@
 namespace vke {
 
 ResourceManager::ResourceManager(RenderServer* render_server) : m_render_server(render_server) {
-    vke::DescriptorSetLayoutBuilder layout_builder;
-    layout_builder.add_image_sampler(VK_SHADER_STAGE_FRAGMENT_BIT, 4);
-    // layout_builder.add_ubo(VK_SHADER_STAGE_ALL, 1);
-    m_material_set_layout = layout_builder.build();
+
+    m_material_set_layout = render_server->get_pipeline_loader()->get_pipeline_globals_provider()->set_layouts["vke::object_renderer::material_set"];
 
     m_descriptor_pool = std::make_unique<vke::DescriptorPool>();
 

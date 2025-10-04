@@ -129,7 +129,21 @@
       },
       "shader_files": [
         "@vke/depth_mip_chain.comp"
-      ] 
+      ]
+    }
+  ],
+  "set_layouts": [
+    {
+      "name": "vke::object_renderer::material_set",
+      "bindings": [
+        {
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "count": 4,
+          "stages": [
+            "FRAGMENT"
+          ]
+        }
+      ]
     }
   ]
 }
