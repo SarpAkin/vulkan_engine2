@@ -1,5 +1,6 @@
 #include "resource_manager.hpp"
 
+#include <vke/pipeline_files.hpp>
 #include <vke/pipeline_loader.hpp>
 #include <vke/vke_builders.hpp>
 
@@ -284,8 +285,17 @@ bool ResourceManager::bind_material(BindState* state, MaterialID id) {
 
 ResourceManager::BindState ResourceManager::create_bindstate(vke::CommandBuffer& cmd, const RenderTargetInfo* target_info) {
     return BindState{
-        .cmd = cmd,
+        .cmd     = cmd,
         .rd_info = target_info,
     };
 };
+
+void ResourceManager::load_multipipelines() {
+    auto pl = m_render_server->get_pipeline_loader();
+    for (auto& pipeline_file : pl->get_pipeline_files()) {
+        for (auto& multi_pipeline_detail : pipeline_file->multi_pipelines) {
+            create_multi_target_pipeline(multi_pipeline_detail.name, multi_pipeline_detail.pipelines);
+        }
+    }
+}
 } // namespace vke

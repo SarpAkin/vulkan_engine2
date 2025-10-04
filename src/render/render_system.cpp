@@ -28,6 +28,8 @@ RenderSystem::RenderSystem(GameEngine* game_engine) {
 
     m_render_pipeline = std::make_unique<DeferredRenderPipeline>(m_render_server.get());
     m_render_pipeline->set_camera(m_scene->get_camera());
+
+    obj_renderer->get_resource_manager()->load_pipelines();
 }
 
 RenderSystem::~RenderSystem() {

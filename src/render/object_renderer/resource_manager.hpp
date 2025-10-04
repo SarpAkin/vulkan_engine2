@@ -29,7 +29,7 @@ public:
         IPipeline* bound_pipeline                 = nullptr;
         const Mesh* mesh                          = nullptr;
         const ResourceManager::Material* material = nullptr;
-        const RenderTargetInfo* rd_info                 = nullptr;
+        const RenderTargetInfo* rd_info           = nullptr;
     };
 
 public:
@@ -87,14 +87,18 @@ public: // creation
     void bind_name2model(RenderModelID id, const std::string& name);
 
 public: // render state binding
-    BindState create_bindstate(vke::CommandBuffer& cmd,const RenderTargetInfo* target_info);
+    BindState create_bindstate(vke::CommandBuffer& cmd, const RenderTargetInfo* target_info);
 
     bool bind_mesh(BindState* state, MeshID id);
     bool bind_material(BindState* state, MaterialID id);
 
+public:
+    void load_pipelines(){load_multipipelines();}
+
 private:
     void calculate_boundary(RenderModel& model);
     void create_null_texture(int size);
+    void load_multipipelines();
 
     RCResource<vke::IPipeline> load_pipeline_cached(const std::string& name);
 
