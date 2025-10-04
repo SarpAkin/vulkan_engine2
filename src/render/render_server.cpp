@@ -25,6 +25,7 @@ void RenderServer::init() {
     vke::ContextConfig config{
         .app_name    = "app0",
         .features1_0 = {
+            .geometryShader        = true,
             .tessellationShader    = true,
             .shaderFloat64         = true,
             .shaderInt64           = true,
@@ -55,7 +56,7 @@ void RenderServer::init() {
     m_pipeline_loader = vke::IPipelineLoader::make_debug_loader(IPipelineLoader::DebugLoaderArguments{
         .pipeline_search_paths = {"./src/", vke_engine_path / "src/render/shader"},
         .shader_lib_paths      = {vke_engine_path / "src/render/shader/shader_lib"},
-        .reloadable = true,
+        .reloadable            = true,
     });
 
     auto pg_provider = std::make_unique<vke::PipelineGlobalsProvider>();
