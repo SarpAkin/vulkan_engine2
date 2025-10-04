@@ -98,38 +98,39 @@
         "@vke/deferred.vert",
         "@vke/deferred.frag"
       ]
-    },
+    }
+  ],
+  "set_layouts": [
     {
-      "name": "vke::object_renderer::cull_shader",
-      "compiler_definitions": {},
-      "set_layouts": {
-        "vke::object_renderer::view_set": 0,
-        "vke::indirect_scene_set_layout": 1
-      },
-      "shader_files": [
-        "@vke/cull_shader.comp"
+      "name": "vke::object_renderer::material_set",
+      "bindings": [
+        {
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "count": 4,
+          "stages": [
+            "FRAGMENT"
+          ]
+        }
       ]
     },
     {
-      "name": "vke::object_renderer::indirect_draw_gen",
-      "compiler_definitions": {},
-      "set_layouts": {
-        "vke::object_renderer::view_set": 0,
-        "vke::indirect_scene_set_layout": 1
-      },
-      "shader_files": [
-        "@vke/indirect_draw_gen.comp"
+      "name": "vke::object_renderer::view_set",
+      "bindings": [
+        {
+          "type": "UNIFORM_BUFFER",
+          "count": 1,
+          "stages": [
+            "ALL"
+          ]
+        },
+        {
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "count": 1,
+          "stages": [
+            "COMPUTE"
+          ]
+        }
       ]
-    },
-    {
-      "name": "vke::depth_mip_pipeline",
-      "compiler_definitions": {},
-      "set_layouts": {
-        "vke::depth_mip_chain_set": 0
-      },
-      "shader_files": [
-        "@vke/depth_mip_chain.comp"
-      ] 
     }
   ]
 }

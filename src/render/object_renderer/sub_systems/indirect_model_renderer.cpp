@@ -267,28 +267,12 @@ void IndirectModelRenderer::render(RenderArguments& args) {
 
 void IndirectModelRenderer::update(vke::CommandBuffer& cmd) {
     debug_menu();
-    
+
     m_scene_data->updates_for_indirect_render(cmd);
 }
 
 void IndirectModelRenderer::create_irb_set_layout() {
-    vke::DescriptorSetLayoutBuilder builder;
-
-    builder.add_ssbo(VK_SHADER_STAGE_ALL);
-    builder.add_ssbo(VK_SHADER_STAGE_ALL);
-
-    builder.add_ssbo(VK_SHADER_STAGE_COMPUTE_BIT);
-    builder.add_ssbo(VK_SHADER_STAGE_COMPUTE_BIT);
-    builder.add_ssbo(VK_SHADER_STAGE_COMPUTE_BIT);
-    builder.add_ssbo(VK_SHADER_STAGE_COMPUTE_BIT);
-
-    builder.add_ssbo(VK_SHADER_STAGE_ALL);
-    builder.add_ssbo(VK_SHADER_STAGE_ALL);
-    builder.add_ssbo(VK_SHADER_STAGE_ALL);
-
-    m_indirect_render_set_layout = builder.build();
-
-    m_render_server->get_pipeline_loader()->get_pipeline_globals_provider()->set_layouts["vke::indirect_scene_set_layout"] = m_indirect_render_set_layout;
+    m_indirect_render_set_layout = m_render_server->get_pipeline_loader()->get_pipeline_globals_provider()->set_layouts["vke::indirect_scene_set_layout"];
 }
 
 void IndirectModelRenderer::create_descriptor_set_for_irb(IndirectRenderBuffers& render_buffers) {
