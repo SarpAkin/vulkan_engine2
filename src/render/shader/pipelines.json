@@ -144,6 +144,25 @@
           ]
         }
       ]
+    },
+    {
+      "name": "vke::object_renderer::view_set",
+      "bindings": [
+        {
+          "type": "UNIFORM_BUFFER",
+          "count": 1,
+          "stages": [
+            "ALL"
+          ]
+        },
+        {
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "count": 1,
+          "stages": [
+            "COMPUTE"
+          ]
+        }
+      ]
     }
   ]
 }

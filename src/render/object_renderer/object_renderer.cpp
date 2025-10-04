@@ -35,21 +35,13 @@ ObjectRenderer::ObjectRenderer(RenderServer* render_server) {
 
     m_dummy_buffer = std::make_unique<vke::Buffer>(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 256, false);
 
-    // View set layout
-    {
-        vke::DescriptorSetLayoutBuilder layout_builder;
-        layout_builder.add_ubo(VK_SHADER_STAGE_ALL); // scene_view
 
-        layout_builder.add_image_sampler(VK_SHADER_STAGE_COMPUTE_BIT);
-
-        m_view_set_layout = layout_builder.build();
-    }
 
     auto pg_provider = m_render_server->get_pipeline_loader()->get_pipeline_globals_provider();
 
     m_resource_manager = std::make_unique<ResourceManager>(render_server);
 
-    pg_provider->set_layouts["vke::object_renderer::view_set"]     = m_view_set_layout;
+    m_view_set_layout = pg_provider->set_layouts["vke::object_renderer::view_set"];
 
     for (auto& framely : m_framely_data) {
     }
