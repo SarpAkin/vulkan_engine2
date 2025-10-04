@@ -1,0 +1,106 @@
+{
+  "pipelines": [
+    {
+      "name": "vke::object_renderer::cull_shader",
+      "compiler_definitions": {},
+      "set_layouts": {
+        "vke::object_renderer::view_set": 0,
+        "vke::indirect_scene_set_layout": 1
+      },
+      "shader_files": [
+        "@vke/cull_shader.comp"
+      ]
+    },
+    {
+      "name": "vke::object_renderer::indirect_draw_gen",
+      "compiler_definitions": {},
+      "set_layouts": {
+        "vke::object_renderer::view_set": 0,
+        "vke::indirect_scene_set_layout": 1
+      },
+      "shader_files": [
+        "@vke/indirect_draw_gen.comp"
+      ]
+    },
+    {
+      "name": "vke::depth_mip_pipeline",
+      "compiler_definitions": {},
+      "set_layouts": {
+        "vke::depth_mip_chain_set": 0
+      },
+      "shader_files": [
+        "@vke/depth_mip_chain.comp"
+      ]
+    }
+  ],
+  "set_layouts": [
+    {
+      "name": "vke::indirect_scene_set_layout",
+      "bindings": [
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "ALL"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "ALL"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "COMPUTE"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "COMPUTE"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "COMPUTE"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "COMPUTE"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "ALL"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "ALL"
+          ]
+        },
+        {
+          "type": "STORAGE_BUFFER",
+          "count": 1,
+          "stages": [
+            "ALL"
+          ]
+        }
+      ]
+    }
+  ]
+}
